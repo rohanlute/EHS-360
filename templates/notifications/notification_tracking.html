@@ -5,7 +5,8 @@
 {% block page_title %}{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="#">Notification Tracking</a></li>
+<li class="breadcrumb-item"><a href="{% url 'notifications:notification_master_create' %}">Configure notifications role</a></li>
+<li class="breadcrumb-item">Notification Tracking</li>
 {% endblock %}
 
 {% block extra_css %}
@@ -205,15 +206,21 @@
                 {% for row in records %}
                 <tr>
                     <td>
-                        {% if row.module == 'INCIDENT' %}
+                    {% with row.module|upper as module %}
+                        {% if module == 'INCIDENT' %}
                             <span class="module-badge badge-incident">Incident</span>
-                        {% elif row.module == 'HAZARD' %}
+                        {% elif module == 'HAZARD' %}
                             <span class="module-badge badge-hazard">Hazard</span>
-                        {% elif row.module == 'ENVIRONMENTAL' %}
+                        {% elif module == 'ENVIRONMENTAL' %}
                             <span class="module-badge badge-environmental">Environmental</span>
-                        {% elif row.module == 'INSPECTION' %}
+                        {% elif module == 'INSPECTION' %}
                             <span class="module-badge badge-inspection">Inspection</span>
+                        {% else %}
+                            <span class="module-badge bg-secondary text-white">
+                                {{ row.module }}
+                            </span>
                         {% endif %}
+                    {% endwith %}
                     </td>
 
                     <td>

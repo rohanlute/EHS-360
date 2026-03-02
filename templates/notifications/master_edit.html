@@ -138,7 +138,7 @@
     </div>
 
     <div id="collapseEnv"
-         class="collapse {% if config.module == 'ENV' %}show{% endif %}">
+         class="collapse {% if config.module == 'ENVIRONMENTAL' %}show{% endif %}">
         <div class="module-body">
             {% for code, name in NOTIFICATION_EVENT_CHOICES %}
                 {% if code|slice:":3" == "ENV" %}
@@ -147,7 +147,7 @@
                            type="radio"
                            name="notification_event"
                            value="{{ code }}"
-                           data-module="ENV"
+                           data-module="ENVIRONMENTAL"
                            {% if config.notification_event == code %}checked{% endif %}>
                     <label class="form-check-label">{{ name }}</label>
                 </div>
