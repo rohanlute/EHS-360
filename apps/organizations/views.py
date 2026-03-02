@@ -541,7 +541,7 @@ class ZoneUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
     success_url = reverse_lazy('organizations:zone_list')
     
     def form_valid(self, form):
-        self.object = form.save()
+        self.object = form.save() 
          
         # DEBUG: Print all POST data
         print("=" * 50)

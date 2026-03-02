@@ -149,7 +149,7 @@
                                     <th>Category</th>
                                     <th>Environmental Question/Indicator</th>
                                     <th>Month</th>
-                                    <th class="text-right">Reported Value</th>
+                                    <th>Reported Value</th>
                                     <th>Last Updated</th>
                                 </tr>
                             </thead>
@@ -161,7 +161,7 @@
                                     <td><span class="badge badge-light border">{{ entry.indicator.unit_category.name|default:"General" }}</span></td>
                                     <td>{{ entry.indicator.question_text }}</td>
                                     <td><span class="badge badge-soft-primary">{{ entry.month }}</span></td>
-                                    <td class="text-right font-weight-bold text-dark">{{ entry.value }}</td>
+                                    <td class="font-weight-bold text-dark">{{ entry.value }}</td>
                                     <td><small>{% if entry.updated_at %}{{ entry.updated_at|date:"d M Y, H:i" }}{% else %}Auto Generated{% endif %}</small></td>
                                 </tr>
                                 {% empty %}
