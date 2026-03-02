@@ -38,6 +38,10 @@ class ZoneForm(forms.ModelForm):
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
+    # ✅ ADD THIS PART
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
 
 class LocationForm(forms.ModelForm):
     plant = forms.ModelChoiceField(
