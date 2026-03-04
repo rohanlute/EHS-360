@@ -13,63 +13,63 @@
 <div class="container-fluid">
     <!-- Statistics Cards -->
     <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white shadow">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h6 class="text-uppercase mb-1">Total Assigned</h6>
-                            <h2 class="mb-0">{{ total_assigned }}</h2>
-                        </div>
-                        <i class="fas fa-clipboard-list fa-3x opacity-50"></i>
+    <!-- Total Assigned -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-uppercase mb-1">Total Assigned</h6>
+                        <h2 class="mb-0">{{ total_assigned }}</h2>
                     </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white shadow">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h6 class="text-uppercase mb-1">Pending</h6>
-                            <h2 class="mb-0">{{ pending_count }}</h2>
-                        </div>
-                        <i class="fas fa-clock fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-info text-white shadow">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h6 class="text-uppercase mb-1">In Progress</h6>
-                            <h2 class="mb-0">{{ in_progress_count }}</h2>
-                        </div>
-                        <i class="fas fa-spinner fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-danger text-white shadow">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h6 class="text-uppercase mb-1">Overdue</h6>
-                            <h2 class="mb-0">{{ overdue_count }}</h2>
-                        </div>
-                        <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
-                    </div>
+                    <i class="fas fa-clipboard-list fa-3x opacity-50"></i>
                 </div>
             </div>
         </div>
     </div>
-
+    <!-- Pending (For You) -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white shadow">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-uppercase mb-1">Pending (For You)</h6>
+                        <h2 class="mb-0">{{ pending_count }}</h2>
+                    </div>
+                    <i class="fas fa-clock fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Completed (By You) -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-success text-white shadow">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-uppercase mb-1">Completed</h6>
+                        <h2 class="mb-0">{{ completed_count }}</h2>
+                    </div>
+                    <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Overdue (For You) -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-danger text-white shadow">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-uppercase mb-1">Overdue (For You)</h6>
+                        <h2 class="mb-0">{{ overdue_count }}</h2>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     <!-- Main Card -->
     <div class="card shadow">
         <div class="card-header bg-light">
@@ -138,7 +138,7 @@
                     </thead>
                     <tbody>
                         {% for item in action_items %}
-                        <tr {% if item.is_overdue %}class="table-danger"{% endif %}>
+                        <tr {% if item.is_overdue and not item.user_has_completed %}class="table-danger"{% endif %}>
                             <!-- Hazard Info -->
                             <td>
                                 <a href="{% url 'hazards:hazard_detail' item.hazard.pk %}" class="text-primary font-weight-bold">
@@ -169,21 +169,28 @@
                             <!-- Target Date -->
                             <td>
                                 {{ item.target_date|date:"d M Y" }}
-                                {% if item.is_overdue and item.status != 'COMPLETED' %}
+                                {% if item.is_overdue and not item.user_has_completed %}
                                     <br><span class="badge badge-danger badge-sm">
                                         <i class="fas fa-exclamation-triangle"></i> Overdue
                                     </span>
                                 {% endif %}
                             </td>
                             
-                            <!-- Status -->
+                            <!-- Your Status -->
                             <td>
-                                <span class="badge 
-                                    {% if item.status == 'COMPLETED' %}badge-success
-                                    {% elif item.status == 'IN_PROGRESS' %}badge-info
-                                    {% else %}badge-warning{% endif %}">
-                                    {{ item.get_status_display }}
-                                </span>
+                                {% if item.user_has_completed %}
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-check-circle"></i> Completed
+                                    </span>
+                                {% else %}
+                                    <span class="badge 
+                                        {% if item.status == 'IN_PROGRESS' %}badge-info
+                                        {% elif item.status == 'PENDING' %}badge-warning
+                                        {% else %}badge-secondary{% endif %}">
+                                        {{ item.get_status_display }}
+                                    </span>
+                                    <br><small class="text-muted">Your action is pending</small>
+                                {% endif %}
                             </td>
                             
                             <!-- Created By -->
@@ -199,24 +206,29 @@
                             <td>
                                 <div class="btn-group" role="group">
                                     <a href="{% url 'hazards:hazard_detail' item.hazard.pk %}" 
-                                       class="btn btn-sm btn-info" 
-                                       title="View Hazard">
+                                    class="btn btn-sm btn-info" 
+                                    title="View Hazard">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     
-                                    {% if item.status != 'COMPLETED' %}
+                                    {% if not item.user_has_completed %}
                                         <a href="{% url 'hazards:action_item_complete' item.pk %}" 
-                                           class="btn btn-sm btn-success" 
-                                           title="Mark as Complete">
+                                        class="btn btn-sm btn-success" 
+                                        title="Mark my part as Complete">
                                             <i class="fas fa-check-circle"></i>
                                         </a>
+                                    {% else %}
+                                        <!-- Optional: Show a disabled button for completed items -->
+                                        <button class="btn btn-sm btn-outline-success" disabled>
+                                        <i class="fas fa-check"></i> Done
+                                        </button>
                                     {% endif %}
                                     
                                     {% if item.attachment %}
                                         <a href="{{ item.attachment.url }}" 
-                                           class="btn btn-sm btn-secondary" 
-                                           target="_blank"
-                                           title="View Attachment">
+                                        class="btn btn-sm btn-secondary" 
+                                        target="_blank"
+                                        title="View Attachment">
                                             <i class="fas fa-paperclip"></i>
                                         </a>
                                     {% endif %}

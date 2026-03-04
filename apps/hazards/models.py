@@ -535,13 +535,19 @@ class HazardActionItem(models.Model):
     )
 
     # --- ADD THIS FIELD ---
-    completed_by = models.ForeignKey(
+    # completed_by = models.ForeignKey(
+    #     User,
+    #     on_delete=models.SET_NULL,
+    #     null=True,
+    #     blank=True,
+    #     related_name='hazard_actions_completed',
+    #     help_text="User who completed this action item"
+    # )
+    completed_by_users = models.ManyToManyField(
         User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
         related_name='hazard_actions_completed',
-        help_text="User who completed this action item"
+        blank=True,
+        help_text="Users who have completed this action item"
     )
     
     verified_by = models.ForeignKey(
@@ -633,17 +639,50 @@ class HazardActionItem(models.Model):
         }
         return status_classes.get(self.status, 'badge-secondary')
     
+    @property
+    def is_fully_completed(self):
+        """
+        Checks if all responsible users have completed the action item.
+        Returns True only when the number of completed users matches the number of assigned users.
+        """
+        responsible_users_count = self.get_emails_count()
+        completed_users_count = self.completed_by_users.count()
+        
+        # If no one is assigned, it cannot be considered complete.
+        if responsible_users_count == 0:
+            return False
+            
+        return responsible_users_count > 0 and responsible_users_count == completed_users_count
+
+    def get_pending_users(self):
+        """
+        Returns a queryset of responsible users who have NOT yet completed the action.
+        """
+        responsible_users = self.get_responsible_users()
+        completed_users = self.completed_by_users.all()
+        
+        # Exclude the users who have already completed the action
+        pending_users = responsible_users.exclude(pk__in=completed_users.values_list('pk', flat=True))
+        return pending_users
+        
+    # --- MODIFIED SAVE METHOD ---
+    
     def save(self, *args, **kwargs):
-        # Auto-update status to OVERDUE if past target date
-        if self.status not in ['COMPLETED', 'OVERDUE'] and self.target_date:
-            if datetime.date.today() > self.target_date:
-                self.status = 'OVERDUE'
-        
-        # Set completion date if status is COMPLETED and not already set
-        if self.status == 'COMPLETED' and not self.completion_date:
-            self.completion_date = datetime.date.today()
-        
-        super().save(*args, **kwargs)
+            # --- MODIFIED LOGIC ---
+            # If the object is already saved in the database (has a primary key),
+            # then we can safely check its many-to-many relationships.
+            if self.pk:
+                if self.is_fully_completed:
+                    self.status = 'COMPLETED'
+                    # Set completion date only when it becomes fully completed.
+                    if not self.completion_date:
+                        self.completion_date = timezone.now().date()
+                # If some but not all have completed, it's in progress.
+                elif self.completed_by_users.exists() and not self.is_fully_completed:
+                    self.status = 'IN_PROGRESS'
+            
+            # Continue with the original save operation for both new and existing objects
+            super().save(*args, **kwargs)
 
 class HazardNotification(models.Model):
 

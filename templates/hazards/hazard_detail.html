@@ -325,68 +325,79 @@
                 <div class="card-body">
                     {% if action_items %}
                         {% for action in action_items %}
-                        <div class="card action-item-card {% if action.status == 'COMPLETED' %}completed{% elif action.is_overdue %}overdue{% endif %} mb-3">
-                            <div class="card-body">
-                                <!-- Action Description -->
-                                <div class="row mb-2">
-                                    <div class="col-md-8">
-                                        <h6><i class="fas fa-clipboard-check"></i> {{ action.action_description }}</h6>
-                                    </div>
-                                    <div class="col-md-4 text-right">
-                                        <span class="badge {% if action.status == 'COMPLETED' %}badge-success{% elif action.status == 'PENDING' %}badge-warning{% elif action.status == 'IN_PROGRESS' %}badge-info{% else %}badge-secondary{% endif %} badge-lg">{{ action.get_status_display }}</span>
-                                    </div>
-                                </div>
+                        <div class="card action-item-card {% if action.is_fully_completed %}completed{% elif action.is_overdue %}overdue{% endif %} mb-3">
+    <div class="card-body">
+        <!-- Action Description & Main Status Badge -->
+        <div class="row mb-2">
+            <div class="col-md-8">
+                <h6><i class="fas fa-clipboard-check"></i> {{ action.action_description }}</h6>
+            </div>
+            <div class="col-md-4 text-right">
+                <!-- LOGIC CHANGE: The badge now reflects the overall completion status -->
+                <span class="badge {% if action.is_fully_completed %}badge-success{% elif action.status == 'IN_PROGRESS' %}badge-info{% elif action.status == 'PENDING' %}badge-warning{% else %}badge-secondary{% endif %} badge-lg">
+                    {% if action.is_fully_completed %}
+                        Completed
+                    {% else %}
+                        {{ action.get_status_display }}
+                    {% endif %}
+                </span>
+            </div>
+        </div>
 
-                                <hr class="my-2">
+        <hr class="my-2">
 
-                                <!-- Assigned To (Emails) -->
-                                <div class="row mb-2">
-                                    <div class="col-md-12">
-                                        <p class="mb-1">
-                                            <i class="fas fa-envelope"></i> <strong>Assigned To:</strong>
-                                        </p>
-                                        {% if action.responsible_emails %}
-                                            <div>
-                                                {% for email in action.get_emails_list %}
-                                                    <span class="badge badge-primary mr-1 mb-1">{{ email }}</span>
-                                                {% endfor %}
-                                            </div>
-                                            <small class="text-muted">Total: {{ action.get_emails_count }} email(s)</small>
-                                            
-                                            <!-- Self-Assigned Indicator -->
-                                            {% if action.get_emails_count == 1 and user.email in action.get_emails_list %}
-                                                <span class="badge badge-success ml-2">
-                                                    <i class="fas fa-user-check"></i> Self-Assigned
-                                                </span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="text-muted">Not assigned</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
+        <!-- LOGIC CHANGE: Display per-user completion status -->
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <p class="mb-1">
+                    <i class="fas fa-users"></i> <strong>Assigned To:</strong>
+                    <small class="text-muted ml-2">{{ action.completed_by_users.count }} of {{ action.get_emails_count }} completed</small>
+                </p>
+                {% if action.responsible_emails %}
+                    <div>
+                        <!-- List users who have completed the action -->
+                        {% for user in action.completed_by_users.all %}
+                            <span class="badge badge-success mr-1 mb-1" title="Completed by {{ user.get_full_name }}">
+                                <i class="fas fa-check-circle"></i> {{ user.get_full_name|default:user.email }}
+                            </span>
+                        {% endfor %}
 
-                                <!-- Target Date -->
-                                <div class="row mb-2">
-                                    <div class="col-md-6">
-                                        <p class="mb-0">
-                                            <i class="fas fa-calendar"></i> <strong>Target Date:</strong> 
-                                            {{ action.target_date|date:"d M Y" }}
-                                            {% if action.is_overdue %}
-                                                <span class="badge badge-danger ml-2">
-                                                    <i class="fas fa-exclamation-triangle"></i> OVERDUE
-                                                </span>
-                                            {% endif %}
-                                        </p>
-                                    </div>
-                                    {% if action.completion_date %}
-                                    <div class="col-md-6">
-                                        <p class="mb-0">
-                                            <i class="fas fa-check-circle text-success"></i> <strong>Completed:</strong> 
-                                            {{ action.completion_date|date:"d M Y" }}
-                                        </p>
-                                    </div>
-                                    {% endif %}
-                                </div>
+                        <!-- List users whose action is still pending -->
+                        {% for user in action.get_pending_users %}
+                             <span class="badge badge-warning mr-1 mb-1" title="Pending for {{ user.get_full_name }}">
+                                <i class="fas fa-clock"></i> {{ user.get_full_name|default:user.email }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <span class="text-muted">Not assigned</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Target and Completion Date -->
+        <div class="row mb-2">
+            <div class="col-md-6">
+                <p class="mb-0">
+                    <i class="fas fa-calendar"></i> <strong>Target Date:</strong> 
+                    {{ action.target_date|date:"d M Y" }}
+                    {% if action.is_overdue and not action.is_fully_completed %}
+                        <span class="badge badge-danger ml-2">
+                            <i class="fas fa-exclamation-triangle"></i> OVERDUE
+                        </span>
+                    {% endif %}
+                </p>
+            </div>
+            <!-- LOGIC CHANGE: Only show completion date if fully completed -->
+            {% if action.completion_date and action.is_fully_completed %}
+            <div class="col-md-6">
+                <p class="mb-0">
+                    <i class="fas fa-check-circle text-success"></i> <strong>Fully Completed:</strong> 
+                    {{ action.completion_date|date:"d M Y" }}
+                </p>
+            </div>
+            {% endif %}
+        </div>
 
                                 <!-- Attachment -->
                                 {% if action.attachment %}

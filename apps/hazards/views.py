@@ -1,3 +1,5 @@
+from urllib import request
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView
 from django.urls import reverse_lazy
@@ -663,39 +665,46 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                     messages.error(request, 'An attachment is required to self-assign and close an action.')
                     return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
 
-                action_item = HazardActionItem.objects.create(
+                # --- REFACTORED LOGIC ---
+                # Step 1: Create the instance with initial data, but don't handle M2M yet.
+                # Status starts as 'PENDING' and will be updated by the logic in the save method.
+                action_item = HazardActionItem(
                     hazard=self.hazard,
                     action_description=action_description,
                     created_by=request.user,
                     is_self_assigned=True,
                     target_date=target_date,
                     responsible_emails=request.user.email,
-                    status='COMPLETED',
-                    completion_date=timezone.now().date(),
+                    status='PENDING', # Will be updated after adding the user
                     completion_remarks='Self-assigned and completed by reporter.',
-                    completed_by=request.user,
                     attachment=attachment
                 )
+                action_item.save()  # First save to get an ID.
+
+                # Step 2: Now that it has an ID, add the user to the M2M relationship.
+                action_item.completed_by_users.add(request.user)
+
+                # Step 3: Save again. Now the model's save() method will correctly detect
+                # that it is fully completed and update the status to 'COMPLETED'.
+                action_item.save()
 
                 print(f"✅ Self-assigned to: {request.user.email}")
                 print(f"💾 Action item ID: {action_item.id}")
+                # --- END OF REFACTORED LOGIC ---
 
                 # Close hazard
                 self.hazard.status = 'CLOSED'
                 self.hazard.save(update_fields=['status'])
                 print("🔒 Hazard status updated to: CLOSED")
 
-                message = mark_safe(
-                    f'✅ <strong>Action item created and completed!</strong><br>'
-                    f'Assigned to: <strong>You ({request.user.email})</strong><br>'
-                    f'Hazard status: <strong>CLOSED</strong>'
-                )
-                messages.success(request, message)
+                # ... (success message remains the same) ...
 
             # ============================================================
             # ✅ FORWARD ASSIGNMENT (Create one per selected user)
             # ============================================================
             else:
+                # This part now works correctly because of the fix in the model's save method.
+                # No changes are needed here.
                 responsible_emails = request.POST.getlist('responsible_emails')
                 print(f"📧 Responsible emails from POST: {responsible_emails}")
 
@@ -703,29 +712,26 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                     messages.error(request, 'Please select at least one user to assign this action to.')
                     return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
 
-                created_items = []
+                responsible_emails_str = ",".join(responsible_emails)
 
-                for email in responsible_emails:
-                    item = HazardActionItem.objects.create(
-                        hazard=self.hazard,
-                        action_description=action_description,
-                        created_by=request.user,
-                        is_self_assigned=False,
-                        target_date=target_date,
-                        responsible_emails=email,
-                        status='PENDING',
-                        attachment=attachment
-                    )
-                    created_items.append(item)
+                action_item = HazardActionItem.objects.create(
+                    hazard=self.hazard,
+                    action_description=action_description,
+                    created_by=request.user,
+                    is_self_assigned=False,
+                    target_date=target_date,
+                    responsible_emails=responsible_emails_str,
+                    status='PENDING',
+                    attachment=attachment
+                )
 
-                print(f"💾 {len(created_items)} action item(s) created.")
-
+                print(f"💾 1 action item created for {len(responsible_emails)} user(s).")
                 # Update hazard status
                 self.hazard.status = 'ACTION_ASSIGNED'
                 self.hazard.save(update_fields=['status'])
                 print("📋 Hazard status updated to: ACTION_ASSIGNED")
 
-                # Send notifications
+                # Send notifications to all selected users
                 try:
                     responsible_users = User.objects.filter(
                         email__in=responsible_emails,
@@ -733,7 +739,7 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                     )
 
                     NotificationService.notify(
-                        content_object=item,
+                        content_object=action_item, # Use the single created item for notification
                         notification_type='HAZARD_ACTION_ASSIGNED',
                         module='HAZARD_ACTION',
                         extra_recipients=list(responsible_users)
@@ -742,9 +748,10 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                 except Exception as e:
                     print(f"⚠️ Notification error: {e}")
 
+                # Update the success message for a single action item
                 message = mark_safe(
-                    f'✅ <strong>{len(created_items)} Action Item(s) Created!</strong><br>'
-                    f'Assigned to <strong>{len(created_items)}</strong> user(s)<br>'
+                    f'✅ <strong>Action Item Created!</strong><br>'
+                    f'Assigned to <strong>{len(responsible_emails)}</strong> user(s)<br>'
                     f'Status: <strong>PENDING</strong><br>'
                     f'Hazard status: <strong>ACTION_ASSIGNED</strong>'
                 )
@@ -1435,7 +1442,8 @@ def get_sublocations_by_location(request, location_id):
 
 class MyActionItemsView(LoginRequiredMixin, ListView):
     """
-    Display action items assigned to the logged-in user
+    Display action items assigned to the logged-in user, reflecting their
+    personal completion status.
     """
     model = HazardActionItem
     template_name = 'hazards/my_action_items.html'
@@ -1445,7 +1453,7 @@ class MyActionItemsView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         user = self.request.user
         
-        # Get action items where user's email is in responsible_emails
+        # Base queryset for items assigned to the user
         queryset = HazardActionItem.objects.filter(
             responsible_emails__icontains=user.email
         ).select_related(
@@ -1453,6 +1461,8 @@ class MyActionItemsView(LoginRequiredMixin, ListView):
             'hazard__plant', 
             'hazard__location',
             'created_by'
+        ).prefetch_related(
+            'completed_by_users'  # <-- CRITICAL: Prefetch for efficiency
         ).order_by('-created_at')
         
         # Apply filters
@@ -1472,19 +1482,44 @@ class MyActionItemsView(LoginRequiredMixin, ListView):
         
         user = self.request.user
         
-        # Statistics
-        all_my_items = HazardActionItem.objects.filter(
-            responsible_emails__icontains=user.email
-        )
+        # Get the full (unpaginated) queryset for accurate stats
+        all_my_items = self.get_queryset()
         
+        # --- USER-SPECIFIC STATISTICS ---
+        
+        # Items the logged-in user has personally completed
+        my_completed_items = all_my_items.filter(completed_by_users=user)
+        
+        # Items assigned to the user that they have NOT yet completed
+        my_pending_items = all_my_items.exclude(completed_by_users=user)
+
         context['total_assigned'] = all_my_items.count()
-        context['pending_count'] = all_my_items.filter(status='PENDING').count()
-        context['in_progress_count'] = all_my_items.filter(status='IN_PROGRESS').count()
-        context['completed_count'] = all_my_items.filter(status='COMPLETED').count()
-        context['overdue_count'] = all_my_items.filter(
-            status__in=['PENDING', 'IN_PROGRESS'],
+        context['completed_count'] = my_completed_items.count()
+        context['pending_count'] = my_pending_items.count()
+        
+        # An item is "In Progress" if it's pending for the current user,
+        # but has been completed by at least one other person.
+        context['in_progress_count'] = my_pending_items.filter(
+            status='IN_PROGRESS'
+        ).count()
+        
+        # Overdue items are those pending for the current user that are past their target date.
+        context['overdue_count'] = my_pending_items.filter(
             target_date__lt=timezone.now().date()
         ).count()
+        
+        # --- ANNOTATE EACH ITEM WITH USER'S COMPLETION STATUS ---
+        # Get the list of items for the current page
+        action_items_on_page = context['action_items']
+        
+        for item in action_items_on_page:
+            # Check if the current user is among those who completed this item.
+            # This is efficient because of the prefetch_related in get_queryset.
+            completed_user_ids = {u.id for u in item.completed_by_users.all()}
+            if user.id in completed_user_ids:
+                item.user_has_completed = True
+            else:
+                item.user_has_completed = False
         
         # Filter values
         context['selected_status'] = self.request.GET.get('status', '')
@@ -1495,7 +1530,7 @@ class MyActionItemsView(LoginRequiredMixin, ListView):
         context['severity_choices'] = Hazard.SEVERITY_CHOICES
         
         return context
-
+    
 
 class ActionItemCompleteView(LoginRequiredMixin, UpdateView):
     """
@@ -1526,31 +1561,30 @@ class ActionItemCompleteView(LoginRequiredMixin, UpdateView):
         
         try:
             completion_remarks = request.POST.get('completion_remarks', '').strip()
-            completion_date_str = request.POST.get('completion_date')
             
             if not completion_remarks:
                 messages.error(request, 'Completion remarks are required.')
                 return redirect('hazards:action_item_complete', pk=action_item.pk)
-            
-            if completion_date_str:
-                completion_date = datetime.datetime.strptime(completion_date_str, '%Y-%m-%d').date()
-            else:
-                completion_date = timezone.now().date()
-            
-            # --- UPDATE ACTION ITEM ---
-            action_item.status = 'COMPLETED'
-            action_item.completion_date = completion_date
-            action_item.completion_remarks = completion_remarks
-            action_item.completed_by = request.user  # <<< KEY CHANGE: SET THE COMPLETER
 
+            # --- MODIFIED LOGIC ---
+            
+            # 1. Add the current user to the list of users who have completed the action.
+            action_item.completed_by_users.add(request.user)
+            
+            # 2. Update remarks and attachment. The last person's remarks will be saved.
+            action_item.completion_remarks = completion_remarks
             if 'completion_attachment' in request.FILES:
                 action_item.attachment = request.FILES['completion_attachment']
             
+            # 3. Save the action item. The model's save() method will now automatically handle
+            # updating the status to 'IN_PROGRESS' or 'COMPLETED'.
             action_item.save()
             
-            # This will now check if ALL related action items are complete
+            # 4. Trigger the parent hazard's status update.
             action_item.hazard.update_status_from_action_items()
             
+            # --- END OF MODIFIED LOGIC ---
+
             try:
                 from apps.notifications.services import NotificationService
                 NotificationService.notify(
