@@ -563,7 +563,7 @@
                     <div class="status-timeline">
                         <div class="timeline-item">
                             <strong>Reported</strong>
-                            <p class="text-muted small mb-0">{{ hazard.report_timestamp|date:"d M Y, h:i A" }}</p>
+                            <p class="text-muted small mb-0"><i class="fas fa-calendar"></i> {{ hazard.report_timestamp|date:"d M Y, h:i A" }}</p>
                             <p class="text-muted small mb-0">By: {{ hazard.reported_by.get_full_name }}</p>
                         </div>
                         {% if hazard.behalf_person_name %}
@@ -574,21 +574,76 @@
                         {% endif %}
                         {% if hazard.assigned_to %}
                         <div class="timeline-item">
-                            <strong>Assigned</strong>
-                            <p class="text-muted small mb-0">To {{ hazard.assigned_to.get_full_name|default:hazard.assigned_to.username }}</p>
+                            <strong>Hazard Assigned</strong>
+                            <p class="text-muted small mb-0">
+                                To {{ hazard.assigned_to.get_full_name|default:hazard.assigned_to.username }}
+                            </p>
                         </div>
                         {% endif %}
-                        {% if hazard.approved_by %}
+                        {% comment %} {% if hazard.approved_by %}
                         <div class="timeline-item">
                             <strong>Approved</strong>
                             <p class="text-muted small mb-0">{{ hazard.approved_date|date:"d M Y, h:i A" }}</p>
                             <p class="text-muted small mb-0">By: {{ hazard.approved_by.get_full_name }}</p>
                         </div>
-                        {% endif %}
+                        {% endif %} {% endcomment %}
+                        {% for action in action_items %}
+                        <div class="timeline-item">
+                            <strong>
+                                <i class="fas fa-tasks"></i>
+                                Action item assigned
+                            </strong>
+
+                            <div class="mt-1">
+                                {% if action.is_self_assigned %}
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-user-check"></i> Self Assigned
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-warning text-dark">
+                                        <i class="fas fa-share"></i> Forward Assigned
+                                    </span>
+                                {% endif %}
+                                <span class="badge 
+                                    {% if action.status == 'COMPLETED' %}badge-success
+                                    {% elif action.status == 'PENDING' %}badge-warning
+                                    {% elif action.status == 'IN_PROGRESS' %}badge-info
+                                    {% else %}badge-secondary{% endif %}">
+                                    {{ action.get_status_display }}
+                                </span>
+                                {% if action.is_overdue %}
+                                    <span class="badge badge-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> Overdue
+                                    </span>
+                                {% endif %}
+
+                            </div>
+                            <p class="text-muted small mb-0 mt-1">
+                                <i class="fas fa-calendar"></i>
+                                Target: {{ action.target_date|date:"d M Y" }}
+                            </p>
+
+                            {% if action.completion_date %}
+                            <p class="text-success small mb-0">
+                                <i class="fas fa-check-circle"></i>
+                                Completed: {{ action.completion_date|date:"d M Y" }}
+                            </p>
+                            {% endif %}
+                            {% if action.responsible_emails %}
+                            <p class="text-muted small mb-0">
+                                <i class="fas fa-envelope"></i>
+                                {{ action.get_emails_count }} Assigned
+                            </p>
+                            {% endif %}
+
+                        </div>
+                        {% endfor %}
                         {% if hazard.action_completed_date %}
                         <div class="timeline-item">
-                            <strong>Action Completed</strong>
-                            <p class="text-muted small mb-0">{{ hazard.action_completed_date|date:"d M Y" }}</p>
+                            <strong>Hazard Action Completed</strong>
+                            <p class="text-success small mb-0">
+                                {{ hazard.action_completed_date|date:"d M Y" }}
+                            </p>
                         </div>
                         {% endif %}
                         {% if hazard.closure_date %}

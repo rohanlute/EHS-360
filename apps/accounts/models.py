@@ -177,6 +177,11 @@ class User(AbstractUser):
         verbose_name="can Create Users",
         help_text="Users can create users for their assigned plants only"
     )
+    can_access_organization=models.BooleanField(
+        default=False,
+        verbose_name="Can access organization",
+        help_text="User can access organization module"
+    )
  
     class Meta:
         ordering = ['first_name', 'last_name']
@@ -253,6 +258,7 @@ class User(AbstractUser):
             'CLOSE_INCIDENT': 'can_close_incidents',
             'CLOSE_HAZARD': 'can_close_hazards',
             'CAN_CREATE_USERS':'can_create_users',
+            'CAN_ACCESS_ORGANIZATION':'can_access_organization',
         }
         
         self._reset_all_permissions()
@@ -280,6 +286,7 @@ class User(AbstractUser):
         self.can_close_incidents = False
         self.can_close_hazards = False
         self.can_create_users=False
+        self.can_access_organization=False
 
     def has_permission(self, code):
         """Check if user has a specific permission by code"""

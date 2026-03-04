@@ -1,4 +1,4 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -14,44 +14,62 @@ from django.db.models.functions import Cast,Substr
 from django.db.models import IntegerField
 from django.db.models.functions import Lower
 
+class CanAccessOrganizationMixin(UserPassesTestMixin):
 
-class OrganizationDashboardView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
-    """Organization Setup Dashboard"""
-    template_name = 'organizations/dashboard.html'
+    def test_func(self):
+        user = self.request.user
+        return user.is_authenticated and (user.is_superuser or (user.role and user.role.name == 'ADMIN') or user.can_access_organization)
+
+    def get_allowed_plants(self):
+        user = self.request.user
+
+        if user.is_superuser or (user.role and user.role.name == 'ADMIN'):
+            return Plant.objects.all()
+
+        if user.can_access_organization:
+            return Plant.objects.filter(users=user)
+
+        return Plant.objects.none()
+
+    def handle_no_permission(self):
+        messages.error(self.request, 'You do not have permission to access this module.')
+        return redirect('dashboards:home')
     
+class OrganizationDashboardView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, TemplateView):
+    template_name = 'organizations/dashboard.html'
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+        allowed_plants = self.get_allowed_plants()
+
         # Plants
-        context['total_plants'] = Plant.objects.count()
-        context['active_plants'] = Plant.objects.filter(is_active=True).count()
-        
+        context['total_plants'] = allowed_plants.count()
+        context['active_plants'] = allowed_plants.filter(is_active=True).count()
+
         # Zones
-        context['total_zones'] = Zone.objects.count()
-        context['active_zones'] = Zone.objects.filter(is_active=True).count()
-        
+        zones = Zone.objects.filter(plant__in=allowed_plants)
+        context['total_zones'] = zones.count()
+        context['active_zones'] = zones.filter(is_active=True).count()
+
         # Locations
-        context['total_locations'] = Location.objects.count()
-        context['active_locations'] = Location.objects.filter(is_active=True).count()
-        
+        locations = Location.objects.filter(zone__plant__in=allowed_plants)
+        context['total_locations'] = locations.count()
+        context['active_locations'] = locations.filter(is_active=True).count()
+
         # Sub-Locations
-        context['total_sublocations'] = SubLocation.objects.count()
-        context['active_sublocations'] = SubLocation.objects.filter(is_active=True).count()
-        
+        sublocations = SubLocation.objects.filter(location__zone__plant__in=allowed_plants)
+        context['total_sublocations'] = sublocations.count()
+        context['active_sublocations'] = sublocations.filter(is_active=True).count()
+
         # Departments
         context['total_departments'] = Department.objects.count()
         context['active_departments'] = Department.objects.filter(is_active=True).count()
-        
-        # Employees (from User model)
-        from apps.accounts.models import User
-        context['total_employees'] = User.objects.filter(is_superuser=False).count()
-        context['active_employees'] = User.objects.filter(is_superuser=False, is_active=True).count()
-        
+
         return context
 
 # ==================== PLANT VIEWS ====================
 
-class PlantListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
+class PlantListView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, ListView):
     """List all plants"""
     model = Plant
     template_name = 'organizations/plant_list.html'
@@ -59,7 +77,9 @@ class PlantListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        queryset = Plant.objects.annotate(
+        queryset = self.get_allowed_plants()
+
+        queryset = queryset.annotate(
             zones_count=Count('zones', distinct=True),
             locations_count=Count('zones__locations', distinct=True),
             sublocations_count=Count('zones__locations__sublocations', distinct=True)
@@ -91,7 +111,7 @@ class PlantListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
         return context
 
 
-class PlantCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
+class PlantCreateView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, CreateView):
     """Create new plant"""
     model = Plant
     form_class = PlantForm
@@ -103,7 +123,7 @@ class PlantCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class PlantUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
+class PlantUpdateView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, UpdateView):
     """Update plant"""
     model = Plant
     form_class = PlantForm
@@ -115,7 +135,7 @@ class PlantUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class PlantDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
+class PlantDeleteView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, DeleteView):
     """Delete plant"""
     model = Plant
     template_name = 'organizations/plant_confirm_delete.html'
@@ -131,7 +151,7 @@ class PlantDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
 from django.http import JsonResponse
 from django.views import View
 
-class GetZonesForPlantView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
+class GetZonesForPlantView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, TemplateView):
     """AJAX view to get zones for a selected plant"""
     
     def get(self, request, *args, **kwargs):
@@ -314,7 +334,7 @@ class LocationDeleteView(LoginRequiredMixin, DeleteView):
 # ==================== DEPARTMENT VIEWS ====================
 from django.shortcuts import redirect
 
-class DepartmentListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
+class DepartmentListView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, ListView):
     """List all departments"""
     model = Department
     template_name = 'organizations/department_list.html'
@@ -351,7 +371,7 @@ class DepartmentListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
         return context
 
 
-class DepartmentCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
+class DepartmentCreateView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, CreateView):
     """Create new department"""
     model = Department
     form_class = DepartmentForm
@@ -363,7 +383,7 @@ class DepartmentCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class DepartmentUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
+class DepartmentUpdateView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, UpdateView):
     """Update department"""
     model = Department
     form_class = DepartmentForm
@@ -375,7 +395,7 @@ class DepartmentUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class DepartmentDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
+class DepartmentDeleteView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, DeleteView):
     """Delete department"""
     model = Department
     template_name = 'organizations/department_confirm_delete.html'
@@ -392,7 +412,7 @@ class DepartmentDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
 
 # ==================== ZONE VIEWS ====================
 
-class ZoneListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
+class ZoneListView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, ListView):
     """List all zones"""
     model = Zone
     template_name = 'organizations/zone_list.html'
@@ -400,7 +420,8 @@ class ZoneListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
     paginate_by = 10
     
     def get_queryset(self):
-        queryset = Zone.objects.select_related('plant').prefetch_related(
+        allowed_plants = self.get_allowed_plants()
+        queryset = Zone.objects.filter(plant__in=allowed_plants).select_related('plant').prefetch_related(
             'locations',
             'locations__sublocations'
         ).annotate(
@@ -420,20 +441,20 @@ class ZoneListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
         # Filter by plant
         plant = self.request.GET.get('plant')
         if plant:
-            queryset = queryset.filter(plant_id=plant)
-        
+            queryset = queryset.filter(plant_id=plant,plant__in=allowed_plants)
+
         # Filter by status
         status = self.request.GET.get('status')
         if status == 'active':
             queryset = queryset.filter(is_active=True)
         elif status == 'inactive':
             queryset = queryset.filter(is_active=False)
-        
+
         return queryset.order_by(Lower('name'))
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['plants'] = Plant.objects.filter(is_active=True)
+        context['plants'] = self.get_allowed_plants().filter(is_active=True)
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_plant'] = self.request.GET.get('plant', '')
         context['selected_status'] = self.request.GET.get('status', '')
@@ -441,7 +462,7 @@ class ZoneListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
 
 
 
-class ZoneCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
+class ZoneCreateView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, CreateView):
     """Create new zone with locations and sublocations"""
     model = Zone
     form_class = ZoneForm
@@ -533,7 +554,7 @@ class ZoneCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
         return redirect(self.success_url)
 
 
-class ZoneUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
+class ZoneUpdateView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, UpdateView):
     """Update zone with locations and sublocations"""
     model = Zone
     form_class = ZoneForm
@@ -666,7 +687,7 @@ class ZoneUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         messages.success(self.request, f'Zone "{self.object.name}" updated successfully!')
         return redirect(self.success_url)
 
-class ZoneDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
+class ZoneDeleteView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequiredMixin, DeleteView):
     """Delete zone"""
     model = Zone
     template_name = 'organizations/zone_confirm_delete.html'

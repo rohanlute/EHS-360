@@ -260,7 +260,7 @@
         </li>
 
         <!-- 2. Organization Setup - Admin only -->
-        {% if user.is_superuser or user.is_admin_user %}
+        {% if user.can_access_organization %}
         <li class="nav-item">
           <a href="{% url 'organizations:dashboard' %}" class="nav-link">
             <i class="nav-icon fas fa-sitemap"></i>
