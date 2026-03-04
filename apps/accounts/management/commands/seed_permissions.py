@@ -28,6 +28,8 @@ class Command(BaseCommand):
             # === USER MANAGEMENT ===
             ('CAN_CREATE_USERS', 'Can Create Users', 'Can create users for their assigned plants only',
             None, 'MANAGE', 0),
+            # === Organization Setup ===
+            ('CAN_ACCESS_ORGANIZATION', 'Access Organization Setup', 'Can Access Organization Setup',None,'MANAGE',0),
             # === INCIDENT MODULE ===
             ('ACCESS_INCIDENT_MODULE', 'Access Incident Module', 'Can access incident module', 
              'INCIDENT', 'MODULE_ACCESS', 0),
