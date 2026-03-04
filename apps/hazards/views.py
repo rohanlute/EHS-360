@@ -206,7 +206,7 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
             hazard.reporter_name = user.get_full_name()
             hazard.reporter_email = user.email
             hazard.reporter_phone = getattr(user, 'phone', '')
-            hazard.report_timestamp = timezone.now()
+            # hazard.report_timestamp = timezone.now()
             hazard.report_source = 'web_portal'
             
             # Get hazard-specific fields
@@ -330,12 +330,12 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
                 continue
             
             # Generate report number
-            today = timezone.now().date()
-            plant_code = hazard.plant.code if hazard.plant else 'UNKN'
-            count = Hazard.objects.filter(created_at__date=today).count()
-            hazard.report_number = f"HAZ-{plant_code}-{today:%Y%m%d}-{count:03d}"
-            hazard.save(update_fields=['report_number'])
-            print(f"  📋 Report: {hazard.report_number}")
+            # today = timezone.now().date()
+            # plant_code = hazard.plant.code if hazard.plant else 'UNKN'
+            # count = Hazard.objects.filter(created_at__date=today).count()
+            # hazard.report_number = f"HAZ-{plant_code}-{today:%Y%m%d}-{count:03d}"
+            # hazard.save(update_fields=['report_number'])
+            # print(f"  📋 Report: {hazard.report_number}")
             
             # Handle photos
             photos_uploaded = 0

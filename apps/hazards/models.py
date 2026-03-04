@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from apps.organizations.models import *
 import datetime
 from django.utils import timezone
+from django.db import transaction
 
 User = get_user_model()
 
@@ -305,14 +306,20 @@ class Hazard(models.Model):
             today = datetime.date.today()
             date_str = today.strftime('%Y%m%d')
             plant_code = self.plant.code if self.plant else 'XXX'
-            
-            # Get count of hazards for today at this plant
-            count = Hazard.objects.filter(
-                report_number__contains=f'HAZ-{plant_code}-{date_str}'
-            ).count()
-            
-            self.report_number = f'HAZ-{plant_code}-{date_str}-{count + 1:03d}'
-        
+
+            with transaction.atomic():
+                last_hazard = Hazard.objects.select_for_update().filter(
+                    report_number__startswith=f'HAZ-{plant_code}-{date_str}'
+                ).order_by('-report_number').first()
+
+                if last_hazard:
+                    last_number = int(last_hazard.report_number.split('-')[-1])
+                    new_number = last_number + 1
+                else:
+                    new_number = 1
+
+                self.report_number = f'HAZ-{plant_code}-{date_str}-{new_number:03d}'
+
         super().save(*args, **kwargs)
         
     def update_status_from_action_items(self):
