@@ -338,7 +338,7 @@
         {% endif %}
 
         <!-- 5. Inspection Configuration - Admin only (Standalone) -->
-        {% if user.is_superuser or user.is_admin_user %}
+        {% if user.is_superuser or user.is_admin_user or user|has_perm:'MANAGE_INSPECTION_CONFIGURATION' %}
         <li class="nav-item {% if 'inspections' in request.path and request.resolver_match.url_name in 'category_list question_list template_list' %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'inspections' in request.path and request.resolver_match.url_name in 'category_list question_list template_list' %}active{% endif %}">
             <i class="nav-icon fas fa-cog"></i>
@@ -408,14 +408,14 @@
             <p>Inspection Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
-            {% if user|has_perm:'INSPECTION_DASHBOARD' %}
+            {% comment %} {% if user|has_perm:'INSPECTION_DASHBOARD' %}
             <li class="nav-item">
               <a href="{% url 'inspections:inspection_dashboard' %}" class="nav-link">
                 <i class="nav-icon far fa-circle"></i>
                 <p>Dashboard</p>
               </a>
             </li>
-            {% endif %}
+            {% endif %} {% endcomment %}
             {% if user|has_perm:'CONDUCT_INSPECTION' %}
             <li class="nav-item">
               <a href="{% url 'inspections:my_inspections' %}" class="nav-link">

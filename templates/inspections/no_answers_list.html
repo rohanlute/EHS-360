@@ -434,16 +434,15 @@
 
     <!-- Main Table -->
     <div class="card shadow-sm">
-            {% if is_admin %}
-            <!-- Bulk assign bar — only visible when checkboxes selected -->
-            <div id="bulkActionsBar" style="display:none;">
-                <span class="text-muted me-3" id="selectedCount">0 selected</span>
-                <button type="button" class="btn btn-primary btn-sm" id="openAssignModalBtn">
-                    <i class="fas fa-user-check"></i> Assign Selected
-                </button>
-            </div>
-            {% endif %}
+        {% if is_admin %}
+        <!-- Bulk assign bar — only visible when checkboxes selected -->
+        <div id="bulkActionsBar" style="display:none;" class="px-3 pt-3">
+            <span class="text-muted me-3" id="selectedCount">0 selected</span>
+            <button type="button" class="btn btn-primary btn-sm" id="openAssignModalBtn">
+                <i class="fas fa-user-check"></i> Assign Selected
+            </button>
         </div>
+        {% endif %}
 
         <div class="card-body p-0">
             <form id="assignForm" method="POST" action="{% url 'inspections:no_answers_list' %}">

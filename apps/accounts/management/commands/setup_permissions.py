@@ -29,7 +29,7 @@ class Command(BaseCommand):
             # Incident Permissions
             ('CREATE_INCIDENT', 'Create Incident', 'Can create/report new incidents'),
             ('EDIT_INCIDENT', 'Edit Incident', 'Can edit incident reports'),
-            ('DELETE_INCIDENT', 'Delete Incident', 'Can delete incidents'),
+            # ('DELETE_INCIDENT', 'Delete Incident', 'Can delete incidents'),
             ('VIEW_INCIDENT', 'View Incident', 'Can view incident details'),
             ('APPROVE_INCIDENT', 'Approve Incident', 'Can approve/reject incident reports'),
             ('CLOSE_INCIDENT', 'Close Incident', 'Can close completed incidents'),
@@ -37,10 +37,10 @@ class Command(BaseCommand):
             # Hazard Permissions
             ('CREATE_HAZARD', 'Create Hazard', 'Can create/report new hazards'),
             ('EDIT_HAZARD', 'Edit Hazard', 'Can edit hazard reports'),
-            ('DELETE_HAZARD', 'Delete Hazard', 'Can delete hazards'),
+            # ('DELETE_HAZARD', 'Delete Hazard', 'Can delete hazards'),
             ('VIEW_HAZARD', 'View Hazard', 'Can view hazard details'),
-            ('APPROVE_HAZARD', 'Approve Hazard', 'Can approve/reject hazard reports'),
-            ('CLOSE_HAZARD', 'Close Hazard', 'Can close resolved hazards'),
+            # ('APPROVE_HAZARD', 'Approve Hazard', 'Can approve/reject hazard reports'),
+            # ('CLOSE_HAZARD', 'Close Hazard', 'Can close resolved hazards'),
             
             # Inspection Permissions
             ('CREATE_INSPECTION', 'Create Inspection', 'Can create/schedule inspections'),
@@ -48,6 +48,7 @@ class Command(BaseCommand):
             ('DELETE_INSPECTION', 'Delete Inspection', 'Can delete inspections'),
             ('VIEW_INSPECTION', 'View Inspection', 'Can view inspection details'),
             ('APPROVE_INSPECTION', 'Approve Inspection', 'Can approve inspection reports'),
+            ('MANAGE_INSPECTION_CONFIGURATION', 'Manage Inspection Configuration', '')
             
             # Module Access Permissions
             ('ACCESS_INCIDENT_MODULE', 'Access Incident Module', 'Can access incident management module'),
@@ -57,7 +58,7 @@ class Command(BaseCommand):
             # ('ACCESS_TRAINING_MODULE', 'Access Training Module', 'Can access training module'),
             # ('ACCESS_PERMIT_MODULE', 'Access Permit Module', 'Can access work permit module'),
             # ('ACCESS_OBSERVATION_MODULE', 'Access Observation Module', 'Can access safety observation module'),
-            ('ACCESS_REPORTS_MODULE', 'Access Reports Module', 'Can access reports and analytics'),
+            # ('ACCESS_REPORTS_MODULE', 'Access Reports Module', 'Can access reports and analytics'),
             
             # Other Permissions
             ('APPROVE_PERMIT', 'Approve Permit', 'Can approve work permit requests'),
@@ -123,16 +124,16 @@ class Command(BaseCommand):
                 
                 # Full hazard access
                 'CREATE_HAZARD', 'EDIT_HAZARD', 'VIEW_HAZARD',
-                'APPROVE_HAZARD', 'CLOSE_HAZARD',
+                # 'APPROVE_HAZARD', 'CLOSE_HAZARD',
                 
                 # Full inspection access
                 'CREATE_INSPECTION', 'EDIT_INSPECTION', 'VIEW_INSPECTION',
-                'APPROVE_INSPECTION',
+                # 'APPROVE_INSPECTION',
                 
                 # Module access
                 'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
-                'ACCESS_INSPECTION_MODULE', 'ACCESS_AUDIT_MODULE',
-                'ACCESS_REPORTS_MODULE',
+                'ACCESS_INSPECTION_MODULE', 
+                # 'ACCESS_AUDIT_MODULE','ACCESS_REPORTS_MODULE',
             ]
             perms = Permissions.objects.filter(code__in=perm_codes)
             role.permissions.set(perms)
@@ -150,14 +151,14 @@ class Command(BaseCommand):
                 # Can create and view
                 'CREATE_INCIDENT', 'VIEW_INCIDENT', 'EDIT_INCIDENT',
                 'CREATE_HAZARD', 'VIEW_HAZARD', 'EDIT_HAZARD',
-                'APPROVE_HAZARD',  # HODs can approve hazards
+                # 'APPROVE_HAZARD',  # HODs can approve hazards
                 
                 # Inspection access
-                'VIEW_INSPECTION', 'APPROVE_INSPECTION',
+                'VIEW_INSPECTION', #'APPROVE_INSPECTION',
                 
                 # Module access
                 'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
-                'ACCESS_INSPECTION_MODULE', 'ACCESS_REPORTS_MODULE',
+                'ACCESS_INSPECTION_MODULE', #'ACCESS_REPORTS_MODULE',
             ]
             perms = Permissions.objects.filter(code__in=perm_codes)
             role.permissions.set(perms)
@@ -178,15 +179,15 @@ class Command(BaseCommand):
                 
                 # Hazard access
                 'CREATE_HAZARD', 'VIEW_HAZARD', 'EDIT_HAZARD',
-                'APPROVE_HAZARD',
+                # 'APPROVE_HAZARD',
                 
                 # Inspection and permits
                 'VIEW_INSPECTION', 'APPROVE_PERMIT',
                 
                 # Module access
                 'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
-                'ACCESS_INSPECTION_MODULE', 'ACCESS_PERMIT_MODULE',
-                'ACCESS_REPORTS_MODULE',
+                'ACCESS_INSPECTION_MODULE', 
+                #'ACCESS_PERMIT_MODULE','ACCESS_REPORTS_MODULE',
             ]
             perms = Permissions.objects.filter(code__in=perm_codes)
             role.permissions.set(perms)
@@ -203,11 +204,11 @@ class Command(BaseCommand):
             perm_codes = [
                 # Basic reporting
                 'CREATE_INCIDENT', 'VIEW_INCIDENT',
-                'CREATE_HAZARD', 'VIEW_HAZARD', 'APPROVE_HAZARD',
+                'CREATE_HAZARD', 'VIEW_HAZARD', #'APPROVE_HAZARD',
                 
                 # Module access
                 'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
-                'ACCESS_OBSERVATION_MODULE',
+                #'ACCESS_OBSERVATION_MODULE',
             ]
             perms = Permissions.objects.filter(code__in=perm_codes)
             role.permissions.set(perms)
@@ -228,7 +229,7 @@ class Command(BaseCommand):
                 
                 # Module access
                 'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
-                'ACCESS_OBSERVATION_MODULE', 'ACCESS_TRAINING_MODULE',
+                # 'ACCESS_OBSERVATION_MODULE', 'ACCESS_TRAINING_MODULE',
             ]
             perms = Permissions.objects.filter(code__in=perm_codes)
             role.permissions.set(perms)

@@ -1314,7 +1314,7 @@ class HazardPDFView(LoginRequiredMixin, View):
         """
         # Retrieve the primary key of the hazard from the URL.
         hazard_pk = self.kwargs.get('pk')
-        
+
         # Fetch the Hazard object from the database, or return a 404 error if not found.
         # This pre-fetches related objects to optimize database queries.
         hazard = get_object_or_404(
@@ -1324,7 +1324,13 @@ class HazardPDFView(LoginRequiredMixin, View):
             ), 
             pk=hazard_pk
         )
-        
+        # Permission check
+        if not (
+            request.user.is_superuser or request.user == hazard.reported_by or
+            request.user.has_permission('EXPORT_HAZARD_PDF')):
+            messages.error(request, "You don't have permission to view this report")
+            return redirect('hazards:hazard_list')
+                        
         # Call the PDF generation utility function and return its response.
         return generate_hazard_pdf(hazard)
     

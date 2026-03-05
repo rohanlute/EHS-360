@@ -1,4 +1,5 @@
 {% extends 'base/base.html' %}
+{% load permission_tags %}
 {% load static %}
 
 {% block title %}View Environmental Data{% endblock %}
@@ -223,7 +224,7 @@
     <div class="header-section">
         <h2><i class="fas fa-eye"></i> View Monthly EHS Indicators</h2>
         <p><i class="fas fa-industry"></i> Plant: {{ plant.name }}</p>
-        <button type="button" class="btn btn-export" id="exportBtn"><i class="fas fa-file-excel"></i> Export to Excel</button>
+        {% if user|has_perm:'EXPORT_ENV_DATA' %}<button type="button" class="btn btn-export" id="exportBtn"><i class="fas fa-file-excel"></i> Export to Excel</button>{% endif %}
     </div>
 
     {% if user_plants.count > 1 %}
