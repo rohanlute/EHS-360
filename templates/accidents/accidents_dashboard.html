@@ -419,7 +419,7 @@
 
 <!-- Summary Statistics Row -->
 <div class="row mb-4">
-
+    <!-- Total Injuries (Keep as is) -->
     <div class="col-xl-3 col-md-6">
         <a href="{% url 'accidents:incident_list' %}" class="text-decoration-none">
             <div class="dashboard-card clickable-card">
@@ -432,6 +432,7 @@
         </a>
     </div>
 
+    <!-- Closed Injuries (Keep as is) -->
     <div class="col-xl-3 col-md-6">
         <a href="{% url 'accidents:incident_list' %}?status=CLOSED" class="text-decoration-none">
             <div class="dashboard-card clickable-card">
@@ -444,32 +445,33 @@
         </a>
     </div>
 
+    <!-- This Month Card (RE-FILTER DASHBOARD) -->
     <div class="col-xl-3 col-md-6">
-        <div class="dashboard-card">
-            <div class="stat-card warning">
-                <i class="fas fa-calendar-alt stat-icon"></i>
-                <p class="stat-number">{{ this_month_incidents }}</p>
-                <p class="stat-label">
-                    {% if selected_month_label %}
-                        {{ selected_month_label }}
-                    {% else %}
-                        This Month
-                    {% endif %}
-                </p>
+        <a href="?month={{ current_month_value }}" class="text-decoration-none">
+            <div class="dashboard-card clickable-card">
+                <div class="stat-card warning">
+                    <i class="fas fa-calendar-alt stat-icon"></i>
+                    <p class="stat-number">{{ this_month_incidents }}</p>
+                    <p class="stat-label">
+                        {% if selected_month_label %}{{ selected_month_label }}{% else %}This Month{% endif %}
+                    </p>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 
+    <!-- Rejected Reports Card (FILTER LIST VIEW) -->
     <div class="col-xl-3 col-md-6">
-        <div class="dashboard-card">
-            <div class="stat-card info">
-                <i class="fas fa-search stat-icon"></i>
-                <p class="stat-number">{{ investigation_pending }}</p>
-                <p class="stat-label">Pending Investigations</p>
+        <a href="{% url 'accidents:incident_list' %}?status=REJECTED" class="text-decoration-none">
+            <div class="dashboard-card clickable-card">
+                <div class="stat-card danger"> <!-- Changed to danger/red color -->
+                    <i class="fas fa-times-circle stat-icon"></i>
+                    <p class="stat-number">{{ rejected_incidents_count }}</p>
+                    <p class="stat-label">Rejected Reports</p>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
-
 </div>
 <!-- Charts Row -->
 <div class="row mb-4">

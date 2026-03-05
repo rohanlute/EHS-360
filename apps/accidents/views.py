@@ -1092,7 +1092,11 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
 
         context['total_incidents'] = incidents.count()
         context['closed_incidents'] = incidents.filter(status='CLOSED').count()
+        context['open_incidents_count'] = incidents.exclude(status='CLOSED').count()
+        context['rejected_incidents_count'] = incidents.filter(status__iexact='REJECTED').count() 
+
         context['current_month_value'] = today.strftime('%Y-%m')
+        
 
         if selected_month:
             try:
