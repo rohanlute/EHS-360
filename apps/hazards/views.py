@@ -945,6 +945,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         selected_month = self.request.GET.get('month', '')
         selected_severity = self.request.GET.get('severity', '')
         selected_status = self.request.GET.get('status', '')
+        selected_overdue = self.request.GET.get('overdue', '')
         selected_category = self.request.GET.get('category', '')    # <-- NEW
         selected_department = self.request.GET.get('department', '') # <-- NEW
 
@@ -961,7 +962,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
 
         # 3. Calculate top-level stats BEFORE applying any filters.
         context['total_hazards'] = base_hazards.count()
-        context['open_hazards'] = base_hazards.exclude(status__in=['RESOLVED', 'CLOSED']).count()
+        context['closed_hazards_count'] = base_hazards.filter(status__in=['RESOLVED', 'CLOSED']).count()
         context['overdue_hazards_count'] = base_hazards.filter(action_deadline__lt=today).exclude(status__in=['RESOLVED', 'CLOSED']).count()
         this_month_total = base_hazards.filter(incident_datetime__year=today.year, incident_datetime__month=today.month).count()
 
@@ -990,6 +991,9 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
                 filtered_hazards = filtered_hazards.exclude(status__in=['RESOLVED', 'CLOSED'])
             else:
                 filtered_hazards = filtered_hazards.filter(status=selected_status)
+                
+        if selected_overdue == 'true':
+            filtered_hazards = filtered_hazards.filter(action_deadline__lt=today).exclude(status__in=['RESOLVED', 'CLOSED'])
         
         if selected_month:
             try:
@@ -999,6 +1003,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
                 pass
         
         context['this_month_hazards'] = filtered_hazards.count() if selected_month else this_month_total
+        context['current_month_value'] = today.strftime('%Y-%m')
 
         # 5. Prepare filter dropdown options
         context['plants'] = all_plants
@@ -1038,6 +1043,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             'selected_status': selected_status,
             'selected_category': selected_category, # <-- NEW
             'selected_department': selected_department, # <-- NEW
+            'selected_overdue': selected_overdue,
         })
         try:
             if selected_plant: context['selected_plant_name'] = Plant.objects.get(id=selected_plant).name
@@ -1051,8 +1057,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
                 context['selected_month_label'] = datetime.date(year, month, 1).strftime('%B %Y')
         except:
              pass
-        context['has_active_filters'] = any(context.get(key) for key in ['selected_plant', 'selected_zone', 'selected_location', 'selected_sublocation', 'selected_month', 'selected_severity', 'selected_status', 'selected_category', 'selected_department'])
-
+        context['has_active_filters'] = any(context.get(key) for key in ['selected_plant', 'selected_zone', 'selected_location', 'selected_sublocation', 'selected_month', 'selected_severity', 'selected_status', 'selected_category', 'selected_department', 'selected_overdue'])
         # 6. Prepare data for lists and charts using the FILTERED queryset
         context['recent_hazards'] = filtered_hazards.select_related('plant', 'location').order_by('-incident_datetime')[:10]
 

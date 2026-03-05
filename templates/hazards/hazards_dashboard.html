@@ -135,6 +135,7 @@
                 {% if selected_month_label %}<span class="active-filter-badge">Month: {{ selected_month_label }}<i class="fas fa-times" onclick="removeFilter('month')"></i></span>{% endif %}
                 {% if selected_severity %}<span class="active-filter-badge">Risk: {{ selected_severity|capfirst }}<i class="fas fa-times" onclick="removeFilter('severity')"></i></span>{% endif %}
                 {% if selected_status %}<span class="active-filter-badge">Status: {{ selected_status|capfirst }}<i class="fas fa-times" onclick="removeFilter('status')"></i></span>{% endif %}
+                {% if selected_overdue == 'true' %}<span class="active-filter-badge">Overdue<i class="fas fa-times" onclick="removeFilter('overdue')"></i></span>{% endif %}
                 <a href="{% url 'hazards:hazard_dashboard' %}" class="btn btn-sm btn-outline-danger ml-2"><i class="fas fa-times-circle"></i> Clear All</a>
             </div>
         </div>
@@ -144,10 +145,57 @@
 
 <!-- Clickable Summary Statistics -->
 <div class="row mb-4">
-    <div class="col-xl-3 col-md-6"><a href="{% url 'hazards:dashboard' %}" class="text-decoration-none"><div class="dashboard-card clickable-card"><div class="stat-card primary"><i class="fas fa-shield-alt stat-icon"></i><p class="stat-number">{{ total_hazards }}</p><p class="stat-label">Total Hazards</p></div></div></a></div>
-    <div class="col-xl-3 col-md-6"><a href="{% url 'hazards:dashboard' %}?status=open" class="text-decoration-none"><div class="dashboard-card clickable-card"><div class="stat-card danger"><i class="fas fa-folder-open stat-icon"></i><p class="stat-number">{{ open_hazards }}</p><p class="stat-label">Open Hazards</p></div></div></a></div>
-    <div class="col-xl-3 col-md-6"><div class="dashboard-card"><div class="stat-card warning"><i class="fas fa-calendar-alt stat-icon"></i><p class="stat-number">{{ this_month_hazards }}</p><p class="stat-label">{% if selected_month_label %}{{ selected_month_label }}{% else %}This Month{% endif %}</p></div></div></div>
-    <div class="col-xl-3 col-md-6"><div class="dashboard-card"><div class="stat-card info"><i class="fas fa-clock stat-icon"></i><p class="stat-number">{{ overdue_hazards_count }}</p><p class="stat-label">Overdue Hazards</p></div></div></div>
+    <!-- Card 1: Total Hazards (links to full list) -->
+    <div class="col-xl-3 col-md-6">
+        <a href="{% url 'hazards:hazard_list' %}" class="text-decoration-none">
+            <div class="dashboard-card clickable-card">
+                <div class="stat-card primary">
+                    <i class="fas fa-shield-alt stat-icon"></i>
+                    <p class="stat-number">{{ total_hazards }}</p>
+                    <p class="stat-label">Total Hazards</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Card 2: Closed Hazards (links to filtered list view) -->
+    <div class="col-xl-3 col-md-6">
+        <a href="{% url 'hazards:hazard_list' %}?status=RESOLVED" class="text-decoration-none">
+            <div class="dashboard-card clickable-card">
+                <div class="stat-card success">
+                    <i class="fas fa-check-circle stat-icon"></i>
+                    <p class="stat-number">{{ closed_hazards_count }}</p>
+                    <p class="stat-label">Closed Hazards</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Card 3: This Month's Hazards (links to filtered dashboard) -->
+    <div class="col-xl-3 col-md-6">
+        <a href="{% url 'hazards:hazard_dashboard' %}?month={{ current_month_value }}" class="text-decoration-none">
+            <div class="dashboard-card clickable-card">
+                <div class="stat-card warning">
+                    <i class="fas fa-calendar-alt stat-icon"></i>
+                    <p class="stat-number">{{ this_month_hazards }}</p>
+                    <p class="stat-label">{% if selected_month_label %}{{ selected_month_label }}{% else %}This Month{% endif %}</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Card 4: Overdue Hazards (links to filtered dashboard) -->
+    <div class="col-xl-3 col-md-6">
+        <a href="{% url 'hazards:hazard_dashboard' %}?overdue=true" class="text-decoration-none">
+            <div class="dashboard-card clickable-card">
+                <div class="stat-card danger">
+                    <i class="fas fa-clock stat-icon"></i>
+                    <p class="stat-number">{{ overdue_hazards_count }}</p>
+                    <p class="stat-label">Overdue Hazards</p>
+                </div>
+            </div>
+        </a>
+    </div>
 </div>
 
 
@@ -460,24 +508,25 @@ document.addEventListener('DOMContentLoaded', function() {
             responsive: true, maintainAspectRatio: false, 
             plugins: { 
                 legend: { display: false },
-                // ✅ CHANGED: Data labels configuration for Status chart
                 datalabels: {
                     anchor: 'end',
-                    align: 'bottom',  // <-- CHANGE: Aligns label inside the bar from the top
-                    color: '#fff',      // <-- CHANGE: White color for contrast
-                    offset: 4,          // Optional: Adds a little padding from the top edge
-                    font: {
-                        weight: 'bold'
-                    },
+                    align: 'bottom',
+                    color: '#fff',
+                    offset: 4,
+                    font: { weight: 'bold' },
                     formatter: (value) => value > 0 ? value : ''
                 }
             }, 
             scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
             onClick: (e, elements) => {
                 if (elements.length > 0) {
+                    // This array holds the actual status keys like 'REPORTED', 'RESOLVED', etc.
                     const statusKeys = {{ status_keys|safe }};
+                    // It finds the key corresponding to the bar you clicked.
                     const clickedStatusKey = statusKeys[elements[0].index];
+                    
                     const currentParams = new URLSearchParams(window.location.search);
+                    // It correctly sets the URL parameter to the specific key (e.g., status=RESOLVED).
                     currentParams.set('status', clickedStatusKey);
                     window.location.href = window.location.pathname + '?' + currentParams.toString();
                 }
