@@ -342,7 +342,7 @@ def template_list(request):
             Q(template_code__icontains=search) |
             Q(description__icontains=search)
         )
-    
+     
     templates = templates.distinct().order_by('-created_at')
     
     # Pagination
