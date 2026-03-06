@@ -89,7 +89,7 @@ class InspectionQuestionForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Enter the inspection question'
             }),
-            'question_type': forms.Select(attrs={'class': 'form-control'}),
+            'question_type': forms.Select(attrs={'class': 'form-control'}, choices=[('', 'Select Question Type')]),
             'weightage': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': '0',
@@ -121,9 +121,8 @@ class InspectionQuestionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['category'].empty_label = "Select Category"
-        self.fields['question_type'].choices = [('', 'Select Question Type')] + list(
-            self.fields['question_type'].choices
-        )
+        self.fields['question_type'].choices = [('', 'Select Question Type')] + list(self.fields['question_type'].choices)
+        self.fields['question_type'].initial = ''
 
 
 class InspectionTemplateForm(forms.ModelForm):
