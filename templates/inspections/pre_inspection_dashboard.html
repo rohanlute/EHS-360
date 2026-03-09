@@ -56,6 +56,12 @@
       border-radius: 0.35rem;
       box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
   }
+  .border-left-danger {
+    border-left: 5px solid #e74a3b;
+  }
+  .list-group-item:hover {
+        background-color: #f8f9fc;
+  }
 </style>
 {% endblock %}
 
@@ -106,22 +112,43 @@
 </div>
 
 <!-- Overdue Inspections & Top Non-Compliances -->
-<div class="row">
+<div class="row mb-4">
     {% if overdue_inspections %}
-    <div class="col-lg-5">
-        <div class="alert alert-danger h-100">
-            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle mr-2"></i> Overdue Inspections</h5>
-            <p>The following inspections require immediate attention:</p>
-            <ul class="list-unstyled mb-0">
-                {% for schedule in overdue_inspections %}
-                <li>
-                    <a href="{% url 'inspections:schedule_detail' schedule.pk %}" class="text-white">
-                        <strong>{{ schedule.schedule_code }}</strong> (Due: {{ schedule.due_date }})
-                        <small class="d-block">To: {{ schedule.assigned_to.get_full_name }}</small>
-                    </a>
-                </li>
+    <div class="col-12">
+        <div class="ehs-card border-left-danger">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 text-danger">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    Overdue Inspections
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for schedule in overdue_inspections %}    
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-danger shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="font-weight-bold text-danger">
+                                    {{ schedule.schedule_code }}
+                                </h6>
+                                <p class="mb-1 small text-muted">
+                                    Assigned to {{ schedule.assigned_to.get_full_name }}
+                                </p>
+                                <span class="badge badge-danger">
+                                    Due {{ schedule.due_date|date:"d M Y" }}
+                                </span>
+                                <div class="mt-2">
+                                    <a href="{% url 'inspections:schedule_detail' schedule.pk %}" 
+                                    class="btn btn-sm btn-outline-primary">
+                                    View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 {% endfor %}
-            </ul>
+                </div>
+            </div>
         </div>
     </div>
     {% endif %}
