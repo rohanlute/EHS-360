@@ -400,7 +400,7 @@
         </li>
         {% endif %}
 
-        <!-- 7. INSPECTION MANAGEMENT (without Configuration inside) -->
+<!-- 7. INSPECTION MANAGEMENT (without Configuration inside) -->
         {% if user.can_access_inspection_module %}
         <li class="nav-item {% if 'inspections' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'inspections' in request.path %}active{% endif %}">
@@ -408,17 +408,21 @@
             <p>Inspection Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
-            {% comment %} {% if user|has_perm:'INSPECTION_DASHBOARD' %}
+            
+            <!-- == DASHBOARD LINK ADDED HERE == -->
+            {% if user|has_perm:'INSPECTION_DASHBOARD' %}
             <li class="nav-item">
-              <a href="{% url 'inspections:inspection_dashboard' %}" class="nav-link">
+              <a href="{% url 'inspections:inspection_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'inspection_dashboard' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
                 <p>Dashboard</p>
               </a>
             </li>
-            {% endif %} {% endcomment %}
+            {% endif %}
+            <!-- == END OF DASHBOARD LINK == -->
+
             {% if user|has_perm:'CONDUCT_INSPECTION' %}
             <li class="nav-item">
-              <a href="{% url 'inspections:my_inspections' %}" class="nav-link">
+              <a href="{% url 'inspections:my_inspections' %}" class="nav-link {% if request.resolver_match.url_name == 'my_inspections' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
                 <p>My Inspections</p>
               </a>
@@ -426,7 +430,7 @@
             {% endif %}
             {% if user|has_perm:'CREATE_INSPECTION' %}
             <li class="nav-item">
-              <a href="{% url 'inspections:schedule_create' %}" class="nav-link">
+              <a href="{% url 'inspections:schedule_create' %}" class="nav-link {% if request.resolver_match.url_name == 'schedule_create' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
                 <p>Schedule Inspection</p>
               </a>
@@ -434,7 +438,7 @@
             {% endif %}
             {% if user|has_perm:'VIEW_INSPECTION' %}
             <li class="nav-item">
-              <a href="{% url 'inspections:schedule_list' %}" class="nav-link">
+              <a href="{% url 'inspections:schedule_list' %}" class="nav-link {% if request.resolver_match.url_name == 'schedule_list' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
                 <p>All Schedules</p>
               </a>
@@ -442,7 +446,7 @@
             {% endif %}
             {% if user|has_perm:'VIEW_NO_ANSWER_ITEMS' %}
               <li class="nav-item">
-                <a href="{% url 'inspections:no_answers_list' %}" class="nav-link {% if request.resolver_match.url_name == 'no_answers' %}active{% endif %}">
+                <a href="{% url 'inspections:no_answers_list' %}" class="nav-link {% if request.resolver_match.url_name == 'no_answers_list' %}active{% endif %}">
                   <i class="nav-icon far fa-circle"></i>
                   <p>No Answer Items</p>
                 </a>
@@ -451,7 +455,7 @@
           </ul>
         </li>
         {% endif %}
-
+        
         <!-- 8. HAZARD MANAGEMENT -->
         {% comment %} {% if user.can_access_hazard_module %} {% endcomment %}
         <li class="nav-item {% if 'hazards' in request.path %}menu-open{% endif %}">

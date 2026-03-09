@@ -5,60 +5,70 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count, Prefetch
 from django.http import JsonResponse
-from django.core.paginator import Paginator
+from django.core.paginator import EmptyPage, Paginator
 from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
+from django.views.generic import TemplateView
+from django.db.models import Count, Avg
+
+from datetime import timedelta
+
+from django.core.paginator import Paginator
+import json
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import *
 from .forms import *
 from apps.notifications.services import NotificationService
 
+
+
 # ====================================
 # DASHBOARD
 # ====================================
 
-@login_required
-def inspection_dashboard(request):
-    """Main inspection dashboard"""
+# @login_required
+# def inspection_dashboard(request):
+#     """Main inspection dashboard"""
     
-    context = {
-        'total_categories': InspectionCategory.objects.filter(is_active=True).count(),
-        'total_questions': InspectionQuestion.objects.filter(is_active=True).count(),
-        'total_templates': InspectionTemplate.objects.filter(is_active=True).count(),
-        'total_schedules': InspectionSchedule.objects.count(),
+#     context = {
+#         'total_categories': InspectionCategory.objects.filter(is_active=True).count(),
+#         'total_questions': InspectionQuestion.objects.filter(is_active=True).count(),
+#         'total_templates': InspectionTemplate.objects.filter(is_active=True).count(),
+#         'total_schedules': InspectionSchedule.objects.count(),
         
-        # Recent data
-        'recent_categories': InspectionCategory.objects.filter(is_active=True)[:5],
-        'recent_questions': InspectionQuestion.objects.filter(is_active=True)[:10],
-        'recent_schedules': InspectionSchedule.objects.select_related(
-            'template', 'assigned_to', 'plant'
-        )[:10],
-    }
+#         # Recent data
+#         'recent_categories': InspectionCategory.objects.filter(is_active=True)[:5],
+#         'recent_questions': InspectionQuestion.objects.filter(is_active=True)[:10],
+#         'recent_schedules': InspectionSchedule.objects.select_related(
+#             'template', 'assigned_to', 'plant'
+#         )[:10],
+#     }
     
-    # User-specific data
-    if request.user.can_access_inspection_module or request.user.is_superuser:
-        if request.user.has_permission('VIEW_INSPECTION'):
-            # HOD sees their assigned inspections
-            context['my_pending_inspections'] = InspectionSchedule.objects.filter(
-                assigned_to=request.user,
-                status__in=['SCHEDULED', 'IN_PROGRESS']
-            ).count()
-            context['my_overdue_inspections'] = InspectionSchedule.objects.filter(
-                assigned_to=request.user,
-                status='OVERDUE'
-            ).count()
+#     # User-specific data
+#     if request.user.can_access_inspection_module or request.user.is_superuser:
+#         if request.user.has_permission('VIEW_INSPECTION'):
+#             # HOD sees their assigned inspections
+#             context['my_pending_inspections'] = InspectionSchedule.objects.filter(
+#                 assigned_to=request.user,
+#                 status__in=['SCHEDULED', 'IN_PROGRESS']
+#             ).count()
+#             context['my_overdue_inspections'] = InspectionSchedule.objects.filter(
+#                 assigned_to=request.user,
+#                 status='OVERDUE'
+#             ).count()
         
-        elif request.user.can_access_inspection_module or request.user.is_superuser or request.user.is_admin:
-            # Safety manager sees all for their plant
-            context['pending_schedules'] = InspectionSchedule.objects.filter(
-                status__in=['SCHEDULED', 'IN_PROGRESS']
-            ).count()
-            context['overdue_schedules'] = InspectionSchedule.objects.filter(
-                status='OVERDUE'
-            ).count()
+#         elif request.user.can_access_inspection_module or request.user.is_superuser or request.user.is_admin:
+#             # Safety manager sees all for their plant
+#             context['pending_schedules'] = InspectionSchedule.objects.filter(
+#                 status__in=['SCHEDULED', 'IN_PROGRESS']
+#             ).count()
+#             context['overdue_schedules'] = InspectionSchedule.objects.filter(
+#                 status='OVERDUE'
+#             ).count()
     
-    return render(request, 'inspections/dashboard.html', context)
+#     return render(request, 'inspections/dashboard.html', context)
 
 
 # ====================================
@@ -1752,3 +1762,75 @@ def convert_no_answer_to_hazard(request, response_id):
 
     # GET - not used anymore, redirect back
     return redirect('inspections:no_answers_list')
+
+
+
+class InspectionDashboardView(LoginRequiredMixin, TemplateView):
+    """
+    Advanced dashboard with actionable insights, including overdue alerts,
+    top non-compliances chart, and paginated results.
+    """
+    template_name = 'inspections/pre_inspection_dashboard.html' # Template ka naam update kar dein agar alag hai
+
+    def get_context_data(self, **kwargs):
+        """
+        Fetches and prepares all the data needed for the advanced dashboard.
+        """
+        context = super().get_context_data(**kwargs)
+
+        # Base queryset for completed inspections
+        submissions = InspectionSubmission.objects.select_related(
+            'schedule', 'schedule__template', 'schedule__plant', 'submitted_by'
+        ).order_by('-submitted_at')
+
+        # --- 1. Top Statistics Cards Data ---
+        total_inspections = submissions.count()
+        current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        context['total_inspections'] = total_inspections
+        context['open_schedules'] = InspectionSchedule.objects.filter(status__in=['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']).count()
+        context['this_month_inspections'] = submissions.filter(submitted_at__gte=current_month_start).count()
+        
+        # New Stat: Average Compliance Score
+        if total_inspections > 0:
+            average_compliance = submissions.aggregate(avg_score=Avg('compliance_score'))['avg_score']
+            context['average_compliance_score'] = round(average_compliance, 2) if average_compliance else 0
+        else:
+            context['average_compliance_score'] = 0
+
+        # --- 2. Overdue Inspections Alert Data ---
+        context['overdue_inspections'] = InspectionSchedule.objects.filter(
+            status='OVERDUE'
+        ).select_related('assigned_to', 'plant').order_by('-due_date')[:5] # Top 5 dikhayenge
+
+        # --- 3. Top Non-Compliant Questions Chart Data ---
+        top_non_compliant = InspectionResponse.objects.filter(answer='No') \
+            .values('question__question_text') \
+            .annotate(no_count=Count('id')) \
+            .order_by('-no_count')[:5] # Top 5
+
+        # Chart ke liye labels aur data prepare karein
+        chart_labels = [item['question__question_text'] for item in top_non_compliant]
+        chart_data = [item['no_count'] for item in top_non_compliant]
+
+        # Context me JSON format me pass karein for Javascript
+        context['non_compliant_labels'] = json.dumps(chart_labels)
+        context['non_compliant_data'] = json.dumps(chart_data)
+
+        # --- 4. Paginated Inspections Table Data ---
+        paginator = Paginator(submissions, 10)  # Har page par 10 items
+        page_number_from_url = self.request.GET.get('page')
+
+        try:
+            # get_page invalid inputs (jaise 'abc', '', None) ko handle kar leta hai
+            page_obj = paginator.get_page(page_number_from_url)
+        except EmptyPage:
+            # Agar page number valid hai lekin out of range hai (e.g., page 0),
+            # to pehla page dikhao.
+            page_obj = paginator.get_page(1)
+
+        # context['page_obj'] = page_obj
+
+        context['page_obj'] = page_obj
+
+        return context

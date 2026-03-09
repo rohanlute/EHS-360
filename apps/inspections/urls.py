@@ -5,7 +5,7 @@ app_name = 'inspections'
 
 urlpatterns = [
     # Dashboard
-    path('', views.inspection_dashboard, name='inspection_dashboard'),
+    # path('', views.inspection_dashboard, name='inspection_dashboard'),
     
     # Categories
     path('categories/', views.category_list, name='category_list'),
@@ -39,7 +39,12 @@ urlpatterns = [
     path('schedules/<int:pk>/edit/', views.schedule_edit, name='schedule_edit'),
     path('schedules/<int:pk>/cancel/', views.schedule_cancel, name='schedule_cancel'),
     path('schedules/<int:pk>/send-reminder/', views.schedule_send_reminder, name='schedule_send_reminder'),
-    
+    # path('inspection_dashboard/', views.InspectionDashboardView.as_view(), name='inspection_dashboard'), 
+    path(
+        "inspection_dashboard/",
+        views.InspectionDashboardView.as_view(),
+        name="inspection_dashboard"
+    ),
     # My Inspections (for HODs)
     path('my-inspections/', views.my_inspections, name='my_inspections'),
     

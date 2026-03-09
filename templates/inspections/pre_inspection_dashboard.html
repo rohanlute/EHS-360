@@ -1,0 +1,283 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block page_title %}Inspection Dashboard{% endblock %}
+{% block title %}Inspection Dashboard{% endblock %}
+
+{% block extra_css %}
+{# Chart.js ko header me rakhein taki page load hote hi available ho #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+{# Naye card design aur overall look ke liye CSS #}
+<style>
+  .stat-card-v2 {
+    display: flex;
+    align-items: center;
+    background-color: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .stat-card-v2:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.07);
+  }
+  .stat-card-v2 .icon-circle {
+    width: 60px; height: 60px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .stat-card-v2 .icon-circle i { color: #fff; font-size: 1.75rem; }
+  .stat-card-v2 .info { margin-left: 1.25rem; }
+.stat-card-v2 .info .title {
+  display: block;
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.stat-card-v2 .info .value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #343a40;
+  line-height: 1.2;
+}
+  .stat-card-v2 .info .subtitle { font-size: 0.8rem; color: #adb5bd; }
+  .icon-circle.bg-blue { background: linear-gradient(135deg, #4e73df, #224abe); }
+  .icon-circle.bg-orange { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+  .icon-circle.bg-green { background: linear-gradient(135deg, #1cc88a, #13855c); }
+  .icon-circle.bg-purple { background: linear-gradient(135deg, #6f42c1, #5a32a3); }
+
+  .ehs-card {
+      background-color: #fff; border: 1px solid #e3e6f0;
+      border-radius: 0.35rem;
+      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+  }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Inspection Management</li>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stat-card-v2">
+            <div class="icon-circle bg-blue"><i class="fas fa-clipboard-check"></i></div>
+            <div class="info">
+                <span class="title">Total Completed</span>
+                <span class="value">{{ total_inspections }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stat-card-v2">
+            <div class="icon-circle bg-orange"><i class="fas fa-folder-open"></i></div>
+            <div class="info">
+                <span class="title">Open Schedules</span>
+                <span class="value">{{ open_schedules }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stat-card-v2">
+            <div class="icon-circle bg-green"><i class="fas fa-calendar-day"></i></div>
+            <div class="info">
+                <span class="title">This Month </span>
+                <span class="value">{{ this_month_inspections }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stat-card-v2">
+            <div class="icon-circle bg-purple"><i class="fas fa-percentage"></i></div>
+            <div class="info">
+                <span class="title">Avg. Compliance</span>
+                <span class="value">{{ average_compliance_score }}%</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overdue Inspections & Top Non-Compliances -->
+<div class="row">
+    {% if overdue_inspections %}
+    <div class="col-lg-5">
+        <div class="alert alert-danger h-100">
+            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle mr-2"></i> Overdue Inspections</h5>
+            <p>The following inspections require immediate attention:</p>
+            <ul class="list-unstyled mb-0">
+                {% for schedule in overdue_inspections %}
+                <li>
+                    <a href="{% url 'inspections:schedule_detail' schedule.pk %}" class="text-white">
+                        <strong>{{ schedule.schedule_code }}</strong> (Due: {{ schedule.due_date }})
+                        <small class="d-block">To: {{ schedule.assigned_to.get_full_name }}</small>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- <div class="{% if overdue_inspections %}col-lg-7{% else %}col-12{% endif %}">
+        <div class="ehs-card">
+            <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-bar mr-2"></i>Top 5 Non-Compliant Questions</h3></div>
+            <div class="card-body">
+                <canvas id="nonComplianceChart" style="min-height: 250px;"></canvas>
+            </div>
+        </div>
+    </div> -->
+</div>
+
+<!-- Action Cards -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100 border-0 shadow-sm text-center">
+            <div class="card-body d-flex flex-column justify-content-center"><div class="mb-3">
+                <a href="{% url 'inspections:schedule_create' %}" class="btn btn-primary btn-lg rounded-circle" style="width: 70px; height: 70px; line-height: 50px;"><i class="fas fa-calendar-plus fa-2x"></i></a></div>
+                <h5 class="card-title">Schedule New Inspection</h5>
+                <p class="card-text text-muted">Assign a new inspection to a user</p>
+                <div class="d-flex justify-content-center"><a href="{% url 'inspections:schedule_create' %}" class="btn btn-primary btn-md"><i class="fas fa-plus mr-2"></i> Create Schedule</a></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100 border-0 shadow-sm text-center">
+            <div class="card-body d-flex flex-column justify-content-center"><div class="mb-3">
+                <a href="{% url 'inspections:schedule_list' %}" class="btn btn-success btn-lg rounded-circle" style="width: 70px; height: 70px; line-height: 50px;"><i class="fas fa-list fa-2x"></i></a></div>
+                <h5 class="card-title">View All Schedules</h5>
+                <p class="card-text text-muted">Browse and filter all scheduled inspections</p>
+                <div class="d-flex justify-content-center"><a href="{% url 'inspections:schedule_list' %}" class="btn btn-success btn-md"><i class="fas fa-folder-open mr-2"></i> View All</a></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Completed Inspections Table with Pagination -->
+<div class="row">
+    <div class="col-12">
+        <div class="ehs-card">
+            <div class="card-header"><h3 class="card-title mb-0"><i class="fas fa-history mr-2"></i>Completed Inspections</h3></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Schedule Code</th><th>Template</th><th>Plant</th>
+                                <th>Submitted By</th><th>Completed At</th><th>Score</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in page_obj.object_list %}
+                            <tr>
+                                <td><strong>{{ submission.schedule.schedule_code }}</strong></td>
+                                <td>{{ submission.schedule.template.template_name|truncatewords:5 }}</td>
+                                <td>{{ submission.schedule.plant.name }}</td>
+                                <td>{{ submission.submitted_by.get_full_name }}</td>
+                                <td>{{ submission.submitted_at|date:"d M Y" }}</td>
+                                <td>
+                                    <span class="badge badge-{% if submission.compliance_score >= 80 %}success{% elif submission.compliance_score >= 60 %}warning{% else %}danger{% endif %}">{{ submission.compliance_score }}%</span>
+                                </td>
+                                <td><a href="{% url 'inspections:inspection_review' submission.id %}" class="btn btn-sm btn-info" title="View Details"><i class="fas fa-eye"></i></a></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center"><div class="alert alert-info mb-0"><i class="fas fa-info-circle mr-2"></i>No completed inspections found.</div></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {# PAGINATION CONTROLS #}
+                {# PAGINATION CONTROLS (SAFER VERSION) #}
+                {% if page_obj.has_other_pages %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-end">
+
+                        {# Previous Button #}
+                        <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                            <a class="page-link" href="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number }}{% else %}#{% endif %}">&laquo;</a>
+                        </li>
+
+                        {# Page Numbers #}
+                        {% for i in page_obj.paginator.page_range %}
+                            {% if page_obj.number == i %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ i }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Next Button #}
+                        <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                            <a class="page-link" href="{% if page_obj.has_next %}?page={{ page_obj.next_page_number }}{% else %}#{% endif %}">&raquo;</a>
+                        </li>
+
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Horizontal Bar Chart for Non-Compliant Questions
+    var ctx = document.getElementById('nonComplianceChart').getContext('2d');
+    var nonComplianceChart = new Chart(ctx, {
+        type: 'horizontalBar',
+        data: {
+            labels: {{ non_compliant_labels|safe }},
+            datasets: [{
+                label: 'No. of Non-Compliances',
+                data: {{ non_compliant_data|safe }},
+                backgroundColor: 'rgba(231, 74, 59, 0.7)',
+                borderColor: 'rgba(231, 74, 59, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { display: false },
+            scales: {
+                xAxes: [{
+                    ticks: { beginAtZero: true, stepSize: 1 }
+                }],
+                yAxes: [{
+                    ticks: {
+                        // Callback to truncate long labels
+                        callback: function(value) {
+                            if (value.length > 40) {
+                                return value.substring(0, 40) + '...';
+                            }
+                            return value;
+                        }
+                    }
+                }]
+            },
+            tooltips: {
+                // Custom tooltip to show full label
+                callbacks: {
+                    title: function(tooltipItem, data) {
+                        return data.labels[tooltipItem[0].index];
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+{% endblock %}
