@@ -869,6 +869,14 @@
                                   class="form-control" rows="3"
                                   placeholder="Describe any immediate steps taken or recommended..."></textarea>
                     </div>
+                    <div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Specific Location 
+                            </label>
+                            <textarea type="text" name="specific_location" id="specificLocationInput" class="form-control" placeholder="Enter exact location (e.g. Line 3, PAnel Area)"></textarea>
+                        </div>
+                    </div>    
                 </form>
 
                 <!-- Error message -->
@@ -1131,6 +1139,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const immediateAction =
                 document.getElementById('immediateActionText').value;
+        
+            const specificLocation = 
+                document.getElementById('specificLocationInput').value;
 
             const csrfToken =
                 document.getElementById('convertHazardForm')
@@ -1161,6 +1172,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     hazard_category: hazardCategory,
                     severity: severity,
                     immediate_action: immediateAction,
+                    specific_location: specificLocation,
                     csrfmiddlewaretoken: csrfToken
                 },
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },

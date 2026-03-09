@@ -639,6 +639,12 @@ class InspectionResponse(models.Model):
         help_text="Person who assigned this response"
     )
     assigned_at = models.DateTimeField(null=True, blank=True)
+    specific_location = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Exact location where the issue was observed"
+    )
     assignment_remarks = models.TextField(blank=True)
     
     converted_to_hazard = models.ForeignKey(

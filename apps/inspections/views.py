@@ -1670,6 +1670,10 @@ def convert_no_answer_to_hazard(request, response_id):
             hazard.zone = schedule.zone
             hazard.location = schedule.location
             hazard.sublocation = schedule.sublocation
+            specific_location = request.POST.get('specific_location', '').strip()
+            if specific_location:
+                response.specific_location = specific_location
+                response.save(update_fields=['specific_location'])
 
             # Title
             category_name = response.question.category.category_name
@@ -1684,6 +1688,8 @@ def convert_no_answer_to_hazard(request, response_id):
                 f"Question: {response.question.question_text}",
                 f"Category: {category_name}",
             ]
+            if response.specific_location:
+                description_parts.append(f"Specific Location: {response.specific_location}")
             if response.question.reference_standard:
                 description_parts.append(f"Reference Standard: {response.question.reference_standard}")
             if response.remarks:
