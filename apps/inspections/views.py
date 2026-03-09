@@ -719,14 +719,13 @@ def schedule_list(request):
     )
     
     # User-based filtering
-    if not request.user.is_superuser and not request.user.is_admin_user:
-        if request.user.has_permission('CONDUCT_INSPECTION'):
-            # HOD sees only their assigned inspections
-            schedules = schedules.filter(assigned_to=request.user)
-        elif request.user.can_access_inspection_module or request.user.is_plant_head:
-            # Safety manager/plant head sees their plant's inspections
-            user_plants = request.user.get_all_plants()
-            schedules = schedules.filter(plant__in=user_plants)
+    if request.user.is_superuser or request.user.is_admin_user:
+        pass
+    elif request.user.has_permission('CONDUCT_INSPECTION') or request.user.can_access_inspection_module:
+        user_plants = request.user.get_all_plants()
+        schedules = schedules.filter(plant__in=user_plants)
+    else:
+        schedules = schedules.none()
     
     # Filters
     status = request.GET.get('status')
@@ -764,7 +763,7 @@ def schedule_list(request):
     
     # Get HODs for filter
     hods = User.objects.filter(
-        role__name='HOD',
+        role__name__in=['HOD','SAFETY MANAGER'],
         is_active_employee=True
     ).order_by('first_name', 'last_name')
     
@@ -1318,6 +1317,11 @@ def no_answers_list(request):
     # ---------------------------------------------------------------
     # USER-BASED FILTERING — FIXED LOGIC
     # ---------------------------------------------------------------
+    user_plants = request.user.get_all_plants()
+    if user_plants:
+        no_responses = no_responses.filter(submission__schedule__plant__in=user_plants)
+    else:
+        no_responses = no_responses.none()
     is_admin = request.user.is_superuser or getattr(request.user, 'can_access_inspection_module', False)
 
     if not is_admin:
@@ -1408,7 +1412,11 @@ def no_answers_list(request):
 
     # For filters
     from apps.organizations.models import Plant
-    plants = Plant.objects.filter(is_active=True)
+    user_plants = request.user.get_all_plants()
+    if request.user.is_superuser:
+        plants = Plant.objects.filter(is_active=True)
+    else:
+        plants = Plant.objects.filter(id__in=[p.id for p in user_plants],is_active=True)
     categories = InspectionCategory.objects.filter(is_active=True)
 
     context = {

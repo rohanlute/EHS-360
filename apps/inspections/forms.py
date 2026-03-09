@@ -281,10 +281,10 @@ class InspectionScheduleForm(forms.ModelForm):
         self.fields['template'].empty_label = "Select Inspection Template"
 
         self.fields['assigned_to'].queryset = User.objects.filter(
-            role__name='HOD',
+            role__name__in=['HOD','SAFETY MANAGER'],
             is_active_employee=True
         ).order_by('first_name', 'last_name')
-        self.fields['assigned_to'].empty_label = "Select HOD"
+        self.fields['assigned_to'].empty_label = "Select HOD / Safety Manager"
 
         self.fields['plant'].empty_label = "Select Plant"
         self.fields['zone'].empty_label = "Select Zone"

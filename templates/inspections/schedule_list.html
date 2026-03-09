@@ -55,7 +55,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Assigned To</label>
                             <select name="assigned_to" class="form-control">
-                                <option value="">All HODs</option>
+                                <option value="">All HODs / Safety Managers</option>
                                 {% for hod in hods %}
                                 <option value="{{ hod.id }}" {% if selected_hod == hod.id|stringformat:"s" %}selected{% endif %}>
                                     {{ hod.get_full_name }}
