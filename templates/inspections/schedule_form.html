@@ -42,14 +42,14 @@
                     <!-- HOD Assignment -->
                     <div class="form-group">
                         <label for="{{ form.assigned_to.id_for_label }}">
-                            Assign to (HOD) <span class="text-danger">*</span>
+                            Assign to (HOD/Safety Manager) <span class="text-danger">*</span>
                         </label>
                         {{ form.assigned_to }}
                         {% if form.assigned_to.errors %}
                         <div class="text-danger small">{{ form.assigned_to.errors }}</div>
                         {% endif %}
                         <small class="form-text text-muted">
-                            Select the HOD who will conduct this inspection
+                            Select the HOD or Safety Manager who will conduct this inspection
                         </small>
                     </div>
                     
