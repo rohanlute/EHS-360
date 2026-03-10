@@ -77,7 +77,11 @@ class PlantListView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequire
     paginate_by = 20
     
     def get_queryset(self):
-        queryset = self.get_allowed_plants()
+        user = self.request.user
+        if user.is_superuser or user.is_admin_user:
+            queryset = Plant.objects.all()
+        else:
+            queryset = Plant.objects.filter(Q(created_by=user) | Q(assigned_users_plant=user) | Q(users=user)).distinct()
 
         queryset = queryset.annotate(
             zones_count=Count('zones', distinct=True),
@@ -119,6 +123,7 @@ class PlantCreateView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequi
     success_url = reverse_lazy('organizations:plant_list')
     
     def form_valid(self, form):
+        form.instance.created_by = self.request.user
         messages.success(self.request, f'Plant {form.instance.name} created successfully!')
         return super().form_valid(form)
 
