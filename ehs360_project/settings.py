@@ -100,23 +100,23 @@ WSGI_APPLICATION = 'ehs360_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'ehs360',     
-#         'USER': 'ehsuser',
-#         'PASSWORD': 'EHS@360$*',
-#         'HOST': '127.0.0.1',  # or 'localhost'
-#         'PORT': '5432',
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'ehs360',     
+        'USER': 'ehsuser',
+        'PASSWORD': 'EHS@360$*',
+        'HOST': '127.0.0.1',  # or 'localhost'
+        'PORT': '5432',
+    }
+}
 
 
 
@@ -228,4 +228,4 @@ REMINDER_DAYS_BEFORE_DUE = 1  # Send reminder 1 day before due date
 ESCALATION_INTERVAL_DAYS = 7  # Escalate every 7 days after overdue
 
 # Base site URL
-SITE_URL = "http://127.0.0.1:8000/"
+SITE_URL = "https://ehs360.everestind.com"
