@@ -47,6 +47,23 @@
     justify-content: center;
     padding: 0;
 }
+.clear-filter-btn {
+    border: 1px solid #ced4da;
+    background: #fff;
+    color: #6c757d;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.clear-filter-btn:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+    color: #495057;
+}
+
+.clear-filter-btn i {
+    margin-right: 4px;
+}
 </style>
 {% endblock %}
 
@@ -72,7 +89,7 @@
         <div class="card mb-3" style="background: var(--light-blue);">
             <div class="card-body">
                 <form method="get">
-                    <div class="row">
+                    <div class="row align-items-end">
                         <div class="col-md-2">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-control">
@@ -84,7 +101,6 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
                         <div class="col-md-3">
                             <label class="form-label">Plant</label>
                             <select name="plant" class="form-control">
@@ -96,7 +112,6 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
                         <div class="col-md-3">
                             <label class="form-label">Assigned To</label>
                             <select name="assigned_to" class="form-control">
@@ -108,18 +123,19 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label">Search</label>
-                            <input type="text" name="search" class="form-control" 
-                                   placeholder="Search..." value="{{ search }}">
+                            <input type="text" name="search" class="form-control" placeholder="Search...">
                         </div>
-                        
                         <div class="col-md-1">
-                            <label class="form-label">&nbsp;</label>
-                            <button type="submit" class="btn btn-primary btn-block">
+                            <button type="submit" class="btn btn-primary w-100">
                                 <i class="fas fa-filter"></i>
                             </button>
+                        </div>
+                        <div class="col-md-1">
+                            <a href="{% url 'inspections:schedule_list' %}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-times"></i>
+                            </a>
                         </div>
                     </div>
                 </form>
@@ -179,7 +195,7 @@
                                             <i class="fas fa-eye"></i>
                                         </a>
 
-                                        {% if schedule.status not in 'COMPLETED,CANCELLED' %}
+                                        {% if schedule.status != 'COMPLETED' and schedule.status != 'CANCELLED' %}
                                         <a href="{% url 'inspections:schedule_edit' schedule.pk %}" 
                                         class="btn btn-sm btn-warning" title="Edit">
                                             <i class="fas fa-edit"></i>
