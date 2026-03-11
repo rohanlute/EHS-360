@@ -591,7 +591,7 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['hazard'] = self.hazard
 
-        # Calculate auto target date based on severity
+        # Calculate auto target date (no changes here)
         if hasattr(self.hazard, 'get_severity_deadline_days'):
             severity_days = self.hazard.get_severity_deadline_days()
         else:
@@ -605,11 +605,34 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
 
         user = self.request.user
 
+        # ===================================================================
+        # START OF THE FIX
+        # ===================================================================
+        
+        # Initialize defaults
+        context['plant_users'] = []
+        context['plant_name'] = 'the relevant location'
+
+        # Fetch users only if the hazard has a plant assigned
         if self.hazard.plant:
             from django.db.models import Q
 
-            plant_users = User.objects.filter(
-                Q(plant=self.hazard.plant) | Q(assigned_plants=self.hazard.plant),
+            # Step 1: Start by filtering users based on the hazard's plant
+            plant_filter = Q(plant=self.hazard.plant) | Q(assigned_plants=self.hazard.plant)
+            responsible_users_query = User.objects.filter(plant_filter)
+
+            # Step 2: If the hazard also has a zone, add a zone filter to the query
+            if self.hazard.zone:
+                zone_filter = Q(zone=self.hazard.zone) | Q(assigned_zones=self.hazard.zone)
+                responsible_users_query = responsible_users_query.filter(zone_filter)
+                # Update the display name to include the zone
+                context['plant_name'] = f"{self.hazard.plant.name} - {self.hazard.zone.name}"
+            else:
+                # If no zone, just use the plant name
+                context['plant_name'] = self.hazard.plant.name
+
+            # Step 3: Apply final filters (active status, exclude self, etc.)
+            final_users = responsible_users_query.filter(
                 is_active=True,
                 is_active_employee=True
             ).exclude(
@@ -617,17 +640,12 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             ).distinct().select_related(
                 'department', 'role'
             ).order_by('first_name', 'last_name')
-
-            context['plant_users'] = plant_users
-            context['plant_name'] = self.hazard.plant.name
-
-            print(f"\n🔍 Plant Users Found: {plant_users.count()}")
-            for u in plant_users:
-                print(f"  - {u.get_full_name()} ({u.email}) - Plant: {u.plant}")
-
-        else:
-            context['plant_users'] = []
-            context['plant_name'] = 'Unknown Plant'
+            
+            context['plant_users'] = final_users
+            
+        # ===================================================================
+        # END OF THE FIX
+        # ===================================================================
 
         return context
 

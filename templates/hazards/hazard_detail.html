@@ -315,7 +315,7 @@
                         <i class="fas fa-tasks"></i> Action Items ({{ action_items.count }})
                     </h3>
                     <!-- <div class="card-tools">
-                        {% if user|has_perm:'ADD_HAZARD_ACTION' %}
+                        {% if user|has_perm:'ADD_HAZARD_ACTION' %} 
                         <a href="{% url 'hazards:action_item_create' hazard.pk %}" class="btn btn-sm btn-success">
                             <i class="fas fa-plus"></i> Add Action Item
                         </a>
