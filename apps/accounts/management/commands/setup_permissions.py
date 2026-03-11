@@ -48,7 +48,7 @@ class Command(BaseCommand):
             ('DELETE_INSPECTION', 'Delete Inspection', 'Can delete inspections'),
             ('VIEW_INSPECTION', 'View Inspection', 'Can view inspection details'),
             ('APPROVE_INSPECTION', 'Approve Inspection', 'Can approve inspection reports'),
-            ('MANAGE_INSPECTION_CONFIGURATION', 'Manage Inspection Configuration', '')
+            ('MANAGE_INSPECTION_CONFIGURATION', 'Manage Inspection Configuration', ''),
             
             # Module Access Permissions
             ('ACCESS_INCIDENT_MODULE', 'Access Incident Module', 'Can access incident management module'),
