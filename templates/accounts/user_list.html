@@ -101,6 +101,7 @@
     </form>
 
     <!-- Users Table -->
+    <div id="user-table-container">
     <div class="table-responsive">
       <table class="table table-hover">
         <thead>
@@ -180,10 +181,10 @@
       <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page=1">First</a>
+          <a class="page-link pagination-link" href="?page=1">First</a>
         </li>
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+          <a class="page-link pagination-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
         </li>
         {% endif %}
         
@@ -195,15 +196,39 @@
         
         {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+          <a class="page-link pagination-link" href="?page={{ page_obj.next_page_number }}">Next</a>
         </li>
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+          <a class="page-link pagination-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
         </li>
         {% endif %}
       </ul>
     </nav>
     {% endif %}
   </div>
+  </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+$(document).on("click", ".pagination-link", function(e){
+    e.preventDefault();
+
+    let url = $(this).attr("href");
+
+    $("#user-table-container").html("<div class='text-center p-3'>Loading...</div>");
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        success: function(data){
+            let html = $(data).find("#user-table-container").html();
+            $("#user-table-container").html(html);
+        },
+        error: function(){
+            alert("Error loading page. Please try again.");
+        }
+    });
+});
+</script>
 {% endblock %}

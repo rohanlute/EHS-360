@@ -1,4 +1,5 @@
 {% extends 'base/base.html' %}
+{% load permission_tags %}
 {% load static %}
 
 {% block title %}Hazard Reports{% endblock %}
@@ -185,28 +186,32 @@
             </td>
 
             <!-- Actions -->
-            {% if user.role.name != 'EMPLOYEE' %}
             <td>
               <div class="btn-group" role="group">
+                {% if user|has_perm:'VIEW_HAZARD' %}
                 <a href="{% url 'hazards:hazard_detail' hazard.pk %}" 
                    class="btn btn-sm btn-info" 
                    title="View Details">
                   <i class="fas fa-eye"></i>
                 </a>
+                {% endif %}
+                {% if user|has_perm:'EDIT_HAZARD' %}
                 <a href="{% url 'hazards:hazard_update' hazard.pk %}" 
                    class="btn btn-sm btn-primary" 
                    title="Edit Hazard">
                   <i class="fas fa-edit"></i>
                 </a>
+                {% endif %}
+                {% if user|has_perm:'EXPORT_HAZARD_PDF' %}
                 <a href="{% url 'hazards:hazard_pdf' hazard.pk %}" 
                    class="btn btn-sm btn-danger" 
                    target="_blank"
                    title="Download PDF">
                   <i class="fas fa-file-pdf"></i>
                 </a>
+                {% endif %}
               </div>
             </td>
-            {% endif %}
           </tr>
 
           {% empty %}
