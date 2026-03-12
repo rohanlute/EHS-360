@@ -13,6 +13,8 @@ from django.forms import ValidationError
 from django.db.models.functions import Cast,Substr
 from django.db.models import IntegerField
 from django.db.models.functions import Lower
+from django.db.models import Case, When, IntegerField, Value
+from django.db.models.functions import Cast, Substr
 
 class CanAccessOrganizationMixin(UserPassesTestMixin):
 
@@ -432,7 +434,7 @@ class ZoneListView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequired
         ).annotate(
             total_locations=Count('locations', distinct=True),
             active_locations=Count('locations',filter=Q(locations__is_active=True),distinct=True),
-            zone_number=Cast(Substr('name', 6),IntegerField()))
+            zone_number=Case(When(name__regex=r'^Zone \d+$',then=Cast(Substr('name', 6), IntegerField())),default=Value(None),output_field=IntegerField()))
 
         # Search
         search = self.request.GET.get('search')
