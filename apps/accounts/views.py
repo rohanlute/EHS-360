@@ -99,6 +99,10 @@ class ForgetPasswordView(View):
         if not email:
             messages.error(request, "Please enter your registered email address.")
             return redirect('forget_password')
+        
+        if not User.objects.filter(email=email).exists():
+            messages.error(request, "This email is not register")
+            return redirect('accounts:forget-password')
 
         form = PasswordResetForm({'email': email})
         if form.is_valid():
