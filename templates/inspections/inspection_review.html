@@ -5,27 +5,48 @@
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
 <li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
 <li class="breadcrumb-item"><a href="{% url 'inspections:schedule_list' %}">Schedules</a></li>
-<li class="breadcrumb-item active">{{ action }}</li>
+<li class="breadcrumb-item active">Review</li>
 {% endblock %}
+
+{% block extra_css %}
+<style>
+    .response-card.border-success { border-left: 4px solid #28a745 !important; }
+    .response-card.border-danger { border-left: 4px solid #dc3545 !important; }
+    .response-card.border-secondary { border-left: 4px solid #6c757d !important; }
+
+    .response-photo {
+        max-height: 120px;
+        max-width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .response-photo:hover {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-12">
             <!-- Header -->
-            <div class="card mb-4">
+            <div class="card mb-4 shadow-sm">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
                         <div>
                             <h4 class="mb-1">Inspection Review</h4>
                             <p class="text-muted mb-0">
                                 {{ schedule.schedule_code }} - {{ schedule.template.template_name }}
                             </p>
                         </div>
-                        <div class="text-end">
+                        <div class="text-end mt-2 mt-md-0">
                             <h5 class="mb-1">
                                 Compliance Score: 
-                                <span class="badge bg-{% if compliance_score >= 80 %}success{% elif compliance_score >= 60 %}warning{% else %}danger{% endif %}">
-                                    {{ compliance_score }}%
+                                <span class="badge bg-{% if compliance_score >= 80 %}success{% elif compliance_score >= 60 %}warning text-dark{% else %}danger{% endif %}" style="font-size: 1rem;">
+                                    {{ compliance_score|floatformat:2 }}%
                                 </span>
                             </h5>
                             <small class="text-muted">
@@ -40,97 +61,95 @@
 
             <!-- Statistics -->
             <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card text-center">
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card text-center h-100 shadow-sm">
                         <div class="card-body">
-                            <h3 class="text-primary">{{ total_questions }}</h3>
-                            <p class="mb-0">Total Questions</p>
+                            <h3 class="text-primary fw-bold">{{ total_questions }}</h3>
+                            <p class="mb-0 text-muted">Total Answered</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card text-center">
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card text-center h-100 shadow-sm">
                         <div class="card-body">
-                            <h3 class="text-success">{{ yes_count }}</h3>
-                            <p class="mb-0">Compliant (Yes)</p>
+                            <h3 class="text-success fw-bold">{{ yes_count }}</h3>
+                            <p class="mb-0 text-muted">Compliant (Yes)</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card text-center">
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card text-center h-100 shadow-sm">
                         <div class="card-body">
-                            <h3 class="text-danger">{{ no_count }}</h3>
-                            <p class="mb-0">Non-Compliant (No)</p>
+                            <h3 class="text-danger fw-bold">{{ no_count }}</h3>
+                            <p class="mb-0 text-muted">Non-Compliant (No)</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card text-center">
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card text-center h-100 shadow-sm">
                         <div class="card-body">
-                            <h3 class="text-secondary">{{ na_count }}</h3>
-                            <p class="mb-0">Not Applicable</p>
+                            <h3 class="text-secondary fw-bold">{{ na_count }}</h3>
+                            <p class="mb-0 text-muted">Not Applicable</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Questions Answered "No" -->
-            <div class="card">
-                <div class="card-header bg-danger text-white">
+            <!-- Full List of All Responses -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
                     <h5 class="mb-0">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Non-Compliant Items ({{ no_count }})
+                        <i class="fas fa-list-ul text-primary"></i>
+                        Full Inspection Report
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if no_answers_by_category %}
-                        {% for category, responses in no_answers_by_category.items %}
+                    {% if responses_by_category %}
+                        {% for category, responses in responses_by_category.items %}
                             <div class="mb-4">
-                                <h6 class="border-bottom pb-2">
+                                <h6 class="border-bottom pb-2 mb-3 fw-bold text-dark">
                                     {{ category.category_name }}
                                 </h6>
                                 
                                 {% for response in responses %}
-                                    <div class="card mb-3 border-danger">
+                                    <div class="card mb-3 response-card border-{% if response.answer == 'Yes' %}success{% elif response.answer == 'No' %}danger{% else %}secondary{% endif %}">
                                         <div class="card-body">
-                                            <div class="row">
+                                            <div class="row align-items-center">
                                                 <div class="col-md-8">
                                                     <p class="mb-2">
-                                                        <strong>{{ response.question.question_code }}:</strong>
+                                                        <strong class="text-primary">{{ response.question.question_code }}:</strong>
                                                         {{ response.question.question_text }}
+                                                        {% if response.question.is_critical %}
+                                                            <span class="badge bg-danger ms-2"><i class="fas fa-star"></i> Critical</span>
+                                                        {% endif %}
                                                     </p>
                                                     
                                                     {% if response.remarks %}
-                                                        <div class="alert alert-light py-2 mb-2">
-                                                            <strong>Remarks:</strong> {{ response.remarks }}
+                                                        <div class="alert alert-light py-2 mb-2 border-start border-4 border-info">
+                                                            <strong><i class="fas fa-comment-dots"></i> Remarks:</strong> {{ response.remarks }}
                                                         </div>
                                                     {% endif %}
                                                     
                                                     {% if response.question.reference_standard %}
-                                                        <small class="text-muted">
+                                                        <small class="text-muted d-block mt-2">
                                                             <i class="fas fa-book"></i>
                                                             Reference: {{ response.question.reference_standard }}
                                                         </small>
                                                     {% endif %}
                                                 </div>
                                                 
-                                                <div class="col-md-4 text-end">
+                                                <div class="col-md-4 text-center text-md-end">
+                                                    <span class="badge bg-{% if response.answer == 'Yes' %}success{% elif response.answer == 'No' %}danger{% else %}secondary{% endif %} fs-6 mb-2">
+                                                        {{ response.get_answer_display }}
+                                                    </span>
+
                                                     {% if response.photo %}
-                                                        <img src="{{ response.photo.url }}" 
-                                                             class="img-thumbnail" 
-                                                             style="max-height: 100px;"
-                                                             alt="Evidence">
+                                                        <a href="{{ response.photo.url }}" target="_blank" title="Click to view full image">
+                                                            <img src="{{ response.photo.url }}" 
+                                                                 class="img-thumbnail response-photo mt-2" 
+                                                                 alt="Evidence Photo">
+                                                        </a>
                                                     {% endif %}
-                                                    
-                                                    <div class="mt-2">
-                                                        <span class="badge bg-danger">
-                                                            {% if response.question.is_critical %}
-                                                                <i class="fas fa-star"></i> Critical
-                                                            {% else %}
-                                                                Non-Compliant
-                                                            {% endif %}
-                                                        </span>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -139,67 +158,50 @@
                             </div>
                         {% endfor %}
                     {% else %}
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle"></i>
-                            Excellent! No non-compliant items found. All questions answered "Yes" or "N/A".
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            No questions were answered in this inspection submission.
                         </div>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Generated Findings -->
+            <!-- Generated Findings (No changes to this section) -->
             {% if findings %}
-                <div class="card mt-4">
-                    <div class="card-header bg-warning">
+                <div class="card mt-4 shadow-sm">
+                    <div class="card-header bg-warning text-dark">
                         <h5 class="mb-0">
                             <i class="fas fa-clipboard-list"></i>
                             Auto-Generated Findings ({{ findings.count }})
                         </h5>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
                                     <tr>
                                         <th>Finding Code</th>
-                                        <th>Category</th>
                                         <th>Question</th>
                                         <th>Priority</th>
                                         <th>Inspector Remarks</th>
-                                        <!-- <th>Evidence</th> -->
                                     </tr> 
                                 </thead>
                                 <tbody> 
                                     {% for finding in findings %}
                                         <tr>
-                                            <td>{{ finding.finding_code }}</td>
-
-                                            <td>{{ finding.question.category.category_name }}</td>
-
+                                            <td><span class="badge bg-dark">{{ finding.finding_code }}</span></td>
                                             <td>
-                                                <strong>{{ finding.question.question_code }}</strong><br>
-                                                {{ finding.question.question_text }}
+                                                <strong class="d-block">{{ finding.question.question_code }}</strong>
+                                                <small>{{ finding.question.question_text }}</small>
                                             </td>
-
                                             <td>
-                                                <span class="badge bg-{% if finding.priority == 'HIGH' %}danger{% elif finding.priority == 'MEDIUM' %}warning{% else %}info{% endif %}">
+                                                <span class="badge bg-{% if finding.priority == 'HIGH' %}danger{% elif finding.priority == 'MEDIUM' %}warning text-dark{% else %}info{% endif %}">
                                                     {{ finding.get_priority_display }}
                                                 </span>
                                             </td>
-
                                             <td>
                                                 {{ finding.question.inspectionresponse_set.first.remarks|default:"-" }}
                                             </td>
-
-                                            <!-- <td>
-                                                {% with resp=finding.question.inspectionresponse_set.first %}
-                                                    {% if resp.photo %}
-                                                        <img src="{{ resp.photo.url }}" style="height:60px;" class="img-thumbnail">
-                                                    {% else %}
-                                                        <span class="text-muted">No Photo</span>
-                                                    {% endif %}
-                                                {% endwith %}
-                                            </td> -->
                                         </tr>
                                     {% endfor %}
                                 </tbody>
@@ -209,14 +211,14 @@
                 </div>
             {% endif %}
 
-            <!-- Actions -->
-            <div class="card mt-4">
+            <!-- Actions (No changes to this section) -->
+            <div class="card mt-4 shadow-sm">
                 <div class="card-body text-center">
                     <a href="{% url 'inspections:my_inspections' %}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Back to My Inspections
                     </a>
                     <a href="{% url 'inspections:schedule_detail' schedule.id %}" class="btn btn-primary">
-                        <i class="fas fa-eye"></i> View Schedule Details
+                        <i class="fas fa-info-circle"></i> View Schedule Details
                     </a>
                 </div>
             </div>

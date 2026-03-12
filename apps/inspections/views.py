@@ -1156,7 +1156,7 @@ def inspection_submit(request, schedule_id):
 
 @login_required
 def inspection_review(request, submission_id):
-    """Review completed inspection showing all "No" answers"""
+    """Review completed inspection showing ALL answers and details."""
     
     submission = get_object_or_404(
         InspectionSubmission.objects.select_related(
@@ -1168,36 +1168,41 @@ def inspection_review(request, submission_id):
         pk=submission_id
     )
     
-    # Check permission
+    # Check permission (No changes here)
     if not (request.user.is_superuser or 
             request.user == submission.submitted_by or
             request.user.can_access_inspection_module):
         messages.error(request, 'Unauthorized access!')
         return redirect('inspections:inspection_dashboard')
-    
-    # Get all "No" answers
-    no_responses = InspectionResponse.objects.filter(
-        submission=submission,
-        answer='No'
-    ).select_related(
+
+    # ===================================================================
+    # START OF THE FIX
+    # ===================================================================
+
+    # Get ALL responses for this submission, not just "No" answers.
+    # Pre-fetch related question and category data for efficiency.
+    all_responses = submission.responses.select_related(
         'question',
         'question__category'
-    ) # removed .order_by('question__category__display_order', 'question__display_order')
-    
-    # Group by category
+    ).order_by('question__category__category_name') # Order for consistent display
+
+    # Group all responses by category for structured display in the template.
     from collections import defaultdict
-    no_answers_by_category = defaultdict(list)
+    responses_by_category = defaultdict(list)
     
-    for response in no_responses:
-        no_answers_by_category[response.question.category].append(response)
+    for response in all_responses:
+        responses_by_category[response.question.category].append(response)
+
+    # ===================================================================
+    # END OF THE FIX
+    # ===================================================================
     
-    # Get all findings for this submission
+    # Get all findings for this submission (No changes here)
     findings = InspectionFinding.objects.filter(
         submission=submission
     ).select_related('question', 'assigned_to')
     
-    # Get all responses for statistics
-    all_responses = submission.responses.all()
+    # Get all responses for statistics (This was already correct)
     total_questions = all_responses.count()
     yes_count = all_responses.filter(answer='Yes').count()
     no_count = all_responses.filter(answer='No').count()
@@ -1206,7 +1211,8 @@ def inspection_review(request, submission_id):
     context = {
         'submission': submission,
         'schedule': submission.schedule,
-        'no_answers_by_category': dict(no_answers_by_category),
+        # Pass the new dictionary with ALL responses to the template
+        'responses_by_category': dict(responses_by_category),
         'findings': findings,
         'total_questions': total_questions,
         'yes_count': yes_count,
