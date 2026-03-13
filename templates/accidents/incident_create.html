@@ -702,6 +702,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateOfBirthField = document.getElementById('id_affected_date_of_birth');
     const ageField = document.getElementById('id_affected_age');
     
+        if (dateOfBirthField) {
+        const eighteenYearsAgo = new Date();
+        eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+        // Set the max selectable date to 18 years ago from today
+        dateOfBirthField.max = eighteenYearsAgo.toISOString().split('T')[0];
+    }
+    
     // Function to calculate age from date of birth
     function calculateAge(dateOfBirth) {
         if (!dateOfBirth) return '';
