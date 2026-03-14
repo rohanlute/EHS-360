@@ -1239,12 +1239,17 @@ class ExportHazardsView(LoginRequiredMixin, View):
 
         # 1. First, establish the base queryset based on user permissions.
         # This logic now mirrors the Incident export view.
-        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
+        user = request.user
+        if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
             queryset = Hazard.objects.all()
-        elif getattr(user, 'plant', None):
-            queryset = Hazard.objects.filter(plant=user.plant)
         else:
-            queryset = Hazard.objects.filter(reported_by=user)
+            assigned_plants = user.assigned_plants.filter(is_active=True)
+            if assigned_plants.exists():
+                queryset = Hazard.objects.filter(plant__in=assigned_plants)
+            elif getattr(user, 'plant', None):
+                queryset = Hazard.objects.filter(plant=user.plant)
+            else:
+                queryset = Hazard.objects.filter(reported_by=user)
 
         # 2. Now, apply filters from the URL.
         selected_plant = request.GET.get('plant')
