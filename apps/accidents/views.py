@@ -977,7 +977,7 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        today = timezone.now().date() # Use timezone aware date
+        today = timezone.now().date()
         user = self.request.user
 
         # ==================================================
@@ -990,17 +990,27 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         selected_month = self.request.GET.get('month', '')
 
         # ==================================================
-        # BASE QUERYSET - Filter by user role
+      
         # ==================================================
-        # --- FIX IS HERE ---
-        # The role check was `getattr(user, 'role', None) == 'ADMIN'`, which is incorrect.
-        # It should check the `name` attribute of the role object, like this:
-        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
-            incidents = Incident.objects.all()
-        elif getattr(user, 'plant', None):
-            incidents = Incident.objects.filter(plant=user.plant)
+        
+        # --- 1. USER ACCESS CONTROL (Plants logic) ---
+        if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
+            
+            accessible_plants = Plant.objects.filter(is_active=True).order_by('name')
         else:
-            incidents = Incident.objects.filter(reported_by=user)
+            
+            assigned = user.assigned_plants.filter(is_active=True)
+            if assigned.exists():
+                accessible_plants = assigned.order_by('name')
+            #  assigned_plants 
+            elif getattr(user, 'plant', None):
+                accessible_plants = Plant.objects.filter(id=user.plant.id, is_active=True)
+            else:
+                accessible_plants = Plant.objects.none()
+
+        incidents = Incident.objects.filter(plant__in=accessible_plants)
+        
+        
 
         # ==================================================
         # APPLY FILTERS TO QUERYSET
@@ -1026,18 +1036,10 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         # ==================================================
         # POPULATE FILTER DROPDOWNS
         # ==================================================
-        # --- AND THE SAME FIX IS APPLIED HERE ---
-        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
-            all_plants = Plant.objects.filter(is_active=True).order_by('name')
-        elif getattr(user, 'plant', None):
-            all_plants = Plant.objects.filter(id=user.plant.id, is_active=True)
-        else:
-            all_plants = Plant.objects.none()
-        
-        context['plants'] = all_plants
+        # अब 'accessible_plants' 
+        context['plants'] = accessible_plants
 
-        # This logic populates the dependent dropdowns and is now correct
-        # because `all_plants` is populated correctly.
+        
         if selected_plant:
             context['zones'] = Zone.objects.filter(plant_id=selected_plant, is_active=True).order_by('name')
             if selected_zone:
@@ -1050,12 +1052,12 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
                 context['locations'] = Location.objects.filter(zone__plant_id=selected_plant, is_active=True).order_by('name')
                 context['sublocations'] = SubLocation.objects.filter(location__zone__plant_id=selected_plant, is_active=True).order_by('name')
         else:
-            # When no plant is selected, show zones/locations for all accessible plants
-            context['zones'] = Zone.objects.filter(plant__in=all_plants, is_active=True).order_by('name')
-            context['locations'] = Location.objects.filter(zone__plant__in=all_plants, is_active=True).order_by('name')
-            context['sublocations'] = SubLocation.objects.filter(location__zone__plant__in=all_plants, is_active=True).order_by('name')
+            
+            context['zones'] = Zone.objects.filter(plant__in=accessible_plants, is_active=True).order_by('name')
+            context['locations'] = Location.objects.filter(zone__plant__in=accessible_plants, is_active=True).order_by('name')
+            context['sublocations'] = SubLocation.objects.filter(location__zone__plant__in=accessible_plants, is_active=True).order_by('name')
 
-        # The rest of the method remains the same...
+    
         # (month_options, selected filter values, stats, chart data, etc.)
         
         month_options = []
@@ -1124,35 +1126,18 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
             investigation_required=True,
             investigation_completed_date__isnull=True
         ).count()
-
-        # =================================================================
-        # START: MODIFIED SECTION
-        # =================================================================
-
-        # REMOVE these hardcoded lines:
-        # context['lti_count'] = incidents.filter(incident_type__code='LTI').count()
-        # context['mtc_count'] = incidents.filter(incident_type__code='MTC').count()
-        # context['fa_count']  = incidents.filter(incident_type__code='FA').count()
-        # context['hlfi_count'] = incidents.filter(incident_type__code='HLFI').count()
-
-        # ADD this dynamic query for the doughnut chart:
+        
         type_distribution = incidents.values(
             'incident_type__name', 'incident_type__code'
         ).annotate(
             count=Count('id')
         ).order_by('-count')
 
-        # Prepare data for Chart.js
         type_chart_labels = [item['incident_type__name'] for item in type_distribution if item['incident_type__name']]
         type_chart_data = [item['count'] for item in type_distribution if item['incident_type__name']]
 
-        # Pass the dynamic data to the template context
         context['type_chart_labels'] = json.dumps(type_chart_labels)
         context['type_chart_data'] = json.dumps(type_chart_data)
-
-        # =================================================================
-        # END: MODIFIED SECTION
-        # =================================================================
 
         context['recent_incidents'] = incidents.select_related(
             'plant', 'location', 'reported_by'
