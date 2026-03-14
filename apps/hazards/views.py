@@ -1003,9 +1003,10 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         if user.is_superuser or getattr(user, 'role', None) and user.role.name == 'ADMIN':
             base_hazards = Hazard.objects.all()
             all_plants = Plant.objects.filter(is_active=True).order_by('name')
-        elif getattr(user, 'plant', None):
-            base_hazards = Hazard.objects.filter(plant=user.plant)
-            all_plants = Plant.objects.filter(id=user.plant.id)
+        elif user.get_all_plants():
+            user_plants = user.get_all_plants()
+            base_hazards = Hazard.objects.filter(plant__in=user_plants).distinct()
+            all_plants = user_plants
         else:
             base_hazards = Hazard.objects.filter(reported_by=user)
             all_plants = Plant.objects.none()
