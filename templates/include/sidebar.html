@@ -3,13 +3,10 @@
 
 <style>
   :root {
-    /* EHS Theme Colors */
-    --primary-blue: #fffff;   /* Health (blue) */
-    --primary-green: #6DBF4B;  /* Environment (green) */
-    --dark-orange: #F77C2B;    /* Safety (orange) */
+    --primary-blue: #fffff;
+    --primary-green: #6DBF4B;
+    --dark-orange: #F77C2B;
     --dark-green: #4CAF50;
-    
-    /* Sidebar Specific Colors */
     --sidebar-bg: #F8FBFD;
     --sidebar-text-color: #37474F;
     --sidebar-icon-color: #869099;
@@ -18,7 +15,6 @@
     --sidebar-border-color: #e3e6f0;
   }
 
-  /* Core Sidebar Structure */
   .main-sidebar.sidebar-ehs {
     height: 100vh !important;
     position: fixed !important;
@@ -31,7 +27,6 @@
     box-shadow: 2px 0 15px rgba(30, 144, 255, 0.1);
   }
 
-  /* Brand Logo Area - Everest Industries Brand Colors */
   .brand-link {
     display: flex;
     align-items: center;
@@ -83,7 +78,6 @@
     font-weight: 500;
   }
 
-  /* Scrollable Navigation Menu Area */
   .sidebar {
     padding: 0;
     flex-grow: 1;
@@ -95,7 +89,6 @@
     padding-top: 8px;
   }
 
-  /* Menu Links & Icons */
   .nav-sidebar .nav-link {
     color: var(--sidebar-text-color);
     font-weight: 500;
@@ -122,7 +115,6 @@
     transition: all 0.2s ease-in-out;
   }
 
-  /* Interactive States: Hover & Active */
   .nav-sidebar .nav-item:not(.menu-open) > .nav-link:hover {
     background-color: var(--sidebar-hover-bg);
     color: var(--primary-blue);
@@ -145,7 +137,6 @@
     color: var(--dark-orange);
   }
 
-  /* Dropdown (Treeview) Menu Styling */
   .nav-sidebar .nav-link .right {
     transition: transform 0.3s ease;
   }
@@ -182,7 +173,6 @@
     color: var(--dark-orange);
   }
 
-  /* Content Area Padding Fix */
   .content-wrapper,
   .main-header,
   .main-footer {
@@ -221,7 +211,7 @@
       <ul class="nav nav-pills nav-sidebar flex-column"
           data-widget="treeview" role="menu" data-accordion="false">
 
-        <!-- 1. Dashboard (Always visible) -->
+        <!-- 1. Dashboard -->
         <li class="nav-item has-treeview {% if url in 'home IncidentAccidentDashboardView hazard_dashboard' %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if url in 'home IncidentAccidentDashboardView hazard_dashboard' %}active{% endif %}">
             <i class="nav-icon fas fa-tachometer-alt"></i>
@@ -457,9 +447,8 @@
           </ul>
         </li>
         {% endif %}
-        
-        <!-- 8. HAZARD MANAGEMENT -->
-        {% comment %} {% if user.can_access_hazard_module %} {% endcomment %}
+
+        <!-- 8. Hazard Management -->
         <li class="nav-item {% if 'hazards' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'hazards' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-biohazard"></i>
@@ -507,10 +496,8 @@
               {% endif %}
           </ul>
         </li>
-        {% comment %} {% endif %} {% endcomment %}
 
-        <!-- 9. INJURY MANAGEMENT -->
-        {% comment %} {% if user.can_access_incident_module %} {% endcomment %}
+        <!-- 9. Injury Management -->
         <li class="nav-item {% if 'accidents' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'incidents' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-exclamation-triangle"></i>
@@ -555,22 +542,21 @@
             {% endif %}
           </ul>
         </li>
-        {% comment %} {% endif %} {% endcomment %}
 
         <!-- 10. Approvals -->
         {% if request.user|has_perm:'APPROVE_PERMIT' or request.user|has_perm:'APPROVE_HAZARD' or request.user|has_perm:'APPROVE_INJURY' or request.user|has_perm:'APPROVE_INSPECTION' %}
         <li class="nav-item">
-            <a href="{% url 'dashboards:approvals' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals' %}active{% endif %}">
-                <i class="nav-icon fas fa-clipboard-check text-warning"></i>
-                <p>
-                    Approvals
-                    {% with pending_count=user.get_pending_approvals_count %}
-                    {% if pending_count > 0 %}
-                    <span class="badge badge-warning right">{{ pending_count }}</span>
-                    {% endif %}
-                    {% endwith %}
-                </p>
-            </a>
+          <a href="{% url 'dashboards:approvals' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals' %}active{% endif %}">
+            <i class="nav-icon fas fa-clipboard-check text-warning"></i>
+            <p>
+              Approvals
+              {% with pending_count=request.user.get_pending_approvals_count %}
+              {% if pending_count > 0 %}
+                <span class="badge badge-warning right">{{ pending_count }}</span>
+              {% endif %}
+              {% endwith %}
+            </p>
+          </a>
         </li>
         {% endif %}
 
@@ -626,15 +612,6 @@
           </ul>
         </li>
         {% endif %}
-
-        {% comment %} {% if user.can_access_reports_module %}
-        <li class="nav-item">
-          <a href="#" class="nav-link">
-            <i class="nav-icon fas fa-chart-bar"></i>
-            <p>Reports & Analytics</p>
-          </a>
-        </li>
-        {% endif %} {% endcomment %}
 
       </ul>
     </nav>
