@@ -1057,25 +1057,35 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         context['current_month_value'] = today.strftime('%Y-%m')
 
         # 5. Prepare filter dropdown options
-        context['plants'] = all_plants
+        context['plants'] = user_plants
         
         zone_qs = Zone.objects.filter(is_active=True)
+        if not user.is_superuser and not (getattr(user, 'role', None) and user.role.name == 'ADMIN'):
+            zone_qs = zone_qs.filter(plant__in=user_plants)
         if selected_plant:
             zone_qs = zone_qs.filter(plant_id=selected_plant)
         context['zones'] = zone_qs.order_by('name')
 
         location_qs = Location.objects.filter(is_active=True)
+        if not user.is_superuser and not (getattr(user, 'role', None) and user.role.name == 'ADMIN'):
+            location_qs = location_qs.filter(zone__plant__in=user_plants)
         if selected_zone:
             location_qs = location_qs.filter(zone_id=selected_zone)
-        elif selected_plant and not selected_zone:
-             location_qs = location_qs.filter(zone__plant_id=selected_plant)
+        elif selected_plant:
+            location_qs = location_qs.filter(zone__plant_id=selected_plant)
+
         context['locations'] = location_qs.order_by('name')
 
         sublocation_qs = SubLocation.objects.filter(is_active=True)
+        if not user.is_superuser and not (getattr(user, 'role', None) and user.role.name == 'ADMIN'):
+            sublocation_qs = sublocation_qs.filter(location__zone__plant__in=user_plants)
         if selected_location:
             sublocation_qs = sublocation_qs.filter(location_id=selected_location)
-        elif selected_zone and not selected_location:
-             sublocation_qs = sublocation_qs.filter(location__zone_id=selected_zone)
+        elif selected_zone:
+            sublocation_qs = sublocation_qs.filter(location__zone_id=selected_zone)
+        elif selected_plant:
+            sublocation_qs = sublocation_qs.filter(location__zone__plant_id=selected_plant)
+
         context['sublocations'] = sublocation_qs.order_by('name')
         
         context['month_options'] = [{
