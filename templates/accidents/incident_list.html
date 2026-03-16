@@ -247,9 +247,11 @@
                 <i class="fas fa-edit"></i>
               </a>
               {% endif %}
+              {% if user|has_perm:'EXPORT_INJURY_PDF' %}
               <a href="{% url 'accidents:incident_pdf' incident.pk %}" class="btn btn-sm btn-danger" >
               <i class="fas fa-file-pdf"></i>
               </a>
+              {% endif %}
             </td>
           </tr>
           {% empty %}
