@@ -155,9 +155,11 @@
     <div class="card h-100 border-0 shadow-sm text-center">
       <div class="card-body d-flex flex-column justify-content-center">
         <div class="mb-3">
+          {% if user|has_perm:'VIEW_INJURY' %}
           <a href="{% url 'accidents:incident_list' %}" class="btn btn-success btn-lg rounded-circle">
             <i class="fas fa-list"></i>
-        </a>
+          </a>
+          {% endif %}
         </div>
         <h5 class="card-title">View All Injuries</h5>
         <p class="card-text text-muted">
@@ -165,9 +167,11 @@
         </p>
         <!-- Center smaller button -->
         <div class="d-flex justify-content-center">
+          {% if user|has_perm:'VIEW_INJURY' %}
           <a href="{% url 'accidents:incident_list' %}" class="btn btn-success btn-md">
             <i class="fas fa-folder-open mr-2"></i> View All
           </a>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -212,9 +216,11 @@
             </h3>
           </div>
           <div class="col-auto">
+            {% if user|has_perm:'VIEW_INJURY' %}
             <a href="{% url 'accidents:incident_list' %}" class="btn btn-primary btn-sm">
               View All <i class="fas fa-arrow-right ml-1"></i>
             </a>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -230,7 +236,7 @@
                 <th>Plant</th>
                 <!-- <th>Severity</th> -->
                 <th>Status</th>
-                <th>Actions</th>
+                {% if user|has_perm:'VIEW_INJURY' %}<th>Actions</th>{% endif %}
               </tr>
             </thead>
             <tbody>
@@ -265,12 +271,14 @@
                     {{ incident.get_status_display }}
                   </span>
                 </td>
+                {% if user|has_perm:'VIEW_INJURY' %}
                 <td>
                   <a href="{% url 'accidents:incident_detail' incident.pk %}" 
                      class="btn btn-sm btn-info" title="View Details">
                     <i class="fas fa-eye"></i>
                   </a>
                 </td>
+                {% endif %} 
               </tr>
               {% empty %}
               <tr>
