@@ -1088,7 +1088,7 @@ def my_inspections(request):
     
     schedules = InspectionSchedule.objects.filter(
         assigned_to=request.user
-    ).select_related('template', 'plant', 'department')
+    ).select_related('template', 'department')
     
     # Filters
     status = request.GET.get('status', 'SCHEDULED')
