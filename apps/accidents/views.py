@@ -977,7 +977,7 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        today = timezone.now().date() # Use timezone aware date
+        today = timezone.now().date()
         user = self.request.user
 
         # ==================================================
@@ -990,17 +990,27 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         selected_month = self.request.GET.get('month', '')
 
         # ==================================================
-        # BASE QUERYSET - Filter by user role
+      
         # ==================================================
-        # --- FIX IS HERE ---
-        # The role check was `getattr(user, 'role', None) == 'ADMIN'`, which is incorrect.
-        # It should check the `name` attribute of the role object, like this:
-        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
-            incidents = Incident.objects.all()
-        elif getattr(user, 'plant', None):
-            incidents = Incident.objects.filter(plant=user.plant)
+        
+        # --- 1. USER ACCESS CONTROL (Plants logic) ---
+        if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
+            
+            accessible_plants = Plant.objects.filter(is_active=True).order_by('name')
         else:
-            incidents = Incident.objects.filter(reported_by=user)
+            
+            assigned = user.assigned_plants.filter(is_active=True)
+            if assigned.exists():
+                accessible_plants = assigned.order_by('name')
+            #  assigned_plants 
+            elif getattr(user, 'plant', None):
+                accessible_plants = Plant.objects.filter(id=user.plant.id, is_active=True)
+            else:
+                accessible_plants = Plant.objects.none()
+
+        incidents = Incident.objects.filter(plant__in=accessible_plants)
+        
+        
 
         # ==================================================
         # APPLY FILTERS TO QUERYSET
@@ -1026,18 +1036,10 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         # ==================================================
         # POPULATE FILTER DROPDOWNS
         # ==================================================
-        # --- AND THE SAME FIX IS APPLIED HERE ---
-        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
-            all_plants = Plant.objects.filter(is_active=True).order_by('name')
-        elif getattr(user, 'plant', None):
-            all_plants = Plant.objects.filter(id=user.plant.id, is_active=True)
-        else:
-            all_plants = Plant.objects.none()
-        
-        context['plants'] = all_plants
+        # अब 'accessible_plants' 
+        context['plants'] = accessible_plants
 
-        # This logic populates the dependent dropdowns and is now correct
-        # because `all_plants` is populated correctly.
+        
         if selected_plant:
             context['zones'] = Zone.objects.filter(plant_id=selected_plant, is_active=True).order_by('name')
             if selected_zone:
@@ -1050,12 +1052,12 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
                 context['locations'] = Location.objects.filter(zone__plant_id=selected_plant, is_active=True).order_by('name')
                 context['sublocations'] = SubLocation.objects.filter(location__zone__plant_id=selected_plant, is_active=True).order_by('name')
         else:
-            # When no plant is selected, show zones/locations for all accessible plants
-            context['zones'] = Zone.objects.filter(plant__in=all_plants, is_active=True).order_by('name')
-            context['locations'] = Location.objects.filter(zone__plant__in=all_plants, is_active=True).order_by('name')
-            context['sublocations'] = SubLocation.objects.filter(location__zone__plant__in=all_plants, is_active=True).order_by('name')
+            
+            context['zones'] = Zone.objects.filter(plant__in=accessible_plants, is_active=True).order_by('name')
+            context['locations'] = Location.objects.filter(zone__plant__in=accessible_plants, is_active=True).order_by('name')
+            context['sublocations'] = SubLocation.objects.filter(location__zone__plant__in=accessible_plants, is_active=True).order_by('name')
 
-        # The rest of the method remains the same...
+    
         # (month_options, selected filter values, stats, chart data, etc.)
         
         month_options = []
@@ -1124,35 +1126,18 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
             investigation_required=True,
             investigation_completed_date__isnull=True
         ).count()
-
-        # =================================================================
-        # START: MODIFIED SECTION
-        # =================================================================
-
-        # REMOVE these hardcoded lines:
-        # context['lti_count'] = incidents.filter(incident_type__code='LTI').count()
-        # context['mtc_count'] = incidents.filter(incident_type__code='MTC').count()
-        # context['fa_count']  = incidents.filter(incident_type__code='FA').count()
-        # context['hlfi_count'] = incidents.filter(incident_type__code='HLFI').count()
-
-        # ADD this dynamic query for the doughnut chart:
+        
         type_distribution = incidents.values(
             'incident_type__name', 'incident_type__code'
         ).annotate(
             count=Count('id')
         ).order_by('-count')
 
-        # Prepare data for Chart.js
         type_chart_labels = [item['incident_type__name'] for item in type_distribution if item['incident_type__name']]
         type_chart_data = [item['count'] for item in type_distribution if item['incident_type__name']]
 
-        # Pass the dynamic data to the template context
         context['type_chart_labels'] = json.dumps(type_chart_labels)
         context['type_chart_data'] = json.dumps(type_chart_data)
-
-        # =================================================================
-        # END: MODIFIED SECTION
-        # =================================================================
 
         context['recent_incidents'] = incidents.select_related(
             'plant', 'location', 'reported_by'
@@ -1502,35 +1487,42 @@ class IncidentFilterMixin:
         return incidents.order_by('-incident_date', '-incident_time')
     
 
-class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
+class ExportIncidentsExcelView(LoginRequiredMixin, View):
+    """
+    Handles the export of incident data to an Excel file with proper
+    access control and filtering.
+    """
     def get(self, request, *args, **kwargs):
         user = self.request.user
         
-        # 1. Sabse pehle Base Queryset set karein (Permission ke hisaab se)
-        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
-            # Admin sabka data dekh sakta hai
+        # --- 1. Establish Base Queryset with Correct Permissions ---
+        if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
+            # Admins and staff can access incidents from all plants.
             queryset = Incident.objects.all()
-        elif getattr(user, 'plant', None):
-            # Plant user sirf apne assigned plant ka data dekh sakta hai
-            queryset = Incident.objects.filter(plant=user.plant)
         else:
-            # Baki log sirf apna reported data dekh sakte hain
-            queryset = Incident.objects.filter(reported_by=user)
+            # For other users, check for multiple assigned plants first.
+            assigned_plants = user.assigned_plants.filter(is_active=True)
+            if assigned_plants.exists():
+                # User has multiple plants assigned (many-to-many).
+                queryset = Incident.objects.filter(plant__in=assigned_plants)
+            elif getattr(user, 'plant', None):
+                # Fallback to a single assigned plant (foreign key).
+                queryset = Incident.objects.filter(plant=user.plant)
+            else:
+                # If no plants are assigned, the user can only see incidents they reported.
+                queryset = Incident.objects.filter(reported_by=user)
 
-        # 2. Ab URL filters apply karein (Plant, Zone, Month etc.)
-        # Hum IncidentFilterMixin ka direct use nahi karenge balki manually filter karenge 
-        # taaki koi user URL modify karke dusre plant ka data na le sake
-        
+        # --- 2. Apply Filters from Dashboard URL Parameters ---
+        # This filtering is safe because it's applied to the already-secured queryset.
+        # A user cannot access data from an unassigned plant by modifying the URL.
         selected_plant = request.GET.get('plant')
         selected_zone = request.GET.get('zone')
         selected_location = request.GET.get('location')
         selected_sublocation = request.GET.get('sublocation')
         selected_month = request.GET.get('month')
 
-        # Admin agar kisi specific plant ko filter kare
-        if selected_plant and (user.is_superuser or (hasattr(user, 'role') and user.role.name == 'ADMIN')):
+        if selected_plant:
             queryset = queryset.filter(plant_id=selected_plant)
-        
         if selected_zone:
             queryset = queryset.filter(zone_id=selected_zone)
         if selected_location:
@@ -1542,13 +1534,16 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
             try:
                 year, month = map(int, selected_month.split('-'))
                 queryset = queryset.filter(incident_date__year=year, incident_date__month=month)
-            except ValueError:
+            except (ValueError, TypeError):
                 pass
 
-        # Optimize for Excel export
-        queryset = queryset.select_related('incident_type', 'plant', 'zone', 'location', 'sublocation', 'reported_by', 'closed_by')
+        # Optimize database query for related fields to prevent extra hits.
+        queryset = queryset.select_related(
+            'incident_type', 'plant', 'zone', 'location', 
+            'sublocation', 'reported_by', 'closed_by'
+        ).order_by('-incident_date')
 
-        # --- Baaki ka Excel generation code yahan se start hoga ---
+        # --- 3. Generate Excel Workbook ---
         workbook = openpyxl.Workbook()
         sheet = workbook.active
         sheet.title = 'Incident Report'
@@ -1569,7 +1564,6 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
             'Closed': PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
         }
 
-        # New style for wrapping text in specific columns
         wrap_alignment = Alignment(wrap_text=True, vertical='top', horizontal='left')
 
         # --- Headers ---
@@ -1581,14 +1575,12 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
         ]
         sheet.append(headers)
 
-        # Style the header row
         for cell in sheet[1]:
             cell.font = header_font
             cell.fill = header_fill
             cell.alignment = header_alignment
 
         # --- Data Population and Styling ---
-        # Get column index for text wrapping before the loop
         desc_col_idx = headers.index('Description') + 1
         injury_col_idx = headers.index('Nature of Injury') + 1
         
@@ -1614,16 +1606,14 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
             ]
             sheet.append(row_data)
 
-            # Apply alternating row color (zebra striping)
             current_fill = row_fills[(row_index - 2) % 2]
             for cell in sheet[row_index]:
                 cell.fill = current_fill
             
-            # Apply wrap text alignment to specific cells
             sheet.cell(row=row_index, column=desc_col_idx).alignment = wrap_alignment
             sheet.cell(row=row_index, column=injury_col_idx).alignment = wrap_alignment
 
-        # --- Conditional Formatting for Status ---
+        # --- Conditional Formatting for Status Column ---
         if sheet.max_row >= 2:
             status_column_letter = get_column_letter(headers.index('Status') + 1)
             for status, fill in status_fills.items():
@@ -1632,23 +1622,19 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
 
         # --- Adjust Column Widths ---
         column_widths = {}
-        for row in sheet.iter_rows():
-            for cell in row:
+        for row in sheet.iter_rows(min_row=1, max_row=1): # Check header length first
+             for cell in row:
                 if cell.value:
-                    column_widths[cell.column_letter] = max(
-                        (column_widths.get(cell.column_letter, 0), len(str(cell.value)))
-                    )
+                    column_widths[cell.column_letter] = len(str(cell.value))
 
         for col_letter, width in column_widths.items():
             header_name = sheet[f'{col_letter}1'].value
-            # Set a fixed width for columns that need text wrapping
             if header_name in ['Description', 'Nature of Injury']:
                 sheet.column_dimensions[col_letter].width = 50
             else:
-                # Auto-size other columns with a little padding
-                sheet.column_dimensions[col_letter].width = width + 2
+                sheet.column_dimensions[col_letter].width = width + 5 # Auto-size with padding
 
-        # --- HTTP Response ---
+        # --- Prepare HTTP Response for Download ---
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
@@ -1657,8 +1643,7 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
         
         workbook.save(response)
 
-        return response
-    
+        return response    
 
 # class IncidentCloseView(LoginRequiredMixin, UpdateView):
 #     """Close an incident"""

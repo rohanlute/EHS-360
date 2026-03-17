@@ -1003,9 +1003,10 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         if user.is_superuser or getattr(user, 'role', None) and user.role.name == 'ADMIN':
             base_hazards = Hazard.objects.all()
             all_plants = Plant.objects.filter(is_active=True).order_by('name')
-        elif getattr(user, 'plant', None):
-            base_hazards = Hazard.objects.filter(plant=user.plant)
-            all_plants = Plant.objects.filter(id=user.plant.id)
+        elif user.get_all_plants():
+            user_plants = user.get_all_plants()
+            base_hazards = Hazard.objects.filter(plant__in=user_plants).distinct()
+            all_plants = user_plants
         else:
             base_hazards = Hazard.objects.filter(reported_by=user)
             all_plants = Plant.objects.none()
@@ -1056,25 +1057,35 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         context['current_month_value'] = today.strftime('%Y-%m')
 
         # 5. Prepare filter dropdown options
-        context['plants'] = all_plants
+        context['plants'] = user_plants
         
         zone_qs = Zone.objects.filter(is_active=True)
+        if not user.is_superuser and not (getattr(user, 'role', None) and user.role.name == 'ADMIN'):
+            zone_qs = zone_qs.filter(plant__in=user_plants)
         if selected_plant:
             zone_qs = zone_qs.filter(plant_id=selected_plant)
         context['zones'] = zone_qs.order_by('name')
 
         location_qs = Location.objects.filter(is_active=True)
+        if not user.is_superuser and not (getattr(user, 'role', None) and user.role.name == 'ADMIN'):
+            location_qs = location_qs.filter(zone__plant__in=user_plants)
         if selected_zone:
             location_qs = location_qs.filter(zone_id=selected_zone)
-        elif selected_plant and not selected_zone:
-             location_qs = location_qs.filter(zone__plant_id=selected_plant)
+        elif selected_plant:
+            location_qs = location_qs.filter(zone__plant_id=selected_plant)
+
         context['locations'] = location_qs.order_by('name')
 
         sublocation_qs = SubLocation.objects.filter(is_active=True)
+        if not user.is_superuser and not (getattr(user, 'role', None) and user.role.name == 'ADMIN'):
+            sublocation_qs = sublocation_qs.filter(location__zone__plant__in=user_plants)
         if selected_location:
             sublocation_qs = sublocation_qs.filter(location_id=selected_location)
-        elif selected_zone and not selected_location:
-             sublocation_qs = sublocation_qs.filter(location__zone_id=selected_zone)
+        elif selected_zone:
+            sublocation_qs = sublocation_qs.filter(location__zone_id=selected_zone)
+        elif selected_plant:
+            sublocation_qs = sublocation_qs.filter(location__zone__plant_id=selected_plant)
+
         context['sublocations'] = sublocation_qs.order_by('name')
         
         context['month_options'] = [{
@@ -1228,12 +1239,17 @@ class ExportHazardsView(LoginRequiredMixin, View):
 
         # 1. First, establish the base queryset based on user permissions.
         # This logic now mirrors the Incident export view.
-        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
+        user = request.user
+        if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
             queryset = Hazard.objects.all()
-        elif getattr(user, 'plant', None):
-            queryset = Hazard.objects.filter(plant=user.plant)
         else:
-            queryset = Hazard.objects.filter(reported_by=user)
+            assigned_plants = user.assigned_plants.filter(is_active=True)
+            if assigned_plants.exists():
+                queryset = Hazard.objects.filter(plant__in=assigned_plants)
+            elif getattr(user, 'plant', None):
+                queryset = Hazard.objects.filter(plant=user.plant)
+            else:
+                queryset = Hazard.objects.filter(reported_by=user)
 
         # 2. Now, apply filters from the URL.
         selected_plant = request.GET.get('plant')
