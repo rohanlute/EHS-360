@@ -229,38 +229,43 @@ class NotificationService:
             zone = getattr(content_object, 'zone', None)
 
 
-        # Find stakeholders based on NotificationMaster configuration
-        stakeholders = NotificationService.get_stakeholders_for_event(
-            event_type=notification_type,
-            plant=plant,
-            location=location,
-            zone=zone
-        )
-
-        # For responsible person
-        if extra_recipients:
-            for user in extra_recipients:
-                if user not in stakeholders:
-                    stakeholders.append(user)
-
-        # Add assigned_to if present
-        if hasattr(content_object, 'assigned_to') and content_object.assigned_to:
-            if content_object.assigned_to not in stakeholders:
+        # inspection schedule - only notify assigned user
+        if notification_type == 'INSPECTION_SCHEDULE':
+            stakeholders = []
+            if hasattr(content_object, 'assigned_to') and content_object.assigned_to:
                 stakeholders.append(content_object.assigned_to)
+        else:
+            stakeholders = NotificationService.get_stakeholders_for_event(
+                event_type=notification_type,
+                plant=plant,
+                location=location,
+                zone=zone
+            )
 
-        # Add responsible persons for action items
-        if hasattr(content_object, 'responsible_person'):
-            for user in content_object.responsible_person.all():
-                if user not in stakeholders:
-                    stakeholders.append(user)
+            # For responsible person
+            if extra_recipients:
+                for user in extra_recipients:
+                    if user not in stakeholders:
+                        stakeholders.append(user)
 
-        # Add responsible emails if present
-        if hasattr(content_object, 'responsible_emails') and content_object.responsible_emails:
-            emails = [e.strip() for e in content_object.responsible_emails.split(',') if e.strip()]
-            responsible_users = User.objects.filter(email__in=emails, is_active=True)
-            for user in responsible_users:
-                if user not in stakeholders:
-                    stakeholders.append(user)
+            # Add assigned_to if present
+            if hasattr(content_object, 'assigned_to') and content_object.assigned_to:
+                if content_object.assigned_to not in stakeholders:
+                    stakeholders.append(content_object.assigned_to)
+
+            # Add responsible persons for action items
+            if hasattr(content_object, 'responsible_person'):
+                for user in content_object.responsible_person.all():
+                    if user not in stakeholders:
+                        stakeholders.append(user)
+
+            # Add responsible emails if present
+            if hasattr(content_object, 'responsible_emails') and content_object.responsible_emails:
+                emails = [e.strip() for e in content_object.responsible_emails.split(',') if e.strip()]
+                responsible_users = User.objects.filter(email__in=emails, is_active=True)
+                for user in responsible_users:
+                    if user not in stakeholders:
+                        stakeholders.append(user)
        
 
 
@@ -321,7 +326,8 @@ class NotificationService:
                 is_active=True
             ).first()
 
-            if is_responsible_user or (role_config and role_config.email_enabled):
+            should_send_email = notification_type == 'INSPECTION_SCHEDULE' or is_responsible_user or (role_config and role_config.email_enabled)
+            if should_send_email:
                 context['recipient'] = stakeholder
                 email_sent = NotificationService.send_email(
                     recipient=stakeholder,
