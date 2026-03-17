@@ -1087,8 +1087,9 @@ def my_inspections(request):
         messages.error(request, 'This page is only for HODs!')
         return redirect('inspections:inspection_dashboard')
     
-    schedules = (InspectionSchedule.objects.filter(assigned_to=request.user)
-    .select_related('template', 'department').prefetch_related('plants'))
+    schedules = InspectionSchedule.objects.filter(
+        assigned_to=request.user
+    ).select_related('template', 'department')
     
     # Filters
     status = request.GET.get('status', 'SCHEDULED')
