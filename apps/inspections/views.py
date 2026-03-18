@@ -21,7 +21,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import *
 from .forms import *
 from apps.notifications.services import NotificationService
-from apps.organizations.models import Plant
+from apps.organizations.models import Plant, Zone, Location, SubLocation
 
 
 
@@ -923,7 +923,19 @@ def schedule_edit(request, pk):
     if request.method == 'POST':
         form = InspectionScheduleForm(request.POST, instance=schedule, user=request.user)
         if form.is_valid():
-            form.save()
+            schedule = form.save(commit=False)
+            schedule.save()
+
+            selected_plant_ids = request.POST.getlist('selected_plants')
+            selected_zone_ids = request.POST.getlist('selected_zones')
+            selected_location_ids = request.POST.getlist('selected_locations')
+            selected_sublocation_ids = request.POST.getlist('selected_sublocations')
+
+            schedule.plants.set(Plant.objects.filter(id__in=selected_plant_ids))
+            schedule.zones.set(Zone.objects.filter(id__in=selected_zone_ids))
+            schedule.locations.set(Location.objects.filter(id__in=selected_location_ids))
+            schedule.sublocations.set(SubLocation.objects.filter(id__in=selected_sublocation_ids))
+
             messages.success(request, 'Inspection schedule updated successfully!')
             return redirect('inspections:schedule_detail', pk=pk)
     else:
@@ -1521,6 +1533,9 @@ def no_answers_list(request):
 
     if search:
         no_responses = no_responses.filter(
+            Q(submission__schedule__schedule_code__icontains=search) |
+            Q(submission__submitted_by__first_name__icontains=search) |
+            Q(submission__submitted_by__last_name__icontains=search) |
             Q(question__question_text__icontains=search) |
             Q(question__question_code__icontains=search) |
             Q(remarks__icontains=search)
