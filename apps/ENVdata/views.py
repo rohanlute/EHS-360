@@ -1217,10 +1217,22 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
                         }
 
                         if q.filter_field and q.filter_value:
-                            filters[q.filter_field] = q.filter_value
+                            field = q.filter_field
+                            if q.source_type == "INSPECTION":
+                                if field == "inspection_type":
+                                    field = "template__inspection_type"
+                                elif field == "template":
+                                    field = "template_id"
+                            filters[field] = q.filter_value
 
                         if q.filter_field_2 and q.filter_value_2:
-                            filters[q.filter_field_2] = q.filter_value_2
+                            field = q.filter_field_2
+                            if q.source_type == "INSPECTION":
+                                if field == "inspection_type":
+                                    field = "template__inspection_type"
+                                elif field == "template":
+                                    field = "template_id"
+                            filters[field] = q.filter_value_2
 
                         value = model.objects.filter(**filters).count()
                 
@@ -1352,10 +1364,22 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                             filters = {**plant_filter,"created_at__gte": start_date,"created_at__lt": end_date}
 
                             if q.filter_field and q.filter_value:
-                                filters[q.filter_field] = q.filter_value
+                                field = q.filter_field
+                                if q.source_type == "INSPECTION":
+                                    if field == "inspection_type":
+                                        field = "template__inspection_type"
+                                    elif field == "template":
+                                        field = "template_id"
+                                filters[field] = q.filter_value
 
                             if q.filter_field_2 and q.filter_value_2:
-                                filters[q.filter_field_2] = q.filter_value_2
+                                field = q.filter_field_2
+                                if q.source_type == "INSPECTION":
+                                    if field == "inspection_type":
+                                        field = "template__inspection_type"
+                                    elif field == "template":
+                                        field = "template_id"
+                                filters[field] = q.filter_value_2
 
                             value = model.objects.filter(**filters).count()
                     
@@ -1502,10 +1526,22 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
                             filters = {f"{plant_field}": plant,"created_at__gte": start_date,"created_at__lt": end_date,}
 
                             if q.filter_field and q.filter_value:
-                                filters[q.filter_field] = q.filter_value
+                                field = q.filter_field
+                                if q.source_type == "INSPECTION":
+                                    if field == "inspection_type":
+                                        field = "template__inspection_type"
+                                    elif field == "template":
+                                        field = "template_id"
+                                filters[field] = q.filter_value
 
                             if q.filter_field_2 and q.filter_value_2:
-                                filters[q.filter_field_2] = q.filter_value_2
+                                field = q.filter_field_2
+                                if q.source_type == "INSPECTION":
+                                    if field == "inspection_type":
+                                        field = "template__inspection_type"
+                                    elif field == "template":
+                                        field = "template_id"
+                                filters[field] = q.filter_value_2
 
                             value = model.objects.filter(**filters).count()
 
