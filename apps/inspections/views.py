@@ -21,6 +21,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import *
 from .forms import *
 from apps.notifications.services import NotificationService
+from apps.organizations.models import Plant, Zone, Location, SubLocation
 
 
 
@@ -733,7 +734,7 @@ def schedule_list(request):
         pass
     elif request.user.has_permission('CONDUCT_INSPECTION') or request.user.can_access_inspection_module:
         user_plants = request.user.get_all_plants()
-        schedules = schedules.filter(plants__in=user_plants)
+        schedules = schedules.filter(plants__in=user_plants).distinct()
     else:
         schedules = schedules.none()
     
@@ -874,18 +875,36 @@ def schedule_create(request):
                     # If auto-schedule enabled → save config
                     if enable_auto:
                         due_offset = form.cleaned_data.get('due_date_offset_days') or 7
-                        config = TemplateAutoScheduleConfig.objects.create(
+
+                        # ✅ Prevent duplicate configs for same template
+                        config, created = TemplateAutoScheduleConfig.objects.get_or_create(
                             template=form.cleaned_data['template'],
-                            due_date_offset_days=due_offset,
-                            is_active=True,
-                            is_paused=False,
-                            created_by=request.user
+                            defaults={
+                                'due_date_offset_days': due_offset,
+                                'is_active': True,
+                                'is_paused': False,
+                                'created_by': request.user
+                            }
                         )
+
+                        # ✅ If already exists → update it
+                        if not created:
+                            config.due_date_offset_days = due_offset
+                            config.is_active = True
+                            config.is_paused = False
+                            config.save()
+
+                        # ✅ Set relations
                         config.plants.set(plants)
                         config.zones.set(zones)
                         config.locations.set(locations)
                         config.sublocations.set(sublocations)
                         config.assigned_users.set(assigned_users)
+
+                        # ✅ LINK schedules to config
+                        for schedule in created_schedules:
+                            schedule.auto_schedule_config = config
+                            schedule.save()
 
                     messages.success(
                         request,
@@ -922,7 +941,19 @@ def schedule_edit(request, pk):
     if request.method == 'POST':
         form = InspectionScheduleForm(request.POST, instance=schedule, user=request.user)
         if form.is_valid():
-            form.save()
+            schedule = form.save(commit=False)
+            schedule.save()
+
+            selected_plant_ids = request.POST.getlist('selected_plants')
+            selected_zone_ids = request.POST.getlist('selected_zones')
+            selected_location_ids = request.POST.getlist('selected_locations')
+            selected_sublocation_ids = request.POST.getlist('selected_sublocations')
+
+            schedule.plants.set(Plant.objects.filter(id__in=selected_plant_ids))
+            schedule.zones.set(Zone.objects.filter(id__in=selected_zone_ids))
+            schedule.locations.set(Location.objects.filter(id__in=selected_location_ids))
+            schedule.sublocations.set(SubLocation.objects.filter(id__in=selected_sublocation_ids))
+
             messages.success(request, 'Inspection schedule updated successfully!')
             return redirect('inspections:schedule_detail', pk=pk)
     else:
@@ -1293,12 +1324,9 @@ def inspection_review(request, submission_id):
     """Review completed inspection showing ALL answers and details."""
     
     submission = get_object_or_404(
-        InspectionSubmission.objects.select_related(
-            'schedule',
-            'schedule__template',
-            'schedule__plant',
-            'submitted_by'
-        ),
+        InspectionSubmission.objects
+        .select_related('schedule', 'schedule__template', 'submitted_by')
+        .prefetch_related('schedule__plants'),
         pk=submission_id
     )
     
@@ -1307,7 +1335,7 @@ def inspection_review(request, submission_id):
             request.user == submission.submitted_by or
             request.user.can_access_inspection_module):
         messages.error(request, 'Unauthorized access!')
-        return redirect('inspections:inspection_dashboard')
+        return redirect('inspections:pre_inspection_dashboard')
 
     # ===================================================================
     # START OF THE FIX
@@ -1454,7 +1482,6 @@ def no_answers_list(request):
     ).select_related(
         'submission',
         'submission__schedule',
-        'submission__schedule__plant',
         'submission__schedule__assigned_to',
         'submission__submitted_by',
         'question',
@@ -1462,14 +1489,17 @@ def no_answers_list(request):
         'assigned_to',
         'assigned_by',
         'converted_to_hazard'
-    )
+    ).prefetch_related('submission__schedule__plants')
 
     # ---------------------------------------------------------------
     # USER-BASED FILTERING — FIXED LOGIC
     # ---------------------------------------------------------------
     user_plants = request.user.get_all_plants()
     if user_plants:
-        no_responses = no_responses.filter(submission__schedule__plant__in=user_plants)
+        no_responses = no_responses.filter(
+            Q(submission__schedule__plants__in=user_plants) |
+            Q(submission__schedule__plants__isnull=True)
+        ).distinct()
     else:
         no_responses = no_responses.none()
     is_admin = request.user.is_superuser or getattr(request.user, 'can_access_inspection_module', False)
@@ -1491,8 +1521,13 @@ def no_answers_list(request):
 
     if plant_id:
         no_responses = no_responses.filter(
-            submission__schedule__plant_id=plant_id
+            submission__schedule__plants__id=plant_id
         )
+    else:
+        no_responses = no_responses.filter(
+            Q(submission__schedule__plants__in=user_plants) |
+            Q(submission__schedule__plants__isnull=True)
+        ).distinct()
 
     if category_id:
         no_responses = no_responses.filter(
@@ -1516,6 +1551,9 @@ def no_answers_list(request):
 
     if search:
         no_responses = no_responses.filter(
+            Q(submission__schedule__schedule_code__icontains=search) |
+            Q(submission__submitted_by__first_name__icontains=search) |
+            Q(submission__submitted_by__last_name__icontains=search) |
             Q(question__question_text__icontains=search) |
             Q(question__question_code__icontains=search) |
             Q(remarks__icontains=search)
@@ -1551,14 +1589,27 @@ def no_answers_list(request):
     # ---------------------------------------------------------------
     available_users = User.objects.none()
     if is_admin:
-        response_plants = no_responses.values_list('submission__schedule__plant',flat=True).distinct()
-        if plant_id:
-            response_plants = [plant_id]
+        # Get unique plant IDs from the filtered no_responses queryset
+        response_plants_qs = no_responses.filter(
+            submission__schedule__plants__isnull=False
+        ).values_list(
+            'submission__schedule__plants__id',
+            flat=True
+        ).distinct()
 
-        available_users = User.objects.filter(is_active=True,is_superuser=False,plant__in=response_plants).select_related('department','role','plant').order_by('first_name', 'last_name')
+        # If a specific plant is selected, use only that
+        if plant_id:
+            response_plants_qs = [int(plant_id)]
+
+        # Only include active users who belong to the inspection plants
+        available_users = User.objects.filter(
+            is_active=True,
+            is_superuser=False,
+            plant__id__in=response_plants_qs
+        ).select_related('department', 'role', 'plant'
+        ).order_by('first_name', 'last_name')
 
     # For filters
-    from apps.organizations.models import Plant
     user_plants = request.user.get_all_plants()
     if request.user.is_superuser:
         plants = Plant.objects.filter(is_active=True)
@@ -1743,22 +1794,19 @@ def convert_no_answer_to_hazard(request, response_id):
     from apps.hazards.models import Hazard, HazardPhoto
     import json
 
-    response = get_object_or_404(
-        InspectionResponse.objects.select_related(
-            'submission',
-            'submission__schedule',
-            'submission__schedule__plant',
-            'submission__schedule__zone',
-            'submission__schedule__location',
-            'submission__schedule__sublocation',
-            'question',
-            'question__category',
-            'assigned_to',
-            'assigned_by'
-        ),
-        pk=response_id,
-        answer='No'
-    )
+    response = InspectionResponse.objects.select_related(
+    'submission',
+    'submission__schedule',
+    'question',
+    'question__category',
+    'assigned_to',
+    'assigned_by'
+    ).prefetch_related(
+        'submission__schedule__plants',
+        'submission__schedule__zones',
+        'submission__schedule__locations',
+        'submission__schedule__sublocations'
+    ).get(pk=response_id, answer='No')
 
     # Only assigned person can convert
     if request.user != response.assigned_to:
@@ -1803,10 +1851,10 @@ def convert_no_answer_to_hazard(request, response_id):
             hazard.severity = request.POST.get('severity', 'high' if response.question.is_critical else 'medium')
 
             # Location from schedule
-            hazard.plant = schedule.plant
-            hazard.zone = schedule.zone
-            hazard.location = schedule.location
-            hazard.sublocation = schedule.sublocation
+            hazard.plant = schedule.plants.first()
+            hazard.zone = schedule.zones.first()
+            hazard.location = schedule.locations.first()
+            hazard.sublocation = schedule.sublocations.first()
             specific_location = request.POST.get('specific_location', '').strip()
             if specific_location:
                 response.specific_location = specific_location
@@ -1939,9 +1987,17 @@ class InspectionDashboardView(LoginRequiredMixin, TemplateView):
                 accessible_plants = assigned
 
         # --- 2. Base Queryset for Completed Inspections (Filtered by accessible plants) ---
-        submissions = (InspectionSubmission.objects.select_related('schedule', 'schedule__template', 'submitted_by')
-        .prefetch_related('schedule__plants').filter(schedule__plants__in=accessible_plants).order_by('-submitted_at').distinct())
-
+        submissions = (
+            InspectionSubmission.objects
+            .select_related('schedule', 'schedule__template', 'submitted_by')
+            .prefetch_related('schedule__plants')
+            .filter(
+                Q(schedule__plants__in=accessible_plants) |
+                Q(schedule__plants__isnull=True)
+            )
+            .order_by('-submitted_at')
+            .distinct()
+        )
         # --- 3. Top Statistics Cards Data (Filtered) ---
         total_inspections = submissions.count()
         current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)

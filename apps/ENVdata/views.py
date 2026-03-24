@@ -1195,25 +1195,44 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
                         end_date = datetime(datetime.now().year, next_month, 1)
 
                     model_map = {
-                        "INCIDENT": Incident,
-                        "HAZARD": Hazard,
-                        "INSPECTION": InspectionSchedule,
+                        "INCIDENT": (Incident, "plant"),
+                        "HAZARD": (Hazard, "plant"),
+                        "INSPECTION": (InspectionSchedule, "plants"),
                     }
 
-                    model = model_map.get(q.source_type)
+                    model_tuple = model_map.get(q.source_type)
 
-                    if model:
+                    if model_tuple:
+                        model, plant_field = model_tuple
+
+                        if plant_field == "plants":
+                            plant_filter = {f"{plant_field}__id": plant.id}
+                        else:
+                            plant_filter = {plant_field: plant}
+
                         filters = {
-                            "plant": plant,
+                            **plant_filter,
                             "created_at__gte": start_date,
                             "created_at__lt": end_date,
                         }
 
                         if q.filter_field and q.filter_value:
-                            filters[q.filter_field] = q.filter_value
+                            field = q.filter_field
+                            if q.source_type == "INSPECTION":
+                                if field == "inspection_type":
+                                    field = "template__inspection_type"
+                                elif field == "template":
+                                    field = "template_id"
+                            filters[field] = q.filter_value
 
                         if q.filter_field_2 and q.filter_value_2:
-                            filters[q.filter_field_2] = q.filter_value_2
+                            field = q.filter_field_2
+                            if q.source_type == "INSPECTION":
+                                if field == "inspection_type":
+                                    field = "template__inspection_type"
+                                elif field == "template":
+                                    field = "template_id"
+                            filters[field] = q.filter_value_2
 
                         value = model.objects.filter(**filters).count()
                 
@@ -1332,26 +1351,35 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                             next_month = datetime.strptime(month_code, "%b").month + 1
                             end_date = datetime(datetime.now().year, next_month, 1)
 
-                        model_map = {
-                            "INCIDENT": Incident,
-                            "HAZARD": Hazard,
-                            "INSPECTION": InspectionSchedule,
-                        }
+                        model_map = {"INCIDENT": (Incident, "plant"),"HAZARD": (Hazard, "plant"),"INSPECTION": (InspectionSchedule, "plants")}
+                        model_tuple = model_map.get(q.source_type)
 
-                        model = model_map.get(q.source_type)
+                        if model_tuple:
+                            model, plant_field = model_tuple
+                            if plant_field == "plants":
+                                plant_filter = {f"{plant_field}__id": plant.id}
+                            else:
+                                plant_filter = {plant_field: plant}
 
-                        if model:
-                            filters = {
-                                "plant": plant,
-                                "created_at__gte": start_date,
-                                "created_at__lt": end_date,
-                            }
+                            filters = {**plant_filter,"created_at__gte": start_date,"created_at__lt": end_date}
 
                             if q.filter_field and q.filter_value:
-                                filters[q.filter_field] = q.filter_value
+                                field = q.filter_field
+                                if q.source_type == "INSPECTION":
+                                    if field == "inspection_type":
+                                        field = "template__inspection_type"
+                                    elif field == "template":
+                                        field = "template_id"
+                                filters[field] = q.filter_value
 
                             if q.filter_field_2 and q.filter_value_2:
-                                filters[q.filter_field_2] = q.filter_value_2
+                                field = q.filter_field_2
+                                if q.source_type == "INSPECTION":
+                                    if field == "inspection_type":
+                                        field = "template__inspection_type"
+                                    elif field == "template":
+                                        field = "template_id"
+                                filters[field] = q.filter_value_2
 
                             value = model.objects.filter(**filters).count()
                     
@@ -1489,18 +1517,31 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
                         else:
                             end_date = datetime(current_year, month_number + 1, 1)
 
-                        model_map = {"INCIDENT": Incident,"HAZARD": Hazard,"INSPECTION": InspectionSchedule,}
+                        model_map = {"INCIDENT": (Incident, "plant"),"HAZARD": (Hazard, "plant"),"INSPECTION": (InspectionSchedule, "plants")}
 
-                        model = model_map.get(q.source_type)
+                        model_tuple = model_map.get(q.source_type)
 
-                        if model:
-                            filters = {"plant": plant,"created_at__gte": start_date,"created_at__lt": end_date,}
+                        if model_tuple:
+                            model, plant_field = model_tuple
+                            filters = {f"{plant_field}": plant,"created_at__gte": start_date,"created_at__lt": end_date,}
 
                             if q.filter_field and q.filter_value:
-                                filters[q.filter_field] = q.filter_value
+                                field = q.filter_field
+                                if q.source_type == "INSPECTION":
+                                    if field == "inspection_type":
+                                        field = "template__inspection_type"
+                                    elif field == "template":
+                                        field = "template_id"
+                                filters[field] = q.filter_value
 
                             if q.filter_field_2 and q.filter_value_2:
-                                filters[q.filter_field_2] = q.filter_value_2
+                                field = q.filter_field_2
+                                if q.source_type == "INSPECTION":
+                                    if field == "inspection_type":
+                                        field = "template__inspection_type"
+                                    elif field == "template":
+                                        field = "template_id"
+                                filters[field] = q.filter_value_2
 
                             value = model.objects.filter(**filters).count()
 
