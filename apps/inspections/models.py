@@ -225,7 +225,6 @@ class InspectionTemplate(models.Model):
         ('MONTHLY', 'Monthly Inspection'),
         ('QUARTERLY', 'Quarterly Inspection'),
         ('ANNUAL', 'Annual Inspection'),
-        ('AD_HOC', 'Ad-hoc Inspection'),
     ]
     
     template_name = models.CharField(

@@ -23,8 +23,8 @@ app.conf.beat_schedule = {
     'schedule': crontab(hour=11, minute=0),  # Daily at 11 AM IST
     },
     'auto-create-inspection-schedules': {
-        'task': 'apps.inspections.tasks.auto_create_inspection_schedules',
-        'schedule': crontab(hour=0, minute=0),  
+    'task': 'apps.inspections.tasks.auto_create_inspection_schedules', 
+    'schedule': crontab(hour=0, minute=0),  
     },
 }
 

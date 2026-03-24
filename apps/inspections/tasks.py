@@ -22,7 +22,9 @@ def should_run_today(inspection_type, now):
 
     elif inspection_type == 'QUARTERLY':
         return now.day == 1 and now.month in [1, 4, 7, 10]
-
+    # ADD this case in should_run_today
+    elif inspection_type == 'ANNUAL':
+        return now.day == 1 and now.month == 1  # 1st January
     return False
 
 # Get schedule period & dates
@@ -59,6 +61,11 @@ def get_schedule_dates(inspection_type, now, config):
         else:
             end = start.replace(month=start_month + 3)
 
+        scheduled_date = start.date()
+    
+    elif inspection_type == 'ANNUAL':
+        start = now.replace(month=1, day=1)
+        end = start.replace(year=start.year + 1)
         scheduled_date = start.date()
 
     else:
