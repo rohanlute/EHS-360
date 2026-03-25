@@ -1613,7 +1613,7 @@ class ExportExcelView(LoginRequiredMixin, View):
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        filename = f"Environmental_Data_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        filename = f"Monthly_Indicators_Data_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         workbook.save(response)

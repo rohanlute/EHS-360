@@ -1,13 +1,13 @@
 {% extends 'base/base.html' %}
 {% load static %}
 {% load custom_tags %}
-{% block title %}All Plants Data{% endblock %}
+{% block title %}All Plants Monthly Data{% endblock %}
 {% block page_title %}{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'environmental:plant-entry' %}">Environmental Data Entry</a></li>
-<li class="breadcrumb-item"><a href="{% url 'environmental:plant-data-view' %}">View Enviromental Data</a></li>
-<li class="breadcrumb-item active">All Plants Data</li>
+<li class="breadcrumb-item"><a href="{% url 'environmental:plant-entry' %}">Enter Monthly Entry</a></li>
+<li class="breadcrumb-item"><a href="{% url 'environmental:plant-data-view' %}">View Monthly Data</a></li>
+<li class="breadcrumb-item active">All Plants Monthly Data</li>
 {% endblock %}
 
 {% block extra_css %}
