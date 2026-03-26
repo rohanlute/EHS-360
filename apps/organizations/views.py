@@ -457,7 +457,7 @@ class ZoneListView(LoginRequiredMixin, CanAccessOrganizationMixin, AdminRequired
         elif status == 'inactive':
             queryset = queryset.filter(is_active=False)
 
-        return queryset.order_by(Lower('name'))
+        return queryset.order_by('plant__name','sequence','code','name')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
