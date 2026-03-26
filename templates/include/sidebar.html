@@ -201,7 +201,7 @@
   <a href="{% url 'dashboards:home' %}" class="brand-link">
     <img src="{% static 'images/icare.png' %}" alt="EHS Logo" class="brand-image">
     <div class="brand-text-group">
-      <span class="brand-text">EHS-360</span>
+      <span class="brand-text">I-Care</span>
       <span class="brand-subtext">Health, Safety & Environment</span>
     </div>
   </a>
@@ -220,7 +220,7 @@
           <ul class="nav nav-treeview">
             <li class="nav-item">
               <a href="{% url 'dashboards:home' %}" class="nav-link {% if url == 'home' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i><p>EHS-360 Dashboard</p>
+                <i class="nav-icon far fa-circle"></i><p>I-Care Dashboard</p>
               </a>
             </li>
             {% if request.user|has_perm:'INJURY_DASHBOARD' %}

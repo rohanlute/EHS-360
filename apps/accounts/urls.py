@@ -23,7 +23,8 @@ urlpatterns = [
     path('users/<int:pk>/edit/', views.UserUpdateView.as_view(), name='user_update'),
     path('users/<int:pk>/delete/', views.UserDeleteView.as_view(), name='user_delete'),
     path('users/<int:pk>/toggle-active/', views.UserToggleActiveView.as_view(), name='user_toggle_active'),
-
+    ##Download the excel for user list 
+    path('users/export/', views.UserExportExcelView.as_view(), name='user_export'),
 
 
     ####permission page 

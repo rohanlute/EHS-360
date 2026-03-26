@@ -2,13 +2,13 @@
 {% load permission_tags %}
 {% load static %}
 
-{% block title %}View Environmental Data{% endblock %}
+{% block title %}View Monthly Data{% endblock %}
 {% block page_title %}{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'environmental:plant-entry' %}">Environmental Data Entry</a></li>
-<li class="breadcrumb-item active">View Enviromental Data</li>
+<li class="breadcrumb-item"><a href="{% url 'environmental:plant-entry' %}">Enter Monthly Data</a></li>
+<li class="breadcrumb-item active">View Monthly Data</li>
 {% endblock %}
 
 {% block extra_css %}
