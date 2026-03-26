@@ -1462,7 +1462,7 @@ def get_zones_by_plant(request, plant_id):
         zones = Zone.objects.filter(
             plant_id=plant_id, 
             is_active=True
-        ).values('id', 'name', 'code').order_by('name')
+        ).values('id', 'name', 'code').order_by('sequence')
         return JsonResponse(list(zones), safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
