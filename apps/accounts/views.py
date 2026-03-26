@@ -973,3 +973,114 @@ def toggle_permission_in_module(request, role_id):
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+
+
+
+###Download the excel for the user list 
+import pandas as pd
+from io import BytesIO
+from django.http import HttpResponse
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+
+class UserExportExcelView(LoginRequiredMixin, CanCreateUsersMixin, View):
+    """Export all users to Excel"""
+
+    def get(self, request):
+        users = User.objects.filter(is_superuser=False).select_related(
+            'role', 'plant', 'department'
+        ).prefetch_related('assigned_plants').order_by('first_name', 'last_name')
+
+        data = []
+        for i, user in enumerate(users, start=1):
+            assigned_plants = ", ".join(
+                user.assigned_plants.values_list('name', flat=True)
+            )
+            data.append({
+                '#': i,
+                'Employee ID': user.employee_id or 'N/A',
+                'Full Name': user.get_full_name(),
+                'Username': user.username,
+                'Email': user.email,
+                'Role': user.role.name if user.role else 'No Role',
+                'Status': 'Active' if user.is_active else 'Inactive',
+                'Primary Plant': user.plant.name if user.plant else 'N/A',
+                'Assigned Plants': assigned_plants or 'N/A',
+                'Department': user.department.name if user.department else 'N/A',
+                'Employment Type': user.get_employment_type_display(),
+                'Job Title': user.job_title or 'N/A',
+                'Date Joined Company': user.date_joined_company.strftime('%d-%m-%Y') if user.date_joined_company else 'N/A',
+                'System Date Joined': user.date_joined.strftime('%d-%m-%Y') if user.date_joined else 'N/A',
+            })
+
+        df = pd.DataFrame(data)
+
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Users')
+            workbook = writer.book
+            worksheet = writer.sheets['Users']
+
+            # ── Header styling ──────────────────────────────
+            header_fill = PatternFill(start_color='1E5FA8', end_color='1E5FA8', fill_type='solid')
+            header_font = Font(bold=True, color='FFFFFF', size=11)
+            header_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            thin_border = Border(
+                left=Side(style='thin', color='CCCCCC'),
+                right=Side(style='thin', color='CCCCCC'),
+                top=Side(style='thin', color='CCCCCC'),
+                bottom=Side(style='thin', color='CCCCCC'),
+            )
+
+            for col_num, col_name in enumerate(df.columns, start=1):
+                cell = worksheet.cell(row=1, column=col_num)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = header_align
+                cell.border = thin_border
+
+            # ── Row styling (alternating) ───────────────────
+            even_fill = PatternFill(start_color='EAF2FB', end_color='EAF2FB', fill_type='solid')
+            odd_fill  = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+            row_font  = Font(size=10)
+            row_align = Alignment(horizontal='left', vertical='center', wrap_text=False)
+
+            for row_num in range(2, len(data) + 2):
+                fill = even_fill if row_num % 2 == 0 else odd_fill
+                for col_num in range(1, len(df.columns) + 1):
+                    cell = worksheet.cell(row=row_num, column=col_num)
+                    cell.fill = fill
+                    cell.font = row_font
+                    cell.alignment = row_align
+                    cell.border = thin_border
+
+            # ── Column widths ───────────────────────────────
+            col_widths = {
+                '#': 5, 'Employee ID': 14, 'Full Name': 22, 'Username': 16,
+                'Email': 28, 'Role': 14, 'Status': 10, 'Primary Plant': 18,
+                'Assigned Plants': 30, 'Department': 18, 'Employment Type': 16,
+                'Job Title': 20, 'Date Joined Company': 20, 'System Date Joined': 20,
+            }
+            for col_num, col_name in enumerate(df.columns, start=1):
+                width = col_widths.get(col_name, 15)
+                worksheet.column_dimensions[get_column_letter(col_num)].width = width
+
+            # ── Row height ──────────────────────────────────
+            worksheet.row_dimensions[1].height = 35
+            for row_num in range(2, len(data) + 2):
+                worksheet.row_dimensions[row_num].height = 20
+
+            # ── Freeze header ───────────────────────────────
+            worksheet.freeze_panes = 'A2'
+
+        output.seek(0)
+        from datetime import date
+        filename = f"users_export_{date.today().strftime('%Y-%m-%d')}.xlsx"
+
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response

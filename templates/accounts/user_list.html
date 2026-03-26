@@ -58,7 +58,10 @@
           <i class="fas fa-users mr-2"></i>All Users
         </h3>
       </div>
-      <div class="col-auto">
+      <div class="col-auto d-flex gap-2">
+        <a href="{% url 'accounts:user_export' %}" class="btn btn-success mr-2">
+          <i class="fas fa-file-excel mr-1"></i> Export Excel
+        </a>
         <a href="{% url 'accounts:user_create' %}" class="btn btn-primary">
           <i class="fas fa-plus mr-1"></i> Add New User
         </a>
