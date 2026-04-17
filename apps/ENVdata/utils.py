@@ -207,6 +207,21 @@ def get_all_plants_environmental_data(plants):
     current_year = datetime.now().year
     plants_data = []
 
+    today = datetime.now()
+    current_year = today.year
+
+    if today.month < 4:
+        fy_start_year = current_year - 1
+    else:
+        fy_start_year = current_year
+
+    FY_MONTH_ORDER = [
+        ("APR", "April"), ("MAY", "May"), ("JUN", "June"),
+        ("JUL", "July"), ("AUG", "August"), ("SEP", "September"),
+        ("OCT", "October"), ("NOV", "November"), ("DEC", "December"),
+        ("JAN", "January"), ("FEB", "February"), ("MAR", "March"),
+    ]
+
     for plant in plants:
         questions_data = []
 
@@ -216,18 +231,61 @@ def get_all_plants_environmental_data(plants):
             has_values = False
             unit_name = q.default_unit.name if q.default_unit else "Count"
 
-            for month_db, month_label in MonthlyIndicatorData.MONTH_CHOICES:
+            # for month_db, month_label in MonthlyIndicatorData.MONTH_CHOICES:
+            #     if q.source_type in ['INCIDENT', 'HAZARD', 'INSPECTION']:
+            #         month_number = list(calendar.month_name).index(month_label)
+
+            #         value = EnvironmentalDataFetcher.calculate_question_value(q, plant, month_number, current_year)
+            #         month_data[month_label] = value
+
+            #         if value:
+            #             total += value
+            #             has_values = True
+            #     else:
+            #         entry = all_data.filter(plant=plant,indicator=q,month=month_db).first()
+
+            #         if entry and entry.value is not None:
+            #             value = entry.value
+            #             month_data[month_label] = value
+
+            #             try:
+            #                 total += float(str(value).replace(",", ""))
+            #                 has_values = True
+            #             except (ValueError, TypeError):
+            #                 pass
+            #         else:
+            #             month_data[month_label] = ""
+
+
+            for month_db, month_label in FY_MONTH_ORDER:
+
                 if q.source_type in ['INCIDENT', 'HAZARD', 'INSPECTION']:
+
                     month_number = list(calendar.month_name).index(month_label)
 
-                    value = EnvironmentalDataFetcher.calculate_question_value(q, plant, month_number, current_year)
+                    if month_db in ["JAN", "FEB", "MAR"]:
+                        year = fy_start_year + 1
+                    else:
+                        year = fy_start_year
+
+                    value = EnvironmentalDataFetcher.calculate_question_value(
+                        q, plant, month_number, year
+                    )
+
                     month_data[month_label] = value
 
-                    if value:
-                        total += value
-                        has_values = True
+                    if value not in [None, "", "-"]:
+                        try:
+                            total += float(value)
+                            has_values = True
+                        except:
+                            pass
                 else:
-                    entry = all_data.filter(plant=plant,indicator=q,month=month_db).first()
+                    entry = all_data.filter(
+                        plant=plant,
+                        indicator=q,
+                        month=month_db
+                    ).first()
 
                     if entry and entry.value is not None:
                         value = entry.value
@@ -252,15 +310,19 @@ def get_all_plants_environmental_data(plants):
             "plant": plant,
             "questions_data": questions_data,
         })
-
+        print("DEBUG:", q.question_text, month_label, value)
     return plants_data
 
 
 def generate_environmental_excel(plants_data):
     MONTH_LABELS = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
+        "April", "May", "June", "July", "August", "September", 
+        "October", "November", "December","January", "February", "March" 
     ]
+    # MONTH_LABELS = [
+    #     "January", "February", "March", "April", "May", "June",
+    #     "July", "August", "September", "October", "November", "December"
+    # ]
 
     wb = Workbook()
     ws = wb.active
@@ -336,15 +398,29 @@ def generate_environmental_excel(plants_data):
             total = 0
 
             for month in MONTH_LABELS:
+                # value = 0
+                # if q:
+                #     value = q["month_data"].get(month, 0)
+
+                # ws.cell(row=current_row, column=col, value=value)
+                # ws.cell(row=current_row, column=col).alignment = right_align
+
+                # if isinstance(value, (int, float)):
+                #     total += value
                 value = 0
                 if q:
                     value = q["month_data"].get(month, 0)
 
-                ws.cell(row=current_row, column=col, value=value)
+                # ✅ Convert to number
+                try:
+                    numeric_value = float(value)
+                except (ValueError, TypeError):
+                    numeric_value = 0
+
+                ws.cell(row=current_row, column=col, value=numeric_value)
                 ws.cell(row=current_row, column=col).alignment = right_align
 
-                if isinstance(value, (int, float)):
-                    total += value
+                total += numeric_value
 
                 col += 1
 

@@ -1209,7 +1209,34 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             is_active=True
         ).select_related('unit_category', 'default_unit').order_by("is_system", "order", "id")
 
-        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+        # MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+
+        today = datetime.now()
+        current_year = today.year
+
+        # ✅ ADD THIS (missing piece)
+        if today.month < 4:
+            fy_start_year = current_year - 1
+        else:
+            fy_start_year = current_year
+
+        FY_MONTH_ORDER = [
+            "APR", "MAY", "JUN", "JUL", "AUG", "SEP",
+            "OCT", "NOV", "DEC", "JAN", "FEB", "MAR"
+        ]
+
+        month_dict = dict(MonthlyIndicatorData.MONTH_CHOICES)
+
+        MONTHS = []
+        for m in FY_MONTH_ORDER:
+            month_name = month_dict.get(m)
+
+            if m in ["JAN", "FEB", "MAR"]:
+                year = fy_start_year + 1
+            else:
+                year = fy_start_year
+
+            MONTHS.append((m, f"{month_name} {year}"))
 
         # Manual data
         saved_data = MonthlyIndicatorData.objects.filter(
@@ -1252,14 +1279,28 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
 
                 # AUTOMATIC QUESTION
                 else:
-                    start_date = datetime(datetime.now().year, 
-                                          datetime.strptime(month_code, "%b").month, 1)
+                    # start_date = datetime(datetime.now().year, 
+                    #                       datetime.strptime(month_code, "%b").month, 1)
                     
-                    if month_code == "DEC":
-                        end_date = datetime(datetime.now().year + 1, 1, 1)
+                    # if month_code == "DEC":
+                    #     end_date = datetime(datetime.now().year + 1, 1, 1)
+                    # else:
+                    #     next_month = datetime.strptime(month_code, "%b").month + 1
+                    #     end_date = datetime(datetime.now().year, next_month, 1)
+
+                    month_num = datetime.strptime(month_code, "%b").month
+
+                    if month_code in ["JAN", "FEB", "MAR"]:
+                        year = fy_start_year + 1
                     else:
-                        next_month = datetime.strptime(month_code, "%b").month + 1
-                        end_date = datetime(datetime.now().year, next_month, 1)
+                        year = fy_start_year
+
+                    start_date = datetime(year, month_num, 1)
+
+                    if month_code == "DEC":
+                        end_date = datetime(year + 1, 1, 1)
+                    else:
+                        end_date = datetime(year, month_num + 1, 1)
 
                     model_map = {
                         "INCIDENT": (Incident, "plant"),
@@ -1385,7 +1426,34 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
             manual_dict[d.plant_id].setdefault(d.indicator_id, {})
             manual_dict[d.plant_id][d.indicator_id][d.month] = d.value
 
-        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+        # MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+
+        today = datetime.now()
+        current_year = today.year
+
+        # FY start year
+        if today.month < 4:
+            fy_start_year = current_year - 1
+        else:
+            fy_start_year = current_year
+
+        FY_MONTH_ORDER = [
+            "APR", "MAY", "JUN", "JUL", "AUG", "SEP",
+            "OCT", "NOV", "DEC", "JAN", "FEB", "MAR"
+        ]
+
+        month_dict = dict(MonthlyIndicatorData.MONTH_CHOICES)
+
+        MONTHS = []
+        for m in FY_MONTH_ORDER:
+            month_name = month_dict.get(m)
+
+            if m in ["JAN", "FEB", "MAR"]:
+                year = fy_start_year + 1
+            else:
+                year = fy_start_year
+
+            MONTHS.append((m, f"{month_name} {year}"))
 
         plants_data = []
 
@@ -1409,14 +1477,28 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                     # AUTOMATIC QUESTION
                     else:
                         # ... (automatic question logic remains the same) ...
-                        start_date = datetime(datetime.now().year,
-                                              datetime.strptime(month_code, "%b").month, 1)
+                        # start_date = datetime(datetime.now().year,
+                        #                       datetime.strptime(month_code, "%b").month, 1)
 
-                        if month_code == "DEC":
-                            end_date = datetime(datetime.now().year + 1, 1, 1)
+                        # if month_code == "DEC":
+                        #     end_date = datetime(datetime.now().year + 1, 1, 1)
+                        # else:
+                        #     next_month = datetime.strptime(month_code, "%b").month + 1
+                        #     end_date = datetime(datetime.now().year, next_month, 1)
+
+                        month_num = datetime.strptime(month_code, "%b").month
+
+                        if month_code in ["JAN", "FEB", "MAR"]:
+                            year = fy_start_year + 1
                         else:
-                            next_month = datetime.strptime(month_code, "%b").month + 1
-                            end_date = datetime(datetime.now().year, next_month, 1)
+                            year = fy_start_year
+
+                        start_date = datetime(year, month_num, 1)
+
+                        if month_num == 12:
+                            end_date = datetime(year + 1, 1, 1)
+                        else:
+                            end_date = datetime(year, month_num + 1, 1)
 
                         model_map = {"INCIDENT": (Incident, "plant"),"HAZARD": (Hazard, "plant"),"INSPECTION": (InspectionSchedule, "plants")}
                         model_tuple = model_map.get(q.source_type)
@@ -1642,11 +1724,11 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
         # trend_counter = Counter([e["month"] for e in data_qs])
         # context['trend_labels_json'] = json.dumps([dict(month_choices).get(m) for m in month_order])
         # context['trend_values_json'] = json.dumps([trend_counter.get(m, 0) for m in month_order])
-
+        context['data_entries'] = sorted(data_qs,key=lambda x: (x["plant"].name, x["indicator"].order))
         # --- Trend Chart (FY Order) ---
         FY_MONTH_ORDER = [
-            "Apr", "May", "Jun", "Jul", "Aug", "Sep",
-            "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"
+            "APR", "MAY", "JUN", "JUL", "AUG", "SEP",
+            "OCT", "NOV", "DEC", "JAN", "FEB", "MAR"
         ]
         trend_counter = Counter([e["month"] for e in data_qs])
         context['trend_labels_json'] = json.dumps([dict(month_choices).get(m) for m in FY_MONTH_ORDER])
@@ -1659,7 +1741,7 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
         context['selected_plant'] = selected_plant_id
         context['selected_month'] = selected_month_code
         context['has_active_filters'] = bool(selected_plant_id or selected_month_code)
-
+        print("context=========",context)
         return context
         
 class ExportExcelView(LoginRequiredMixin, View):
