@@ -24,7 +24,7 @@ import json
 from .models import MonthlyIndicatorData, EnvironmentalQuestion, UnitCategory
 from collections import Counter
 from .models import MonthlyIndicatorAttachment
-
+from datetime import datetime
 # =========================================================
 # API ENDPOINTS FOR QUESTIONS MANAGER
 # =========================================================
@@ -451,8 +451,42 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 'unit': d.unit  # Store the Unit object
             }
 
-        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+        # MONTHS = MonthlyIndicatorData.MONTH_CHOICES
 
+        today = datetime.now()
+        current_year = today.year
+
+        current_month = today.strftime("%b").upper()
+        current_day = today.day
+
+        is_admin = request.user.is_superuser or request.user.is_staff or getattr(request.user, 'is_admin_user', False)
+        FREEZE_DAY = 7
+
+        # If current month is Jan–Mar → FY started last year
+        if today.month < 4:
+            fy_start_year = current_year - 1
+        else:
+            fy_start_year = current_year
+
+        FY_MONTH_ORDER = [
+            "APR", "MAY", "JUN", "JUL", "AUG", "SEP",
+            "OCT", "NOV", "DEC", "JAN", "FEB", "MAR"
+        ]
+
+        month_dict = dict(MonthlyIndicatorData.MONTH_CHOICES)
+
+        MONTHS = []
+        for m in FY_MONTH_ORDER:
+            month_name = month_dict.get(m)
+
+            # Jan–Mar → next year
+            if m in ["JAN", "FEB", "MAR"]:
+                year = fy_start_year + 1
+            else:
+                year = fy_start_year
+
+            MONTHS.append((m, f"{month_name} {year}"))
+            
         # Build question + month data for template
         questions_with_data = []
         for q in questions:
@@ -471,6 +505,12 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
             month_rows = []
             for month_code, month_name in MONTHS:
+                if is_admin:
+                    is_editable = True
+                else:
+                    is_editable = (month_code == current_month and current_day <= FREEZE_DAY)
+                    # This for testing Freeze data
+                    # is_editable = (month_code == current_month and 9 <= current_day <= 16)
                 month_key = month_code.lower()
                 value = ''
                 saved_unit_name = default_unit_name
@@ -483,8 +523,10 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
                 # AUTO data 
                 else:
-                    if month_name in auto_data.get(q.question_text, {}):
-                        value = auto_data[q.question_text][month_name]
+                    base_month_name = month_name.split(" ")[0]
+                    if base_month_name in auto_data.get(q.question_text, {}):
+                        value = auto_data[q.question_text][base_month_name]
+
                         saved_unit_name = "Count"
 
                 # Find the unit ID for the saved unit
@@ -503,7 +545,8 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                     "value": value,
                     "saved_unit_id": saved_unit_id,
                     "saved_unit_name": saved_unit_name,
-                    "attachment":attachments_dict.get((q.id,month_code))
+                    "attachment":attachments_dict.get((q.id,month_code)),
+                    "is_editable": is_editable
                 })
 
             questions_with_data.append({
@@ -544,7 +587,22 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             return redirect("environmental:plant-entry")
 
         questions = self.get_questions()
-        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+        # ✅ ADD THIS BLOCK
+        today = datetime.now()
+        current_month = today.strftime("%b").upper()
+        current_day = today.day
+
+        is_admin = request.user.is_superuser or request.user.is_staff or getattr(request.user, 'is_admin_user', False)
+        FREEZE_DAY = 7
+
+        # ✅ Replace MONTHS with FY order
+        FY_MONTH_ORDER = [
+            "APR", "MAY", "JUN", "JUL", "AUG", "SEP",
+            "OCT", "NOV", "DEC", "JAN", "FEB", "MAR"
+        ]
+
+        MONTHS = [(m, dict(MonthlyIndicatorData.MONTH_CHOICES).get(m)) for m in FY_MONTH_ORDER]
+
         saved_count = 0
 
         for q in questions:
@@ -555,6 +613,11 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             slug = self.slugify_field(q.question_text)
             default_unit = q.default_unit  # fallback Unit object
             for month_code, month_name in MONTHS:
+                if not is_admin:
+                    if not (month_code == current_month and current_day <= FREEZE_DAY):
+                    # This for testing Freeze data
+                    # if not (month_code == current_month and 9 <= current_day <= 16):
+                        continue
                 value_field = f"{slug}_{month_code.lower()}"
                 unit_field = f"{slug}_{month_code.lower()}_unit"
 
@@ -583,9 +646,13 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                     raw_numeric_value = float(value.replace(",", ""))
 
                     # Apply conversion rate if the unit is not the base unit
-                    if unit_obj and unit_obj.base_unit != unit_obj.name:
-                        raw_numeric_value = raw_numeric_value * float(unit_obj.conversion_rate)
+                    # if unit_obj and unit_obj.base_unit != unit_obj.name:
+                    #     raw_numeric_value = raw_numeric_value * float(unit_obj.conversion_rate)
 
+                    if unit_obj and unit_obj.base_unit != unit_obj.name:
+                        # Only convert if value is small (means user input, not stored value)
+                        if raw_numeric_value < float(unit_obj.conversion_rate):
+                            raw_numeric_value = raw_numeric_value * float(unit_obj.conversion_rate)
                     # ✅ Convert to Integer by rounding to the nearest whole number
                     # This ensures that 10.5 becomes 11 and 10.4 becomes 10
                     final_integer_value = int(round(raw_numeric_value))
@@ -1570,11 +1637,20 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
         context['cat_data_json'] = json.dumps(list(cat_counter.values()))
 
         # --- 6. DATA TABLE (Show ALL filtered data) ---
-        context['data_entries'] = sorted(data_qs,key=lambda x: (x["plant"].name, x["indicator"].order))
-        month_order = [m[0] for m in month_choices]
+        # context['data_entries'] = sorted(data_qs,key=lambda x: (x["plant"].name, x["indicator"].order))
+        # month_order = [m[0] for m in month_choices]
+        # trend_counter = Counter([e["month"] for e in data_qs])
+        # context['trend_labels_json'] = json.dumps([dict(month_choices).get(m) for m in month_order])
+        # context['trend_values_json'] = json.dumps([trend_counter.get(m, 0) for m in month_order])
+
+        # --- Trend Chart (FY Order) ---
+        FY_MONTH_ORDER = [
+            "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+            "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"
+        ]
         trend_counter = Counter([e["month"] for e in data_qs])
-        context['trend_labels_json'] = json.dumps([dict(month_choices).get(m) for m in month_order])
-        context['trend_values_json'] = json.dumps([trend_counter.get(m, 0) for m in month_order])
+        context['trend_labels_json'] = json.dumps([dict(month_choices).get(m) for m in FY_MONTH_ORDER])
+        context['trend_values_json'] = json.dumps([trend_counter.get(m, 0) for m in FY_MONTH_ORDER])
 
         # --- 7. FILTER OPTIONS ---
         # context['plants'] = Plant.objects.filter(is_active=True)

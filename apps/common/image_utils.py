@@ -26,7 +26,7 @@ def compress_image(uploaded_file, max_width=1024, max_height=1024, quality=75):
     # Create new Django InMemoryUploadedFile
     compressed_file = InMemoryUploadedFile(
         output, 
-        uploaded_file.field_name,
+        'ImageField',
         uploaded_file.name,
         uploaded_file.content_type,
         sys.getsizeof(output),

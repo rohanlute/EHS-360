@@ -182,6 +182,7 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
         print(f"\n{'='*80}")
         print(f"🔄 Processing {hazard_count} hazard(s)")
         print(f"{'='*80}\n")
+        print("FILES:", request.FILES)
         
         for hazard_index in range(hazard_count):
             print(f"\n--- Processing Hazard #{hazard_index + 1} ---")
@@ -330,11 +331,12 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
             photos_uploaded = 0
             photo_count = int(request.POST.get(f'{prefix}photo_count', 1))
             
-            for i in range(photo_count + 5):
+            for i in range(photo_count):
                 photo_key = f'{prefix}photo_{i}'
-                if photo_key in request.FILES:
+                photo = request.FILES.get(photo_key)
+
+                if photo:
                     try:
-                        photo = request.FILES[photo_key]
                         compressed_photo = compress_image(photo)
                         HazardPhoto.objects.create(
                             hazard=hazard,
@@ -344,7 +346,7 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
                         )
                         photos_uploaded += 1
                     except Exception as e:
-                        print(f"  Photo error: {e}")
+                        print(f"Photo error: {e}")
             
             photos_uploaded_total += photos_uploaded
             created_hazards.append(hazard)
@@ -458,7 +460,7 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
         
         # Get departments for behalf dropdown
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
-        
+        context['photos'] = hazard.photos.all()
         return context
 
     def form_valid(self, form):

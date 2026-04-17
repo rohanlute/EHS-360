@@ -474,13 +474,17 @@
                             <div id="photo-container" class="row">
                                 <!-- Initial photo upload -->
                                 <div class="col-md-4 mb-3 photo-item">
-                                    <div class="add-photo-btn" onclick="document.getElementById('photo_0').click()">
+                                    <div class="add-photo-btn" onclick="handlePhotoClick(0)">
                                         <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
                                         <p class="mb-0">Click to add photo</p>
                                     </div>
-                                    <input type="file" name="photo_0" id="photo_0" 
-                                           class="d-none photo-input" accept="image/*" 
-                                           data-index="0">
+                                    <input type="file" name="photo_0" id="photo_0"
+                                        class="d-none photo-input" accept="image/*"
+                                        data-index="0">
+
+                                    <input type="file" id="photo_0_camera"
+                                        class="d-none"
+                                        accept="image/*" capture="environment">
                                     <div id="preview_0" class="mt-2"></div>
                                 </div>
                             </div>
@@ -508,6 +512,11 @@
             </div>
         </div>
     </div>
+</div>
+<div id="photoOptionModal" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#fff; border-radius:16px 16px 0 0; padding:20px; z-index:9999;">
+    <button id="openCameraBtn" class="btn btn-primary w-100 mb-2">📷 Take Photo</button>
+    <button id="openGalleryBtn" class="btn btn-outline-primary w-100 mb-2">🖼️ Choose from Gallery</button>
+    <button onclick="closePhotoModal()" class="btn btn-light w-100">Cancel</button>
 </div>
 {% endblock %}
 
@@ -636,13 +645,18 @@ $(document).ready(function() {
         const newPhotoHtml = `
             <div class="col-md-4 mb-3 photo-item">
                 <button type="button" class="remove-photo-slot" title="Remove this slot">&times;</button>
-                <div class="add-photo-btn" onclick="document.getElementById('photo_${newIndex}').click()">
+                <div class="add-photo-btn" onclick="handlePhotoClick(${newIndex})">
                     <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
                     <p class="mb-0">Click to add photo</p>
                 </div>
+                <!-- Gallery -->
                 <input type="file" name="photo_${newIndex}" id="photo_${newIndex}" 
-                       class="d-none photo-input" accept="image/*" 
-                       data-index="${newIndex}">
+                    class="d-none photo-input" accept="image/*" 
+                    data-index="${newIndex}">
+                <!-- Camera -->
+                <input type="file" id="photo_${newIndex}_camera"
+                    class="d-none"
+                    accept="image/*" capture="environment">
                 <div id="preview_${newIndex}" class="mt-2"></div>
             </div>
         `;
@@ -655,6 +669,23 @@ $(document).ready(function() {
     $(document).on('click', '.remove-photo-slot', function() {
         $(this).closest('.photo-item').remove();
     });
+
+    $(document).on('change', '[id$="_camera"]', function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        const id = this.id.replace('_camera', '');
+        const galleryInput = document.getElementById(id);
+
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        galleryInput.files = dt.files;
+
+        $(galleryInput).trigger('change');
+    });
+
+    $('#openCameraBtn').click(openCamera);
+    $('#openGalleryBtn').click(openGallery);
 });
 
 // Delete Existing Photo Function 
@@ -663,6 +694,37 @@ function deletePhoto(photoId) {
         $(`#keep_photo_${photoId}`).val('0');
         $(`#keep_photo_${photoId}`).closest('.existing-photo').parent().fadeOut();
     }
+}
+
+
+let currentPhotoIndex = null;
+
+function handlePhotoClick(index) {
+    currentPhotoIndex = index;
+
+    if (isMobileOrTablet()) {
+        document.getElementById("photoOptionModal").style.display = "block";
+    } else {
+        openGallery();
+    }
+}
+
+function openCamera() {
+    closePhotoModal();
+    document.getElementById(`photo_${currentPhotoIndex}_camera`).click();
+}
+
+function openGallery() {
+    closePhotoModal();
+    document.getElementById(`photo_${currentPhotoIndex}`).click();
+}
+
+function closePhotoModal() {
+    document.getElementById("photoOptionModal").style.display = "none";
+}
+
+function isMobileOrTablet() {
+    return /Android|iPhone|iPad|iPod|Tablet/i.test(navigator.userAgent);
 }
 </script>
 {% endblock %}

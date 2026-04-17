@@ -867,10 +867,14 @@
                                             placeholder="0"
                                             pattern="[0-9]*\.?[0-9]*"
                                             title="Enter numeric value"
-                                            {% if q.is_auto_populated %}readonly style="background: #f0f9ff;"{% endif %}
+                                            {% if q.is_auto_populated %}
+                                                readonly style="background: #f0f9ff;"
+                                            {% elif not m.is_editable %}
+                                                readonly style="background:#f1f5f9; cursor:not-allowed;"
+                                            {% endif %}
                                         >
                                         {% if q.available_units|length > 1 and not q.is_auto_populated %}
-                                        <select class="unit-select" name="{{ q.slugified }}_{{ m.code|lower }}_unit">
+                                        <select class="unit-select" name="{{ q.slugified }}_{{ m.code|lower }}_unit" {% if not m.is_editable %}disabled{% endif %}>
                                             {% for unit in q.available_units %}
                                             <option value="{{ unit.id }}" {% if unit.id == m.saved_unit_id %}selected{% endif %}>
                                                 {{ unit.name }}
@@ -885,6 +889,7 @@
                                     <button
                                         type="button"
                                         class="btn-attach {% if m.attachment %}has-file{% endif %}"
+                                        {% if not m.is_editable %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}
                                         onclick="openAttachmentModal(
                                             '{{ selected_plant.id }}',
                                             '{{ q.question_id }}',

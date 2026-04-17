@@ -486,13 +486,19 @@
                                     
                                     <div class="photo-container row" data-hazard-index="0">
                                         <div class="col-md-4 mb-3 photo-item">
-                                            <div class="add-photo-btn" onclick="document.getElementById('hazard_0_photo_0').click()">
+                                            <div class="add-photo-btn" onclick="handlePhotoClick(0, 0)">
                                                 <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
                                                 <p class="mb-0">Click to add photo</p>
                                             </div>
+                                            
+                                            <!-- Gallery Input -->
                                             <input type="file" name="hazard_0_photo_0" id="hazard_0_photo_0" 
-                                                   class="d-none photo-input" accept="image/*" 
-                                                   data-hazard-index="0" data-photo-index="0">
+                                                class="d-none photo-input" accept="image/*"
+                                                data-hazard-index="0" data-photo-index="0">
+
+                                            <input type="file" id="hazard_0_photo_0_camera" 
+                                                class="d-none"
+                                                accept="image/*" capture="environment">
                                             <div id="preview_0_0" class="mt-2"></div>
                                         </div>
                                     </div>
@@ -536,6 +542,26 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Photo Option Modal -->
+<div id="photoOptionModal" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#fff; border-radius:16px 16px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.2); padding:20px; z-index:9999;">
+    
+    <div style="text-align:center; margin-bottom:15px; font-weight:600;">
+        Upload Photo
+    </div>
+
+    <button id="openCameraBtn" class="btn btn-primary w-100 mb-2">
+        📷 Take Photo
+    </button>
+
+    <button id="openGalleryBtn" class="btn btn-outline-primary w-100 mb-2">
+        🖼️ Choose from Gallery
+    </button>
+
+    <button onclick="closePhotoModal()" class="btn btn-light w-100">
+        Cancel
+    </button>
 </div>
 {% endblock %}
 
@@ -713,7 +739,7 @@ $(document).ready(function() {
         const currentCount = parseInt(photoCountInput.val());
         const newPhotoIndex = currentCount;
         
-        const newPhotoHtml = `
+        /* const newPhotoHtml = `
             <div class="col-md-4 mb-3 photo-item">
                 <button type="button" class="remove-photo-slot" data-hazard-index="${hazardIndex}" data-photo-index="${newPhotoIndex}">&times;</button>
                 <div class="add-photo-btn" onclick="document.getElementById('hazard_${hazardIndex}_photo_${newPhotoIndex}').click()">
@@ -723,6 +749,30 @@ $(document).ready(function() {
                 <input type="file" name="hazard_${hazardIndex}_photo_${newPhotoIndex}" id="hazard_${hazardIndex}_photo_${newPhotoIndex}"
                        class="d-none photo-input" accept="image/*"
                        data-hazard-index="${hazardIndex}" data-photo-index="${newPhotoIndex}">
+                <div id="preview_${hazardIndex}_${newPhotoIndex}" class="mt-2"></div>
+            </div>
+        `; */
+        const newPhotoHtml = `
+            <div class="col-md-4 mb-3 photo-item">
+                <button type="button" class="remove-photo-slot" data-hazard-index="${hazardIndex}" data-photo-index="${newPhotoIndex}">&times;</button>
+
+                <div class="add-photo-btn" onclick="handlePhotoClick(${hazardIndex}, ${newPhotoIndex})">
+                    <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
+                    <p class="mb-0">Click to add photo</p>
+                </div>
+
+                <!-- Gallery Input -->
+                <input type="file" name="hazard_${hazardIndex}_photo_${newPhotoIndex}" 
+                    id="hazard_${hazardIndex}_photo_${newPhotoIndex}"
+                    class="d-none photo-input" accept="image/*"
+                    data-hazard-index="${hazardIndex}" data-photo-index="${newPhotoIndex}">
+
+                <!-- Camera -->
+                <input type="file" 
+                    id="hazard_${hazardIndex}_photo_${newPhotoIndex}_camera"
+                    class="d-none"
+                    accept="image/*" capture="environment">
+
                 <div id="preview_${hazardIndex}_${newPhotoIndex}" class="mt-2"></div>
             </div>
         `;
@@ -886,21 +936,35 @@ $(document).ready(function() {
                         <i class="fas fa-camera"></i>
                         Upload Photos (Optional)
                     </div>
+
                     <div class="photo-container row" data-hazard-index="${index}">
                         <div class="col-md-4 mb-3 photo-item">
-                            <div class="add-photo-btn" onclick="document.getElementById('hazard_${index}_photo_0').click()">
+
+                            <div class="add-photo-btn" onclick="handlePhotoClick(${index}, 0)">
                                 <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
                                 <p class="mb-0">Click to add photo</p>
                             </div>
-                            <input type="file" name="hazard_${index}_photo_0" id="hazard_${index}_photo_0" 
-                                   class="d-none photo-input" accept="image/*" 
-                                   data-hazard-index="${index}" data-photo-index="0">
+
+                            <!-- Gallery -->
+                            <input type="file" name="hazard_${index}_photo_0"
+                                id="hazard_${index}_photo_0"
+                                class="d-none photo-input" accept="image/*"
+                                data-hazard-index="${index}" data-photo-index="0">
+
+                            <!-- Camera -->
+                            <input type="file"
+                                id="hazard_${index}_photo_0_camera"
+                                class="d-none"
+                                accept="image/*" capture="environment">
+
                             <div id="preview_${index}_0" class="mt-2"></div>
                         </div>
                     </div>
+
                     <button type="button" class="btn btn-outline-primary btn-sm mt-2 add-more-photos" data-hazard-index="${index}">
                         <i class="fas fa-plus"></i> Add More Photos
                     </button>
+
                     <input type="hidden" name="hazard_${index}_photo_count" class="photo-count" value="1">
                 </div>
             </div>
@@ -935,6 +999,62 @@ $(document).ready(function() {
         $submitBtn.prop('disabled', true);
         $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...');
     });
+
+    $(document).on('change', '[id$="_camera"]', function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        const id = this.id.replace('_camera', '');
+        const galleryInput = document.getElementById(id);
+
+        if (!galleryInput) {
+            console.error("Gallery input not found:", id);
+            return;
+        }
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        galleryInput.files = dataTransfer.files;
+
+        console.log("Camera file assigned to:", id);
+
+        $(galleryInput).trigger('change'); // THIS triggers preview
+    });
+
+    $('#openCameraBtn').click(openCamera);
+    $('#openGalleryBtn').click(openGallery);
 });
+
+let currentHazardIndex = null;
+let currentPhotoIndex = null;
+
+function handlePhotoClick(hazardIndex, photoIndex) {
+    currentHazardIndex = hazardIndex;
+    currentPhotoIndex = photoIndex;
+
+    if (isMobileOrTablet()) {
+        document.getElementById("photoOptionModal").style.display = "block";
+    } else {
+        openGallery();
+    }
+}
+
+function closePhotoModal() {
+    document.getElementById("photoOptionModal").style.display = "none";
+}
+
+function openCamera() {
+    closePhotoModal();
+    document.getElementById(`hazard_${currentHazardIndex}_photo_${currentPhotoIndex}_camera`).click();
+}
+
+function openGallery() {
+    closePhotoModal();
+    document.getElementById(`hazard_${currentHazardIndex}_photo_${currentPhotoIndex}`).click();
+}
+
+function isMobileOrTablet() {
+    return /Android|iPhone|iPad|iPod|Tablet/i.test(navigator.userAgent);
+}
 </script>
 {% endblock %}
