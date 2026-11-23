@@ -1,0 +1,184 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% translate "Question Detail" %}{% endblock %}
+{% block page_title %}{% translate "Question Detail" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">{% translate "Home" %}</a></li>
+<li class="breadcrumb-item"><a href="#">{% translate "Induction Management" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'induction:question_list' %}">{% translate "Induction Que" %}</a></li>
+<li class="breadcrumb-item active">{{ question.code }}</li>
+{% endblock %}
+
+{% block content %}
+<style>
+  .qd-header {
+    background: linear-gradient(135deg, #4e73df, #2e59d9);
+    color: #fff; border-radius: 12px; padding: 22px 26px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 16px; margin-bottom: 20px;
+  }
+  .qd-header .code {
+    font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+    opacity: .85; margin-bottom: 4px;
+  }
+  .qd-header h2 {
+    margin: 0; font-size: 18px; font-weight: 500; line-height: 1.4;
+  }
+  .qd-header .badge-status {
+    background: rgba(255,255,255,.2); color: #fff;
+    padding: 4px 12px; border-radius: 99px; font-size: 12px;
+    font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .qd-header .badge-status .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #fff;
+  }
+
+  .qd-card {
+    background: #fff; border: 1px solid #e3e6f0; border-radius: 12px;
+    padding: 22px 24px; margin-bottom: 16px;
+  }
+
+  .qd-section-title {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em;
+    color: #6c757d; font-weight: 600; margin-bottom: 14px;
+  }
+
+  /* Option rows */
+  .qd-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border: 1px solid #e3e6f0; border-radius: 10px;
+    margin-bottom: 8px; background: #fafbfc; transition: all .15s;
+  }
+  .qd-option.correct {
+    border-color: #1cc88a; background: #f0fdf7;
+    box-shadow: 0 0 0 3px rgba(28,200,138,.12);
+  }
+  .qd-option .letter {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
+    background: #f1f3f8; color: #6c757d; flex-shrink: 0;
+  }
+  .qd-option.correct .letter {
+    background: #1cc88a; color: #fff;
+  }
+  .qd-option .text {
+    flex: 1; font-size: 14px; color: #2c3e50;
+  }
+  .qd-option .check {
+    color: #1cc88a; font-size: 16px;
+  }
+
+  /* Metadata grid */
+  .qd-meta {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .qd-meta .item {
+    padding: 12px 14px; background: #f8f9fc; border-radius: 8px;
+    border: 1px solid #e3e6f0;
+  }
+  .qd-meta .item .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: #6c757d; margin-bottom: 4px; font-weight: 600;
+  }
+  .qd-meta .item .value {
+    font-size: 14px; color: #2c3e50; font-weight: 500;
+  }
+</style>
+
+<!-- Header -->
+<div class="qd-header">
+  <div>
+    <div class="code">{% translate "Question" %} {{ question.code }}</div>
+    <h2>{{ question.question_text }}</h2>
+  </div>
+  <div>
+    {% if question.is_active %}
+      <span class="badge-status"><span class="dot"></span>{% translate "Active" %}</span>
+    {% else %}
+      <span class="badge-status"><span class="dot" style="background:#ffb3b3"></span>{% translate "Inactive" %}</span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Options -->
+<div class="qd-card">
+  <div class="qd-section-title">
+    <i class="fas fa-list-ul mr-1"></i>{% translate "Answer Options" %}
+  </div>
+
+  {% for opt in question.options.all %}
+    <div class="qd-option {% if opt.is_correct %}correct{% endif %}">
+      <div class="letter">{{ forloop.counter|stringformat:"A"|slice:":1" }}{% if forloop.counter > 1 %}{% cycle 'B' 'C' 'D' %}{% endif %}</div>
+      <div class="text">{{ opt.option_text }}</div>
+      {% if opt.is_correct %}
+        <i class="fas fa-check-circle check"></i>
+      {% endif %}
+    </div>
+  {% empty %}
+    <div class="alert alert-warning mb-0">
+      <i class="fas fa-exclamation-triangle mr-2"></i>{% translate "No options configured for this question." %}
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Metadata -->
+<div class="qd-card">
+  <div class="qd-section-title">
+    <i class="fas fa-info-circle mr-1"></i>{% translate "Details" %}
+  </div>
+
+  <div class="qd-meta">
+    <div class="item">
+      <div class="label">{% translate "Code" %}</div>
+      <div class="value">{{ question.code }}</div>
+    </div>
+    <div class="item">
+      <div class="label">{% translate "Options" %}</div>
+      <div class="value">{{ question.options.count }}</div>
+    </div>
+    <div class="item">
+      <div class="label">{% translate "Correct Answer" %}</div>
+      <div class="value">
+        {% if question.correct_option %}
+          {{ question.correct_option.option_text }}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="item">
+      <div class="label">{% translate "Status" %}</div>
+      <div class="value">
+        {% if question.is_active %}
+          <span class="badge badge-success">{% translate "Active" %}</span>
+        {% else %}
+          <span class="badge badge-danger">{% translate "Inactive" %}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="item">
+      <div class="label">{% translate "Created On" %}</div>
+      <div class="value">{{ question.created_at|date:"d M Y, H:i" }}</div>
+    </div>
+    <div class="item">
+      <div class="label">{% translate "Last Updated" %}</div>
+      <div class="value">{{ question.updated_at|date:"d M Y, H:i" }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="d-flex justify-content-between">
+  <a href="{% url 'induction:question_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left mr-1"></i> {% translate "Back to Questions" %}
+  </a>
+  <a href="{% url 'induction:question_edit' question.pk %}" class="btn btn-primary">
+    <i class="fas fa-edit mr-1"></i> {% translate "Edit Question" %}
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0D2547">
+<title>{{ plant.name }} – Safety Induction</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B1B33;--navy:#0D2547;--navy2:#143866;
+  --teal:#0E8A94;--teal2:#19C6D1;
+  --gold:#C9A24B;--gold2:#EBD18B;
+  --bg:#F2F5FA;--line:#E4EAF3;--mut:#5E6E85;--tint:#E7F6F7;
+  --ok:#1E9E5A;--bad:#B42318;
+  --shadow-sm:0 1px 2px rgba(11,27,51,.05),0 4px 12px -6px rgba(11,27,51,.10);
+  --shadow-md:0 1px 2px rgba(11,27,51,.05),0 18px 40px -20px rgba(11,27,51,.30);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;color:var(--ink);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  background-color:var(--bg);
+  background-image:radial-gradient(900px 420px at 50% -140px,rgba(20,56,102,.12),transparent 70%),radial-gradient(520px 300px at 100% 0,rgba(25,198,209,.10),transparent 70%);
+  background-attachment:fixed;
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI','Noto Sans Devanagari','Noto Sans Bengali','Noto Sans Gujarati','Noto Sans Gurmukhi','Noto Sans Tamil','Noto Sans Telugu','Noto Sans Kannada','Noto Sans Malayalam','Noto Sans Oriya','Noto Sans Ol Chiki','Noto Sans Meetei Mayek','Noto Naskh Arabic','Noto Sans Arabic',sans-serif}
+html.noscroll,html.noscroll body{overflow:hidden}
+.app{max-width:560px;margin:0 auto;min-height:100vh;padding-bottom:40px}
+
+/* =====================  HEADER  ===================== */
+.top{position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:calc(env(safe-area-inset-top,0px) + 20px) 20px 56px;color:#fff;border-radius:0 0 34px 34px;
+  background:
+    radial-gradient(380px 200px at 8% 120%,rgba(201,162,75,.28),transparent 70%),
+    radial-gradient(360px 260px at 100% -20%,rgba(25,198,209,.50),transparent 70%),
+    linear-gradient(135deg,#091a35 0%,#0D2547 52%,#124a73 130%);
+  box-shadow:0 22px 40px -26px rgba(9,26,53,.9)}
+.top::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 16px);
+  -webkit-mask-image:linear-gradient(180deg,#000,transparent 90%);mask-image:linear-gradient(180deg,#000,transparent 90%)}
+.top::after{content:"";position:absolute;inset:auto 0 0 0;height:1px;background:linear-gradient(90deg,transparent,rgba(235,209,139,.7),transparent)}
+.brand{position:relative;display:flex;align-items:center;gap:13px;z-index:1;min-width:0}
+.logo{width:46px;height:46px;border-radius:15px;flex:none;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,var(--teal),var(--teal2));
+  box-shadow:0 0 0 1.5px rgba(235,209,139,.65),0 10px 22px -6px rgba(25,198,209,.55),inset 0 1px 0 rgba(255,255,255,.45)}
+.bt{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.bt b{font-size:17px;font-weight:800;letter-spacing:-.01em}
+.bt small{font-size:12px;color:#B9CCE3;font-weight:500;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.lang{position:relative;z-index:1;min-height:44px;max-width:170px;border-radius:14px;border:1px solid rgba(255,255,255,.26);padding:0 12px;
+  font-size:14px;font-weight:600;background:rgba(255,255,255,.10);color:#fff;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:background .2s,transform .15s,border-color .2s}
+.lang:hover{background:rgba(255,255,255,.18);border-color:rgba(235,209,139,.55)}.lang:active{transform:scale(.97)}
+.lang span{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* language sheet */
+.sheet-bg{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(7,19,38,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:fade .2s both}
+.bd{position:absolute;inset:0}
+.sheet{position:relative;width:100%;max-width:440px;height:min(580px,80vh);height:min(580px,80dvh);display:flex;flex-direction:column;background:#fff;border-radius:28px;padding:20px 16px 14px;box-shadow:0 40px 80px -24px rgba(0,0,0,.6);animation:zoom .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes zoom{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}}
+.sh-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:0 4px}.sh-h b{font-size:19px;font-weight:800;letter-spacing:-.01em}
+.x{width:38px;height:38px;border-radius:50%;border:0;background:#EEF3F9;color:var(--ink);cursor:pointer;font-size:15px;transition:background .15s}.x:hover{background:#E1E9F3}
+.sbox{position:relative;margin-bottom:10px}
+.sbox svg{position:absolute;inset-inline-start:15px;top:16px;pointer-events:none}
+.sbox input{width:100%;min-height:52px;border:1.5px solid var(--line);border-radius:16px;padding:0 14px;padding-inline-start:44px;font:inherit;font-size:16px;color:var(--ink);background:#F8FAFD}
+.sbox input:focus{outline:0;border-color:var(--teal);background:#fff;box-shadow:0 0 0 4px rgba(25,198,209,.16)}
+.ll{overflow:auto;flex:1;min-height:0;overscroll-behavior:contain;display:flex;flex-direction:column;gap:2px}
+.li{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;min-height:54px;padding:0 16px;border:0;background:transparent;border-radius:14px;font:inherit;font-size:17px;font-weight:600;color:var(--ink);cursor:pointer;text-align:start;transition:background .15s}
+.li:hover,.li:focus-visible{background:var(--tint)}
+.li.cur{background:linear-gradient(135deg,#E7F6F7,#DDF2F4);color:var(--teal)}
+.li small{color:var(--mut);font-size:13px;font-weight:500}
+.none{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--mut);padding:28px}
+
+/* =====================  STEPPER  ===================== */
+.prog{position:relative;margin:-32px 16px 0;padding:16px 18px 14px;border-radius:22px;border:1px solid rgba(255,255,255,.9);
+  background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--shadow-md)}
+.stp{display:flex;align-items:center}
+.stp span{width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:#fff;color:#8A98AE;border:2px solid var(--line);transition:.3s}
+.stp span.done{background:linear-gradient(145deg,var(--teal),var(--teal2));border-color:transparent;color:#fff;box-shadow:0 6px 12px -6px rgba(14,138,148,.7)}
+.stp span.cur{border-color:var(--teal);color:var(--teal);box-shadow:0 0 0 5px rgba(25,198,209,.16)}
+.stp b{flex:1;height:3px;background:var(--line);margin:0 5px;border-radius:2px;transition:.3s}
+.stp .done+b{background:linear-gradient(90deg,var(--teal2),var(--teal2))}
+.plab{font-size:11.5px;color:var(--mut);margin-top:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+
+/* =====================  CARDS  ===================== */
+.card{position:relative;background:#fff;border-radius:28px;border:1px solid rgba(228,234,243,.95);box-shadow:var(--shadow-md);margin:16px;padding:30px 24px 26px}
+.card::before{content:"";position:absolute;top:0;left:50%;width:72px;height:4px;transform:translateX(-50%);border-radius:0 0 8px 8px;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.card.hero::before{display:none}
+.enter{animation:up .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes pulse{0%{transform:scale(.9);opacity:.7}100%{transform:scale(1.5);opacity:0}}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.ctr{text-align:center}
+h1{font-size:24px;line-height:1.28;font-weight:800;letter-spacing:-.022em;margin:0 0 12px;color:var(--ink)}
+.muted{color:var(--mut);margin:8px 0 14px;font-size:15px}
+
+/* success badge */
+.ok{position:relative;width:82px;height:82px;border-radius:50%;background:linear-gradient(145deg,#1E9E5A,#3BD184);display:flex;align-items:center;justify-content:center;margin:4px auto 18px;animation:pop .5s ease both;
+  box-shadow:0 14px 28px -8px rgba(30,158,90,.65),inset 0 2px 0 rgba(255,255,255,.4)}
+.ok::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #3BD184;animation:pulse 2.2s ease-out infinite}
+
+/* plant banner */
+.plantbox{position:relative;overflow:hidden;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:4px;margin:12px 0;color:#fff;
+  background:radial-gradient(240px 140px at 100% 0,rgba(25,198,209,.4),transparent 70%),linear-gradient(135deg,#091a35,#143866);
+  box-shadow:0 18px 30px -16px rgba(9,26,53,.75)}
+.plantbox::after{content:"";position:absolute;left:20px;right:20px;bottom:0;height:2px;background:linear-gradient(90deg,var(--gold),transparent)}
+.plantbox span{font-size:11px;color:var(--gold2);font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.plantbox b{font-size:25px;font-weight:800;letter-spacing:-.015em}
+
+/* checklist */
+.todo{list-style:none;margin:18px 0 0;padding:0;text-align:start;display:grid;gap:10px}
+.todo li{display:flex;align-items:center;gap:14px;padding:13px 15px;font-weight:600;font-size:15px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#fff,#F8FAFD);box-shadow:var(--shadow-sm)}
+.todo i{width:32px;height:32px;border-radius:11px;background:linear-gradient(145deg,var(--teal),var(--teal2));color:#fff;font-style:normal;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none;box-shadow:0 6px 12px -6px rgba(14,138,148,.8)}
+
+.row{display:flex;justify-content:space-between;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line);text-align:start}
+.row:last-of-type{border-bottom:0}
+.row span{color:var(--mut)}.g{color:#157347}.r{color:var(--bad)}
+
+/* =====================  BUTTONS  ===================== */
+.nav{display:flex;gap:12px;margin-top:26px}
+.btn{position:relative;overflow:hidden;flex:1;min-height:54px;border-radius:17px;border:0;color:#fff;font:inherit;font-size:16px;font-weight:700;letter-spacing:.005em;cursor:pointer;padding:0 18px;
+  background:linear-gradient(135deg,#0B7C86 0%,#14B2BE 100%);
+  transition:transform .15s,box-shadow .25s,filter .2s;
+  box-shadow:0 14px 26px -12px rgba(14,138,148,.85),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 0 rgba(0,0,0,.08)}
+.btn::after{content:"";position:absolute;top:0;bottom:0;width:60%;left:-80%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transition:left .6s}
+.btn:hover{transform:translateY(-1px);filter:saturate(1.08)}.btn:hover::after{left:130%}
+.btn:active{transform:scale(.97)}
+.btn.gh{background:#fff;color:var(--ink);border:1.5px solid var(--line);box-shadow:var(--shadow-sm)}
+.btn.gh::after{display:none}
+.btn.gh:hover{border-color:#B9D9DD;background:#FAFDFE}
+.btn:disabled{opacity:.42;cursor:not-allowed;box-shadow:none;transform:none;filter:grayscale(.2)}
+.btn:disabled::after{display:none}
+
+/* =====================  OPTIONS / FORM  ===================== */
+.opt{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;text-align:start;border:1.5px solid var(--line);background:#fff;border-radius:18px;padding:13px 16px;margin-bottom:12px;font:inherit;font-size:16px;color:var(--ink);cursor:pointer;
+  box-shadow:var(--shadow-sm);transition:transform .15s,border-color .2s,background .2s,box-shadow .25s}
+.opt:hover{border-color:#9ED9DE;transform:translateY(-1px);box-shadow:0 12px 22px -14px rgba(11,27,51,.35)}.opt:active{transform:scale(.985)}
+.opt.sel{border-color:var(--teal);background:linear-gradient(135deg,#F0FAFB,#E1F4F6);box-shadow:0 0 0 4px rgba(25,198,209,.14),0 12px 22px -14px rgba(14,138,148,.55)}
+.ico{font-size:25px;width:48px;height:48px;border-radius:15px;background:linear-gradient(145deg,#EAF7F8,#DCF1F3);display:flex;align-items:center;justify-content:center;flex:none}
+.let{width:34px;height:34px;border-radius:11px;background:#F0F4F9;color:var(--mut);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none;transition:.2s}
+.sel .let{background:linear-gradient(145deg,var(--teal),var(--teal2));color:#fff;box-shadow:0 6px 12px -6px rgba(14,138,148,.8)}
+.dot{width:24px;height:24px;border-radius:50%;border:2px solid #A5B2C4;flex:none;transition:.2s}.sel .dot{border:7px solid var(--teal)}
+
+.lbl{display:block;font-weight:700;font-size:12.5px;color:var(--mut);margin-bottom:16px;letter-spacing:.02em}
+.in{display:block;width:100%;min-height:54px;margin-top:7px;border:1.5px solid var(--line);border-radius:16px;padding:0 16px;font:inherit;font-size:16px;font-weight:500;color:var(--ink);background:#F8FAFD;transition:border-color .2s,box-shadow .2s,background .2s}
+.in:focus{outline:0;background:#fff;border-color:var(--teal);box-shadow:0 0 0 4px rgba(25,198,209,.16)}
+.in-sel{-webkit-appearance:none;appearance:none;cursor:pointer;padding-inline-end:44px;text-overflow:ellipsis;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235E6E85' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center}
+[dir=rtl] .in-sel{background-position:left 16px center}
+.in-sel:invalid,.in-sel.empty{color:#8A98AE}
+.err{color:var(--bad);font-size:13px;font-weight:600;display:block;margin-top:5px}
+.note{background:linear-gradient(135deg,#EAF8F0,#E0F4E9);color:#14663D;border:1px solid #C6E9D5;border-radius:14px;padding:11px 14px;margin:0 0 16px;font-size:14px;font-weight:600}
+.warn{background:linear-gradient(135deg,#FFF8EA,#FFF3DC);color:#7A4A00;border:1px solid #F2DDB0;border-radius:16px;padding:13px 15px;margin:14px 0;font-size:14px;text-align:start}
+.m{margin:14px 16px}
+
+/* video language dropdown */
+.vsel{display:block;margin:0 0 14px}
+.vsel>span{display:block;font-weight:700;font-size:12.5px;color:var(--mut);letter-spacing:.02em}
+.vsel-box{position:relative;margin-top:7px}
+.vsel-box svg{position:absolute;inset-inline-end:16px;top:50%;transform:translateY(-50%);pointer-events:none}
+.vsel-box .globe{inset-inline-start:15px;inset-inline-end:auto}
+.vsel select{-webkit-appearance:none;appearance:none;display:block;width:100%;min-height:54px;border:1.5px solid var(--line);border-radius:16px;background:#F8FAFD;color:var(--ink);
+  font:inherit;font-size:16px;font-weight:600;padding:0 44px;cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;text-overflow:ellipsis}
+.vsel select:hover{border-color:#9ED9DE;background:#fff}
+.vsel select:focus{outline:0;background:#fff;border-color:var(--teal);box-shadow:0 0 0 4px rgba(25,198,209,.16)}
+
+/* =====================  VIDEO PLAYER  ===================== */
+.vwrap{position:relative;aspect-ratio:16/9;border-radius:20px;background:linear-gradient(135deg,#091a35,#143866);box-shadow:0 20px 34px -18px rgba(9,26,53,.8)}
+.vph{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:16px;color:#B9CCE3;font-size:14px;font-weight:600}
+.vwrap.mini-on .vph{display:flex}
+.vp{position:absolute;inset:0;background:#000;border-radius:20px;overflow:hidden;-webkit-user-select:none;user-select:none}
+.vp video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+
+.pbtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;border:1.5px solid rgba(255,255,255,.55);background:rgba(9,26,53,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .3s,transform .2s;z-index:2;padding:0;box-shadow:0 14px 30px -10px rgba(0,0,0,.6)}
+.pbtn:hover{transform:translate(-50%,-50%) scale(1.06)}
+.pbtn .pa{display:none}.vp.playing .pbtn .pa{display:block}.vp.playing .pbtn .pl{display:none}
+.vp.playing .pbtn{opacity:0}.vp.playing:hover .pbtn{opacity:.85}
+
+.v-ctrl{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:6px;padding:26px 12px 10px;background:linear-gradient(to top,rgba(0,0,0,.9),transparent);color:#fff;z-index:4;opacity:0;transition:opacity .2s}
+.vp:hover .v-ctrl,.vp.paused .v-ctrl,.vp.minimized .v-ctrl,.vp.pfs .v-ctrl,.vp:focus-within .v-ctrl{opacity:1}
+@media (hover:none){.v-ctrl{opacity:1}}
+.v-ctrl button{flex:none;min-width:36px;height:36px;background:rgba(255,255,255,.16);border:0;border-radius:10px;color:#fff;padding:0 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;transition:background .15s}
+.v-ctrl button:hover{background:rgba(255,255,255,.32)}
+.v-ctrl svg{width:20px;height:20px;display:block}
+.v-time{font-size:12px;font-variant-numeric:tabular-nums;margin-inline-end:auto;white-space:nowrap}
+.spd-menu{position:absolute;left:10px;right:10px;bottom:52px;display:flex;justify-content:center;gap:4px;padding:6px;border-radius:14px;background:rgba(9,26,53,.95);box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.spd-menu[hidden]{display:none}
+.spd-menu button{min-width:0;flex:1;height:34px;padding:0 4px}
+.spd-menu button.on{background:linear-gradient(135deg,var(--teal),var(--teal2))}
+
+.vp.minimized{position:fixed;inset:auto;right:12px;bottom:12px;width:min(300px,74vw);height:auto;aspect-ratio:16/9;z-index:9999;border-radius:14px;box-shadow:0 20px 40px rgba(0,0,0,.6)}
+.vp.minimized .pbtn{width:44px;height:44px}
+.vp.minimized .pbtn svg{width:20px;height:20px}
+.vp.minimized .v-ctrl{padding:14px 6px 5px;gap:4px}
+.vp.minimized .v-ctrl button{min-width:28px;height:28px;padding:0 5px}
+.vp.minimized .v-ctrl svg{width:16px;height:16px}
+.vp.minimized .v-time{font-size:11px}
+.vp.minimized .spd-menu{bottom:38px}
+
+.vp:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;box-shadow:none}
+.vp:-webkit-full-screen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;box-shadow:none}
+.vp.pfs{position:fixed;inset:auto;top:0;left:0;width:100vw;height:100vh;height:100dvh;border-radius:0;box-shadow:none;z-index:10000}
+@media (orientation:portrait){
+  .vp.pfs{width:100vh;width:100dvh;height:100vw;left:100vw;transform-origin:top left;transform:rotate(90deg)}
+}
+
+.pbar{height:8px;border-radius:6px;background:#E8EEF6;margin:8px 0;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal2));width:0;border-radius:6px;transition:width .35s;box-shadow:0 0 12px rgba(25,198,209,.6)}
+.vwrap+.pbar{margin-top:14px}
+
+/* question navigator */
+.qn{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 4px}
+.qn button{width:40px;height:40px;border-radius:13px;border:1.5px solid var(--line);background:#fff;color:var(--mut);font:inherit;font-weight:800;font-size:13px;cursor:pointer;transition:.15s}
+.qn button:hover{border-color:#9ED9DE}
+.qn button.ans{background:var(--tint);border-color:#9ED9DE;color:var(--teal)}
+.qn button.cur{background:linear-gradient(145deg,var(--teal),var(--teal2));border-color:transparent;color:#fff;box-shadow:0 8px 16px -8px rgba(14,138,148,.85)}
+
+/* result ring */
+.ring{position:relative;width:168px;height:168px;margin:10px auto 18px;filter:drop-shadow(0 14px 22px rgba(11,27,51,.14))}
+.ring svg{transform:rotate(-90deg)}
+.ring .bg{stroke:#E8EEF6}.ring .arc{stroke-dasharray:326.7;stroke-dashoffset:326.7;stroke-linecap:round;animation:arc 1.3s .2s cubic-bezier(.3,.7,.2,1) forwards}
+@keyframes arc{to{stroke-dashoffset:var(--off)}}
+.ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;letter-spacing:-.02em}
+.emoji{font-size:46px;animation:pop .6s .5s ease both}
+
+.sk{height:14px;border-radius:8px;background:linear-gradient(90deg,#EDF2F8,#F8FAFD,#EDF2F8);background-size:200% 100%;animation:sh 1.3s linear infinite}
+.ov{position:fixed;inset:0;background:rgba(7,19,38,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9;animation:up .25s both}
+.dlg{background:#fff;border-radius:28px;padding:28px;max-width:380px;width:100%;box-shadow:0 40px 70px -24px rgba(0,0,0,.6)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--teal2);outline-offset:2px}
+
+/* footer */
+.foot{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 16px 0;color:#8A98AE;font-size:12px;font-weight:600;letter-spacing:.04em}
+.foot::before,.foot::after{content:"";height:1px;width:28px;background:linear-gradient(90deg,transparent,#C9D3E1)}
+.foot::after{transform:scaleX(-1)}
+
+/* =====================  EXIT / WELCOME PAGE  ===================== */
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.card.hero{overflow:hidden;padding:0}
+.hero-top{position:relative;overflow:hidden;padding:40px 22px 34px;text-align:center;color:#fff;
+  background:radial-gradient(260px 200px at 0% 110%,rgba(201,162,75,.38),transparent 70%),radial-gradient(300px 220px at 100% -10%,rgba(25,198,209,.5),transparent 70%),linear-gradient(135deg,#091a35 0%,#0D2547 55%,#124a73 140%)}
+.hero-top::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 16px)}
+.hero-top>*{position:relative;z-index:1}
+.hero-logo{width:82px;height:82px;margin:0 auto 18px;border-radius:26px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,var(--teal),var(--teal2));
+  box-shadow:0 0 0 2px rgba(235,209,139,.6),0 18px 34px -8px rgba(25,198,209,.6),inset 0 1px 0 rgba(255,255,255,.4);animation:pop .6s ease both,float 4s 1s ease-in-out infinite}
+.hero-logo svg{width:42px;height:42px}
+.hero-kicker{font-size:12px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold2)}
+.hero-title{margin:12px 0 10px;font-size:31px;line-height:1.18;font-weight:800;letter-spacing:-.025em;color:#fff}
+.hero-title em{font-style:normal;white-space:nowrap;background:linear-gradient(90deg,#9FEAEF,#EBD18B);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-sub{margin:0;color:#BCCEE4;font-size:15px}
+.hero-chip{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:9px 16px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.24);font-size:13px;font-weight:600;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.hero-chip i{width:8px;height:8px;border-radius:50%;background:#34D17F;box-shadow:0 0 0 4px rgba(52,209,127,.25);display:inline-block}
+.hero-body{padding:26px 22px 28px;text-align:center}
+.hero-body h2{margin:0 0 8px;font-size:20px;font-weight:800;letter-spacing:-.015em}
+.hero-body p{margin:0;color:var(--mut);font-size:15px}
+.pledge{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0 4px}
+.pledge div{padding:16px 6px 14px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#fff,#F8FAFD);font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.3;box-shadow:var(--shadow-sm)}
+.pledge span{display:flex;align-items:center;justify-content:center;width:46px;height:46px;margin:0 auto 9px;border-radius:15px;background:linear-gradient(145deg,#EAF7F8,#DCF1F3);font-size:22px}
+.hero-foot{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:24px;color:var(--gold);font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+.hero-foot::before,.hero-foot::after{content:"";height:1px;width:36px;background:linear-gradient(90deg,transparent,var(--gold))}
+.hero-foot::after{transform:scaleX(-1)}
+
+@media (max-width:380px){
+  h1{font-size:22px}.card{padding:28px 18px 22px}.hero-title{font-size:27px}.bt small{max-width:130px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}.ring .arc{stroke-dashoffset:var(--off)}}
+
+/* ---- Google Translate: hide ALL of its own UI (banner, widget, tooltip) ---- */
+#google_translate_element{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden}
+iframe.skiptranslate:not(.goog-te-menu-frame),
+.goog-te-banner-frame,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd{display:none !important;visibility:hidden !important;height:0 !important}
+html,body{top:0 !important;margin-top:0 !important;position:static !important}
+#goog-gt-tt,.goog-tooltip,.goog-tooltip:hover{display:none !important}
+.goog-text-highlight{background:transparent !important;box-shadow:none !important}
+</style>
+</head>
+<body>
+
+<div id="google_translate_element" class="notranslate" translate="no"></div>
+<div id="app" class="app"></div>
+
+<script>
+const CFG = {
+  token: "{{ token|escapejs }}",
+  plant: "{{ plant.name|escapejs }}",
+  ready: {{ ready|yesno:"true,false" }},
+  csrf: "{{ csrf_token }}",
+  langs: [{% for l in languages %}{id: {{ l.id }}, code: "{{ l.code|escapejs }}", name: "{{ l.name|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}],
+  url: {
+    content: "{% url 'induction:portal_content' token %}",
+    start: "{% url 'induction:portal_start' token %}",
+    submit: "{% url 'induction:portal_submit' token %}",
+    lookup: "{% url 'induction:portal_employee_lookup' token %}"
+  }
+};
+
+function googleTranslateElementInit() {
+  /* 'en' is listed on purpose: picking it in the hidden widget restores the original text
+     WITHOUT reloading the page (that is what the English button uses). */
+  new google.translate.TranslateElement({
+    pageLanguage: 'en',
+    includedLanguages: 'en,as,bn,brx,doi,gu,hi,kn,ks,gom,mai,ml,mni-Mtei,mr,ne,or,pa,sa,sat,sd,ta,te,ur',
+    autoDisplay: false
+  }, 'google_translate_element');
+}
+</script>
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
+
+{% verbatim %}
+<script>
+(() => {
+const STEPS = ['welcome','category','details','video','assessment','submitted'];
+const STEP_LABELS = ['QR Verification','User Category','Personal Details','Safety Video','Assessment','Submission'];
+const FKEY = {participant_name:'Full Name',participant_mobile:'Mobile Number',participant_email:'Email Address',employee_id:'Employee ID',department:'Department',
+  contractor_company:'Contractor Company Name',contractor_id:'Contractor ID',visitor_company:'Company Name',visitor_purpose:'Purpose of Visit',visitor_person_to_meet:'Person to Meet'};
+
+const NATIVE = {
+  en:'English', as:'অসমীয়া (Assamese)', bn:'বাংলা (Bengali)', brx:'बड़ो (Bodo)', doi:'डोगरी (Dogri)', gu:'ગુજરાતી (Gujarati)',
+  hi:'हिन्दी (Hindi)', kn:'ಕನ್ನಡ (Kannada)', ks:'کٲشُر (Kashmiri)', kok:'कोंकणी (Konkani)', mai:'मैथिली (Maithili)',
+  ml:'മലയാളം (Malayalam)', mni:'মণিপুরী (Manipuri)', mr:'मराठी (Marathi)', ne:'नेपाली (Nepali)', or:'ଓଡ଼ିଆ (Odia)',
+  pa:'ਪੰਜਾਬੀ (Punjabi)', sa:'संस्कृतम् (Sanskrit)', sat:'ᱥᱟᱱᱛᱟᱲᱤ (Santhali)', sd:'سنڌي (Sindhi)',
+  ta:'தமிழ் (Tamil)', te:'తెలుగు (Telugu)', ur:'اردو (Urdu)'
+};
+const GCODE = {kok:'gom', mni:'mni-Mtei'};
+const gcode = c => GCODE[c] || c;
+const ALLOWED = Object.keys(NATIVE);
+const dbLang = code => CFG.langs.find(l => l.code.toLowerCase() === code || l.code.toLowerCase().startsWith(code + '-'));
+const LANGS = ALLOWED.map(code => ({code, id: (dbLang(code) || {}).id || null}));
+const RTL = ['sd', 'ks', 'ur'];
+
+const AUTO_KEYS = ['participant_name','participant_email','participant_mobile','department'];
+const KEY = 'ehs_induction_' + CFG.token;
+/* vlang = language chosen in the VIDEO dropdown (null = follow the page language) */
+const INIT = {step:'welcome', lang:'en', vlang:null, cat:null, form:{}, auto:false, qi:0, ans:{}, videoDone:false, attemptUuid:null, result:null};
+
+/* A normal load / reload / back starts completely fresh.
+   The ONLY exception: if the page had to reload itself to finish a language switch,
+   it leaves a one-shot copy of the user's progress here so nothing is lost. */
+const HANDOFF = 'ehs_handoff_' + CFG.token;
+let S = {...INIT};
+try { localStorage.removeItem(KEY); } catch (e) {}
+try {
+  const h = sessionStorage.getItem(HANDOFF);
+  if (h) { S = {...INIT, ...JSON.parse(h)}; sessionStorage.removeItem(HANDOFF); }
+} catch (e) {}
+let C = null, errors = {}, banner = '', confirmOpen = false, busy = false;
+const $app = document.getElementById('app');
+const $ = id => document.getElementById(id);
+
+const save = () => {};                      // state lives in memory only
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = x => String(parseFloat(x));
+const cat = () => C && C.categories.find(c => c.id === S.cat);
+const enId = () => (CFG.langs.find(l => /^en/i.test(l.code)) || {}).id;
+const langId = () => (LANGS.find(l => l.code === S.lang) || {}).id || enId();
+const gt = v => (v && typeof v === 'object') ? (v.en || Object.values(v)[0] || '') : (v ?? '');
+
+/* m:ss  or  h:mm:ss */
+const fmtT = x => {
+  x = Number(x);
+  if (!isFinite(x) || x < 0) return '0:00';
+  const h = Math.floor(x / 3600), m = Math.floor((x % 3600) / 60), s = Math.floor(x % 60);
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0');
+};
+
+const CHECK = '<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const SHIELD = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
+const PLAY = '<svg class="pl" viewBox="0 0 24 24" width="30" height="30" fill="#fff" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+const PAUSE = '<svg class="pa" viewBox="0 0 24 24" width="30" height="30" fill="#fff" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+const FS = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+const GLOBE = '<svg class="globe" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0E8A94" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>';
+const CHEV = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#5E6E85" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+const BANNER = 'iframe.skiptranslate:not(.goog-te-menu-frame), .goog-te-banner-frame, .VIpgJd-ZVi9od-ORHb-OEVmcd';
+const killBanner = () => {
+  document.querySelectorAll(BANNER).forEach(f => {
+    f.style.setProperty('display', 'none', 'important');
+    f.style.setProperty('height', '0', 'important');
+  });
+  [document.body, document.documentElement].forEach(el => {
+    if (el.style.top && el.style.top !== '0px') el.style.setProperty('top', '0px', 'important');
+    if (el.style.marginTop && el.style.marginTop !== '0px') el.style.setProperty('margin-top', '0px', 'important');
+  });
+};
+new MutationObserver(killBanner).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+killBanner();
+
+const clearGT = () => {
+  const past = 'expires=Thu, 01 Jan 1970 00:00:00 GMT', h = location.hostname;
+  ['', `;domain=${h}`, `;domain=.${h}`].forEach(d => document.cookie = `googtrans=;path=/;${past}${d}`);
+};
+
+/* Reload the page but keep the user exactly where they are (used only as a last resort). */
+function reloadKeepState() {
+  try { sessionStorage.setItem(HANDOFF, JSON.stringify(S)); } catch (e) {}
+  location.reload();
+}
+
+/* Google adds translated-ltr / translated-rtl to <html> while a translation is active */
+const isTranslated = () => /\btranslated-(ltr|rtl)\b/.test(document.documentElement.className);
+
+/* Ask the hidden widget to put the original (English) text back - no reload. */
+function restoreOriginal() {
+  clearGT();
+  const combo = document.querySelector('.goog-te-combo');
+  if (combo) {
+    const hasEn = [...combo.options].some(o => o.value === 'en');
+    combo.value = hasEn ? 'en' : '';
+    combo.dispatchEvent(new Event('change'));
+  }
+  // older/newer widget versions also expose a hidden "Show original" button
+  try {
+    document.querySelectorAll('iframe.skiptranslate').forEach(f => {
+      const d = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+      const b = d && d.querySelector('[id$=".restore"], [id$="restore"]');
+      if (b) b.click();
+    });
+  } catch (e) {}
+}
+
+/* English: restore the original text in place, then redraw. Reload only if the widget refuses. */
+function switchToEnglish() {
+  noMT = false;
+  if (!isTranslated() && !/googtrans=/.test(document.cookie)) { loadContent(); return; }   // nothing to undo
+  restoreOriginal();
+  let tries = 0;
+  const t = setInterval(() => {
+    tries++;
+    if (!isTranslated()) { clearInterval(t); clearGT(); loadContent(); }
+    else if (tries === 6) restoreOriginal();                    // one more nudge after ~1.5 s
+    else if (tries > 16) { clearInterval(t); clearGT(); reloadKeepState(); }   // ~4 s: give up, but keep progress
+  }, 250);
+}
+
+let noMT = false;
+function applyGoogle(tries = 0) {
+  if (S.lang === 'en') return;
+  const combo = document.querySelector('.goog-te-combo');
+  if (!combo) {
+    if (tries < 40) { setTimeout(() => applyGoogle(tries + 1), 250); }
+    else { banner = 'Translation could not load. The page is shown in English.'; render(); }
+    return;
+  }
+  const g = gcode(S.lang);
+  if (![...combo.options].some(o => o.value === g)) {
+    noMT = true;
+    if (/googtrans=/.test(document.cookie)) { clearGT(); reloadKeepState(); return; }
+    render();
+    return;
+  }
+  noMT = false;
+  if (combo.value !== g) combo.value = g;
+  combo.dispatchEvent(new Event('change'));
+}
+
+let rt;
+function retranslate() {
+  if (S.lang === 'en') return;
+  clearTimeout(rt);
+  rt = setTimeout(() => {
+    const c = document.querySelector('.goog-te-combo');
+    if (c && c.value) c.dispatchEvent(new Event('change'));
+  }, 300);
+}
+
+function setLang(code) {
+  S.lang = code; S.vlang = null; save(); noMT = false;      // video language follows the page language again
+  if (code === 'en') { switchToEnglish(); return; }          // translate back in place - no reload
+  applyGoogle();
+  loadContent();
+}
+
+const post = async (url, body) => {
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CFG.csrf}, body:JSON.stringify(body)});
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  return {ok: r.ok, j};
+};
+async function loadContent() {
+  try {
+    let q = '?lang=' + encodeURIComponent(S.lang);
+    if (S.vlang) q += '&video_lang=' + encodeURIComponent(S.vlang);
+    const r = await fetch(CFG.url.content + q);
+    if (!r.ok) throw new Error();
+    C = await r.json(); banner = '';
+  } catch (e) { banner = 'Something went wrong. Please try again.'; }
+  render();
+}
+
+/* name shown for a video language: native script first, server name as fallback */
+const vName = l => NATIVE[l.code] || l.name || l.code;
+
+/* Department is a dropdown (real departments from the system) for the Contractor category.
+   Every other field stays a normal text box. */
+const fieldInput = (c, f) => {
+  const deps = C.departments || [];
+  if (f.name === 'department' && c.slug === 'contractor' && deps.length) {
+    const cur = S.form.department || '';
+    const list = cur && !deps.includes(cur) ? [cur, ...deps] : deps;      // keep a value that is no longer in the list
+    return `<select class="in in-sel notranslate ${cur ? '' : 'empty'}" translate="no" name="department">
+      <option value="" ${cur ? '' : 'selected'}>Select department</option>
+      ${list.map(d => `<option value="${esc(d)}" ${d === cur ? 'selected' : ''}>${esc(d)}</option>`).join('')}
+    </select>`;
+  }
+  const n = f.name;
+  return `<input class="in notranslate" translate="no" name="${n}" type="${n.includes('email') ? 'email' : n.includes('mobile') ? 'tel' : 'text'}" inputmode="${n.includes('mobile') ? 'numeric' : 'text'}" value="${esc(S.form[n] || '')}" autocomplete="off">`;
+};
+
+/* ============================================================
+   EMPLOYEE LOOKUP (replaces the old hard-coded demo data)
+   ============================================================ */
+let empLookupTimer = null;
+let empLookupSeq = 0;
+const empLookupCache = new Map();   // employee_id (lowercased) -> data | null
+
+function lookupEmployee(rawId) {
+  const empId = String(rawId || '').trim();
+  if (!empId) return;
+
+  const cacheKey = empId.toLowerCase();
+
+  // Already looked up this session? Apply immediately.
+  if (empLookupCache.has(cacheKey)) {
+    applyEmployeeData(empId, empLookupCache.get(cacheKey));
+    return;
+  }
+
+  const seq = ++empLookupSeq;
+
+  fetch(
+    CFG.url.lookup + '?employee_id=' + encodeURIComponent(empId),
+    { headers: { 'X-Requested-With': 'XMLHttpRequest' } }
+  )
+    .then(r => r.json().catch(() => ({})))
+    .then(j => {
+      if (seq !== empLookupSeq) return;             // a newer keystroke superseded this
+      const data = (j && j.ok && j.found && j.data) ? j.data : null;
+      empLookupCache.set(cacheKey, data);
+      applyEmployeeData(empId, data);
+    })
+    .catch(() => {
+      if (seq !== empLookupSeq) return;
+      empLookupCache.set(cacheKey, null);
+      applyEmployeeData(empId, null);
+    });
+}
+
+function applyEmployeeData(empId, data) {
+  // Only apply if the input still contains this id (user may have typed on)
+  const el = document.querySelector('[name=employee_id]');
+  if (!el || el.value.trim().toLowerCase() !== empId.toLowerCase()) return;
+
+  if (data) {
+    Object.assign(S.form, {
+      participant_name:   data.participant_name   || '',
+      participant_email:  data.participant_email  || '',
+      participant_mobile: data.participant_mobile || '',
+      department:         data.department         || '',
+    });
+    S.auto = true;
+  } else {
+    if (S.auto) {
+      AUTO_KEYS.forEach(k => { S.form[k] = ''; });
+      S.auto = false;
+    }
+  }
+
+  save();
+  render();
+
+  // restore focus + caret after the re-render
+  const el2 = document.querySelector('[name=employee_id]');
+  if (el2) {
+    el2.focus();
+    el2.setSelectionRange(el2.value.length, el2.value.length);
+  }
+}
+
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const ICON = {employee:'👷', contractor:'🛠️', visitor:'🧑‍💼'};
+const views = {
+  welcome: () => `<section class="card ctr"><div class="ok">${CHECK}</div><h1>QR Code Scanned Successfully!</h1>
+    <div class="plantbox"><span>Plant</span><b class="notranslate" translate="no">${esc(CFG.plant)}</b></div>
+    ${CFG.ready ? '' : `<div class="warn">No questionnaire is assigned to this plant yet.</div>`}
+    <p class="muted">Welcome! Please complete the induction process to proceed.</p>
+    <ul class="todo"><li><i>1</i>Choose your category</li><li><i>2</i>Watch the safety video</li>
+    <li><i>3</i>Answer ${C.questions.length} questions${C.passing_percentage ? ' (pass mark ' + num(C.passing_percentage) + '%)' : ''}</li></ul>
+    <div class="nav"><button class="btn" data-a="toCat" ${CFG.ready ? '' : 'disabled'}>Get Started</button></div></section>`,
+
+  category: () => `<section class="card"><h1>Who's checking in?</h1><p class="muted">Select the category that applies to you.</p>
+    ${C.categories.map(c => `<button class="opt ${S.cat === c.id ? 'sel' : ''}" data-a="cat" data-id="${c.id}"><span class="ico">${ICON[c.slug] || '👤'}</span><span style="flex:1"><b>${esc(gt(c.name))}</b></span><span class="dot"></span></button>`).join('')}
+    <div class="nav"><button class="btn gh" data-a="toWelcome">Previous</button><button class="btn" data-a="toDetails" ${S.cat ? '' : 'disabled'}>Next</button></div></section>`,
+
+  details: () => { const c = cat(); if (!c) { S.step = 'category'; return views.category(); }
+    return `<section class="card"><h1>${esc(gt(c.name))}</h1>
+    ${S.auto ? `<div class="note">✓ Details filled from employee records</div>` : ''}
+    ${c.fields.map(f => `<label class="lbl">${esc(FKEY[f.name] || f.label)}${f.required ? ' *' : ' (optional)'}
+      ${fieldInput(c, f)}
+      <span class="err">${errors[f.name] ? esc(errors[f.name]) : ''}</span></label>`).join('')}
+    <div class="nav"><button class="btn gh" data-a="toCat">Previous</button><button class="btn" data-a="toVideo">Next</button></div></section>`; },
+
+  video: () => {
+    const v = C.video, ok = S.videoDone || !v;
+    const vls = C.video_languages || [];
+    const cur = v ? v.language : '';
+    const curLang = vls.find(l => l.code === cur);
+    const fb = v && !S.vlang && v.language !== S.lang;      // page language has no video -> we fell back
+    return `<section class="card"><h1>${esc(v ? v.title : 'Safety Induction Video')}</h1>
+    ${vls.length ? `<label class="vsel notranslate" translate="no"><span>Select language</span>
+      <div class="vsel-box">${GLOBE}
+        <select id="vsel" aria-label="Select video language">
+          ${vls.map(l => `<option value="${esc(l.code)}" ${l.code === cur ? 'selected' : ''}>${esc(vName(l))}</option>`).join('')}
+        </select>${CHEV}</div></label>` : ''}
+    ${fb ? `<div class="warn">Video is not available in your page language. Showing ${esc(curLang ? vName(curLang) : cur)}. You can pick another language above.</div>` : ''}
+    ${v ? `<div class="vwrap" id="vwrap">
+      <div class="vph">Video is playing in the mini player. Tap the restore button on it to bring it back.</div>
+      <div class="vp paused" id="vp">
+        <video id="v" src="${esc(v.url)}" playsinline webkit-playsinline preload="metadata" data-a="play"></video>
+
+        <button type="button" class="pbtn" data-a="play" aria-label="Play / Pause">${PLAY}${PAUSE}</button>
+
+        <div class="v-ctrl notranslate" translate="no">
+          <div class="spd-menu" id="spdMenu" hidden>${SPEEDS.map(r => `<button type="button" data-a="setSpeed" data-r="${r}">${r}x</button>`).join('')}</div>
+          <button type="button" data-a="play" id="ctrlPlay" aria-label="Play / Pause">${PLAY}</button>
+          <span class="v-time"><span id="vtc">0:00</span> / <span id="vtd">${fmtT(v.duration)}</span></span>
+          <button type="button" data-a="speedMenu" id="ctrlSpeed" aria-label="Playback speed">1x</button>
+          <button type="button" data-a="fs" id="ctrlFs" aria-label="Full screen (landscape)">${FS}</button>
+        </div>
+      </div></div>
+      <div class="pbar"><div class="pfill" id="pf" style="width:${S.videoDone ? 100 : 0}%"></div></div>
+      <div class="warn" id="vm" ${S.videoDone ? 'hidden' : ''}>🎬 Watch the full video to continue. Skipping ahead is not allowed.</div>` : `<div class="warn">No induction video is configured. You can continue to the assessment.</div>`}
+    <div class="nav"><button class="btn gh" data-a="toDetails">Previous</button><button class="btn" id="startBtn" data-a="start" ${ok && !busy ? '' : 'disabled'}>Start Assessment</button></div></section>`; },
+
+  assessment: () => { const qs = C.questions, q = qs[S.qi];
+    if (!q) return `<section class="card"><div class="warn">No questionnaire is assigned to this plant yet.</div></section>`;
+    const a = S.ans[q.id], last = S.qi === qs.length - 1, done = qs.filter(x => S.ans[x.id]).length, left = qs.length - done;
+    return `<section class="card"><div class="plab" style="margin-top:0">Question ${S.qi + 1} / ${qs.length} · ${done} answered</div>
+    <div class="pbar"><div class="pfill" style="width:${done / qs.length * 100}%"></div></div>
+    <h1 style="margin-top:18px">${esc(gt(q.text))}</h1>
+    ${q.options.map((o, k) => `<button class="opt ${a === o.id ? 'sel' : ''}" data-a="ans" data-q="${q.id}" data-o="${o.id}"><span class="let">${'ABCD'[k] || k + 1}</span><span style="flex:1">${esc(gt(o.text))}</span></button>`).join('')}
+    ${a ? '' : `<span class="err">Select an answer to continue</span>`}
+    ${last && left ? `<div class="warn">${left} question(s) still unanswered. Tap a number below to go back.</div>` : ''}
+    <div class="qn notranslate" translate="no">${qs.map((x, k) => `<button data-a="goQ" data-i="${k}" class="${k === S.qi ? 'cur' : S.ans[x.id] ? 'ans' : ''}">${k + 1}</button>`).join('')}</div>
+    <div class="nav"><button class="btn gh" data-a="prevQ" ${S.qi ? '' : 'disabled'}>Previous</button>
+    <button class="btn" data-a="${last ? 'ask' : 'nextQ'}" ${a && (!last || !left) ? '' : 'disabled'}>${last ? 'Submit Assessment' : 'Next'}</button></div></section>`; },
+
+  submitted: () => { const r = S.result || {}, pass = r.result === 'PASS', pct = parseFloat(r.percentage) || 0;
+    return `<section class="card ctr"><div class="emoji">${pass ? '🎉' : '📘'}</div><h1>${pass ? 'Assessment Submitted Successfully!' : 'Unfortunately, you haven\'t passed this test.'}</h1>
+    ${pass ? `<p class="muted" style="margin-top:0">Thank you for completing the safety induction.</p>` : ''}
+    <div class="ring"><svg viewBox="0 0 120 120" width="168" height="168"><defs><linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${pass ? '#19C6D1' : '#E4572E'}"/><stop offset="1" stop-color="${pass ? '#1E9E5A' : '#B42318'}"/></linearGradient></defs><circle class="bg" cx="60" cy="60" r="52" fill="none" stroke-width="10"/><circle class="arc" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke="url(#gr)" style="--off:${(326.7 * (1 - pct / 100)).toFixed(1)}"/></svg><b id="pct" class="notranslate ${pass ? 'g' : 'r'}" translate="no" data-to="${pct}">0%</b></div>
+    <div class="row"><span>Score</span><b>${num(r.obtained_marks)} / ${num(r.total_marks)}</b></div>
+    <div class="row"><span>Pass mark</span><b>${num(r.passing_percentage)}%</b></div>
+    <div class="row"><span>Result</span><b class="${pass ? 'g' : 'r'}">${pass ? 'PASS' : 'FAIL'}</b></div>
+    ${pass ? `<div class="nav"><button class="btn" data-a="exit">Exit</button></div>`
+      : `<div class="nav"><button class="btn" data-a="retakeVideo">Rewatch Video</button><button class="btn gh" data-a="retake">Retake Assessment</button></div>`}</section>`; },
+
+  /* shown after the user taps "Exit" */
+  exit: () => `<section class="card hero">
+    <div class="hero-top">
+      <div class="hero-logo">${SHIELD}</div>
+      <div class="hero-kicker">Induction Complete</div>
+      <h1 class="hero-title">Welcome to <em class="notranslate" translate="no">Everest Industries</em></h1>
+      <p class="hero-sub">Your safety induction has been recorded successfully.</p>
+      <div class="hero-chip"><i></i><span class="notranslate" translate="no">${esc(CFG.plant)}</span></div>
+    </div>
+    <div class="hero-body">
+      <h2>You're cleared to proceed</h2>
+      <p>Thank you for taking the time to complete the induction. Please carry these three habits with you inside the plant.</p>
+      <div class="pledge">
+        <div><span>🦺</span>Wear your PPE</div>
+        <div><span>🚧</span>Follow plant rules</div>
+        <div><span>📣</span>Report hazards</div>
+      </div>
+      <div class="hero-foot">Safety First · Always</div>
+    </div></section>`
+};
+
+let langOpen = false, langQ = '';
+const parts = c => { const m = (NATIVE[c] || c).match(/^(.*?) \((.*)\)$/); return m ? [m[1], m[2]] : [NATIVE[c] || c, '']; };
+const langMatches = () => { const q = langQ.trim().toLowerCase();
+  return LANGS.filter(l => { const [n, e] = parts(l.code); return !q || n.toLowerCase().includes(q) || e.toLowerCase().includes(q) || l.code === q; }); };
+const langListHTML = () => { const rows = langMatches();
+  return rows.length ? rows.map(l => { const [n, e] = parts(l.code), cur = l.code === S.lang;
+    return `<button class="li ${cur ? 'cur' : ''}" data-a="pickLang" data-c="${l.code}"><span>${esc(n)}</span><small>${esc(e)}${cur ? ' ✓' : ''}</small></button>`; }).join('')
+    : `<div class="none">No language found</div>`; };
+const langSheet = () => `<div class="sheet-bg notranslate" translate="no"><div class="bd" data-a="closeLang"></div>
+  <div class="sheet" role="dialog" aria-label="Select language"><div class="sh-h"><b>Select language</b><button class="x" data-a="closeLang" aria-label="Close">✕</button></div>
+  <div class="sbox"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#5E6E85" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+  <input id="lq" type="search" placeholder="Search language…" autocomplete="off" value="${esc(langQ)}"></div>
+  <div class="ll" id="ll">${langListHTML()}</div></div></div>`;
+let lastStep = null;
+function countUp() {
+  const el = document.getElementById('pct'); if (!el) return;
+  const to = parseFloat(el.dataset.to) || 0; let t0 = null;
+  const tick = ts => { t0 = t0 || ts; const p = Math.min(1, (ts - t0) / 1100); el.textContent = Math.round(to * p) + '%'; if (p < 1) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+function render() {
+  const isExit = S.step === 'exit';
+  const i = isExit ? STEPS.length : Math.max(0, STEPS.indexOf(S.step));
+  const enter = lastStep !== S.step; lastStep = S.step;
+  document.documentElement.classList.remove('noscroll');
+  const body = C ? views[S.step]() : `<section class="card"><div class="sk" style="width:55%;height:24px"></div><div class="sk" style="margin-top:16px"></div><div class="sk" style="margin-top:10px;width:80%"></div><div class="sk" style="margin-top:22px;height:52px;border-radius:16px"></div></section>`;
+  $app.dir = RTL.includes(S.lang) ? 'rtl' : 'ltr';
+  $app.innerHTML = `<header class="top"><div class="brand"><span class="logo">${SHIELD}</span><span class="bt"><b>EHS Induction</b><small class="notranslate" translate="no">${esc(CFG.plant)}</small></span></div>
+      <button class="lang notranslate" translate="no" data-a="openLang" aria-haspopup="dialog" aria-label="Language"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg><span>${esc(parts(S.lang)[0])}</span></button></header>
+    <div class="prog"><div class="stp">${STEPS.map((_, k) => `<span class="${k < i ? 'done' : k === i ? 'cur' : ''}">${k < i ? '✓' : k + 1}</span>`).join('<b></b>')}</div>
+    <div class="plab">${isExit ? 'All steps completed' : `Step ${i + 1} / 6 — ${STEP_LABELS[i]}`}</div></div>
+    ${banner ? `<div class="warn m">${esc(banner)}</div>` : ''}
+    ${noMT ? `<div class="warn m">Automatic translation is not available for this language yet. Text is shown in English.</div>` : ''}
+    <div class="${enter ? 'enter' : ''}">${body}</div>
+    <div class="foot notranslate" translate="no">EHS Induction · Everest Industries</div>
+    ${langOpen ? langSheet() : ''}
+    ${confirmOpen ? `<div class="ov"><div class="dlg"><h1>Submit your answers?</h1><p class="muted">You cannot change your answers after submitting.</p>
+      <div class="nav"><button class="btn gh" data-a="cancel">Cancel</button><button class="btn" data-a="doSubmit" ${busy ? 'disabled' : ''}>Yes, submit</button></div></div></div>` : ''}`;
+  if (S.step === 'video' && C && C.video) bindVideo();
+  if (enter && S.step === 'submitted') countUp();
+  if (enter) window.scrollTo({top: 0});
+  retranslate();
+}
+
+/* ============================================================
+   VIDEO PLAYER
+   ============================================================ */
+let spd = 1, miniOn = false, pfsOn = false;
+
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+const dur = v => (v && isFinite(v.duration) && v.duration > 0) ? v.duration
+                 : (Number(C && C.video && C.video.duration) || 0);
+
+function paintSpeed() {
+  const b = $('ctrlSpeed'); if (b) b.textContent = spd + 'x';
+  document.querySelectorAll('#spdMenu [data-r]').forEach(e => e.classList.toggle('on', Number(e.dataset.r) === spd));
+}
+const closeSpd = () => { const m = $('spdMenu'); if (m) m.hidden = true; };
+
+function setMini(on) {
+  const w = $('vp'), wr = $('vwrap'); if (!w || !wr) return;
+  if (on && (pfsOn || fsEl())) exitFS();
+  miniOn = on;
+  w.classList.toggle('minimized', on);
+  wr.classList.toggle('mini-on', on);
+  if (!on) ['left', 'top', 'right', 'bottom'].forEach(p => w.style[p] = '');
+  closeSpd();
+}
+
+function pseudoFS(on) {
+  const w = $('vp'); if (!w) return;
+  pfsOn = on;
+  w.classList.toggle('pfs', on);
+  document.documentElement.classList.toggle('noscroll', on);
+}
+
+async function enterFS() {
+  const w = $('vp'); if (!w) return;
+  if (miniOn) setMini(false);
+  closeSpd();
+  const req = w.requestFullscreen || w.webkitRequestFullscreen;
+  if (req) {
+    try {
+      await req.call(w);
+      if (screen.orientation && screen.orientation.lock) {
+        try { await screen.orientation.lock('landscape'); } catch (e) {}
+      }
+      return;
+    } catch (e) { /* fall through to the CSS version */ }
+  }
+  pseudoFS(true);
+}
+function exitFS() {
+  if (pfsOn) { pseudoFS(false); return; }
+  const ex = document.exitFullscreen || document.webkitExitFullscreen;
+  if (fsEl() && ex) { try { ex.call(document); } catch (e) {} }
+}
+const toggleFS = () => (pfsOn || fsEl()) ? exitFS() : enterFS();
+
+const onFsChange = () => {
+  if (!fsEl() && screen.orientation && screen.orientation.unlock) { try { screen.orientation.unlock(); } catch (e) {} }
+};
+document.addEventListener('fullscreenchange', onFsChange);
+document.addEventListener('webkitfullscreenchange', onFsChange);
+
+function bindVideo() {
+  const v = $('v'), w = $('vp'), pf = $('pf'), tc = $('vtc'), td = $('vtd'), cp = $('ctrlPlay');
+  if (!v || !w) return;
+  miniOn = false; pfsOn = false;
+  let maxT = 0;
+
+  const paintDur = () => { td.textContent = fmtT(dur(v)); };
+  const paintTime = () => {
+    tc.textContent = fmtT(v.currentTime);
+    const t = dur(v);
+    if (t && !S.videoDone) pf.style.width = Math.min(100, v.currentTime / t * 100) + '%';
+  };
+
+  v.defaultPlaybackRate = spd; v.playbackRate = spd;
+  paintSpeed(); paintDur();
+
+  ['loadedmetadata', 'durationchange', 'loadeddata', 'canplay'].forEach(ev => v.addEventListener(ev, () => { paintDur(); v.playbackRate = spd; }));
+  v.addEventListener('play',  () => { w.classList.add('playing');    w.classList.remove('paused'); cp.innerHTML = PAUSE; });
+  v.addEventListener('pause', () => { w.classList.remove('playing'); w.classList.add('paused');    cp.innerHTML = PLAY;  });
+
+  v.addEventListener('timeupdate', () => {
+    if (!v.seeking) maxT = Math.max(maxT, v.currentTime);
+    paintDur();
+    paintTime();
+  });
+  v.addEventListener('seeking', () => { if (!S.videoDone && v.currentTime > maxT + 0.5) v.currentTime = maxT; });
+
+  v.addEventListener('ended', () => {
+    S.videoDone = true; save();
+    w.classList.remove('playing'); w.classList.add('paused'); cp.innerHTML = PLAY;
+    pf.style.width = '100%'; tc.textContent = fmtT(dur(v)) ;
+    const sb = $('startBtn'), vm = $('vm'); if (sb) sb.disabled = false; if (vm) vm.hidden = true;
+    if (miniOn) setMini(false);
+    if (pfsOn || fsEl()) exitFS();
+    if (navigator.vibrate) navigator.vibrate(40);
+  });
+}
+
+function validate() {
+  errors = {};
+  cat().fields.forEach(f => {
+    const v = (S.form[f.name] || '').trim();
+    if (f.required && !v) errors[f.name] = 'This field is required';
+    else if (v && f.name === 'participant_email' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) errors[f.name] = 'Enter a valid email address';
+    else if (v && f.name === 'participant_mobile' && !/^\+?\d{8,15}$/.test(v)) errors[f.name] = 'Enter a valid mobile number';
+  });
+  return !Object.keys(errors).length;
+}
+
+async function startAttempt() {
+    if (busy) return;
+
+    busy = true;
+    banner = '';
+    render();
+
+    const body = {
+        user_category: S.cat,
+        language: langId()
+    };
+
+    cat().fields.forEach(f => {
+        body[f.name] = (S.form[f.name] || '').trim();
+    });
+
+    try {
+        const {ok, j} = await post(CFG.url.start, body);
+
+        if (ok && j.attempt_uuid) {
+            S.attemptUuid = j.attempt_uuid;
+            S.ans = {};
+            S.qi = 0;
+            S.result = null;
+            S.step = 'assessment';
+        } else if (j.errors) {
+            errors = {};
+            for (const k in j.errors) {
+                const m = [].concat(j.errors[k])[0];
+                errors[k] = /required/i.test(m.message || '')
+                    ? 'This field is required'
+                    : (m.message || 'Error');
+            }
+            S.step = 'details';
+        } else {
+            banner = j.error || 'Unable to start assessment.';
+        }
+    } catch (e) {
+        banner = 'Something went wrong. Please try again.';
+    }
+
+    busy = false;
+    save();
+    render();
+}
+
+/* ---- submit: POSTs answers, shows result screen ---- */
+async function submitAttempt() {
+    if (busy) return;
+
+    busy = true;
+    confirmOpen = false;
+    render();
+
+    try {
+        const { ok, j } = await post(CFG.url.submit, {
+            attempt_uuid: S.attemptUuid,
+            video_completed: S.videoDone,
+            answers: S.ans
+        });
+
+        if (ok && j.ok) {
+            S.result = j;
+            S.step = 'submitted';
+        } else {
+            banner = j.error || 'Something went wrong. Please try again.';
+        }
+    } catch (e) {
+        banner = 'Something went wrong. Please try again.';
+    }
+
+    busy = false;
+    save();
+    render();
+}
+
+const go = step => { S.step = step; banner = ''; save(); render(); };
+const actions = {
+  toWelcome: () => go('welcome'),
+  toCat: () => go('category'),
+  cat: d => {
+    const id = Number(d.id);
+    if (S.cat !== id) { S.form = {}; S.auto = false; errors = {}; }   // different category = empty form
+    S.cat = id; save(); render();
+  },
+  toDetails: () => go('details'),
+  toVideo: () => (validate() ? go('video') : render()),
+
+  /* ---- video ---- */
+  play: () => { const v = $('v'); if (v) { v.paused ? v.play().catch(() => {}) : v.pause(); } },
+  speedMenu: () => { const m = $('spdMenu'); if (m) m.hidden = !m.hidden; },
+  setSpeed: d => { spd = Number(d.r) || 1; const v = $('v'); if (v) { v.defaultPlaybackRate = spd; v.playbackRate = spd; } paintSpeed(); closeSpd(); },
+  fs: () => toggleFS(),
+
+  start: () => startAttempt(),
+  ans: d => { S.ans[d.q] = Number(d.o); if (navigator.vibrate) navigator.vibrate(12); save(); render(); },
+  openLang: () => { langOpen = true; langQ = ''; render(); const i = document.getElementById('lq'); if (i && !matchMedia('(pointer:coarse)').matches) i.focus(); },
+  closeLang: () => { langOpen = false; render(); },
+  pickLang: d => { langOpen = false; langQ = ''; if (d.c !== S.lang) setLang(d.c); else render(); },
+  goQ: d => { S.qi = Number(d.i); save(); render(); },
+  prevQ: () => { S.qi = Math.max(0, S.qi - 1); save(); render(); },
+  nextQ: () => { S.qi = Math.min(C.questions.length - 1, S.qi + 1); save(); render(); },
+  ask: () => { confirmOpen = true; render(); },
+  cancel: () => { confirmOpen = false; render(); },
+  doSubmit: () => { submitAttempt(); },
+  retake: () => {
+      S.attemptUuid = null;
+      S.ans = {};
+      S.qi = 0;
+      S.videoDone = true;
+      S.result = null;
+      confirmOpen = false;
+      startAttempt();
+  },
+  retakeVideo: () => {
+    S.attemptUuid = null; S.ans = {}; S.qi = 0; S.videoDone = false; S.result = null;
+    go('video');
+  },
+  exit: () => { S = {...INIT, lang: S.lang, step: 'exit'}; errors = {}; go('exit'); }
+};
+
+$app.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]');
+  const a = b && b.dataset.a;
+  if (a !== 'speedMenu' && a !== 'setSpeed') closeSpd();
+  if (a && actions[a]) actions[a](b.dataset);
+});
+$app.addEventListener('change', e => {
+  if (e.target.id === 'lang') setLang(e.target.value);
+  /* video language dropdown: load that language's video; it must be watched again */
+  if (e.target.id === 'vsel') {
+    S.vlang = e.target.value;
+    S.videoDone = false;
+    loadContent();
+  }
+});
+$app.addEventListener('input', e => {
+  if (e.target.id === 'lq') { langQ = e.target.value; document.getElementById('ll').innerHTML = langListHTML(); return; }
+  const n = e.target.name; if (!n) return;
+  S.form[n] = e.target.value; delete errors[n];
+  if (e.target.tagName === 'SELECT') e.target.classList.toggle('empty', !e.target.value);
+  if (e.target.nextElementSibling) e.target.nextElementSibling.textContent = '';
+  if (n === 'employee_id') {
+    // Reset auto-fill flag while the user is typing
+    if (S.auto) S.auto = false;
+
+    // Debounce: only hit the server once the user pauses typing
+    clearTimeout(empLookupTimer);
+    const value = e.target.value;
+    empLookupTimer = setTimeout(() => lookupEmployee(value), 450);
+    save();
+    return;
+  }
+  save();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && pfsOn) { pseudoFS(false); return; }
+  if (!langOpen) return;
+  if (e.key === 'Escape') actions.closeLang();
+  if (e.key === 'Enter' && e.target.id === 'lq') { const f = langMatches()[0]; if (f) actions.pickLang({c: f.code}); }
+});
+
+render();
+loadContent();
+if (S.lang !== 'en') applyGoogle();
+else if (/googtrans=/.test(document.cookie)) {
+  // leftover translation from a previous visit: clear it once, then reload in English
+  if (!sessionStorage.getItem('gt_reset')) {
+    try { sessionStorage.setItem('gt_reset', '1'); } catch (e) {}
+    clearGT(); location.reload();
+  }
+} else {
+  try { sessionStorage.removeItem('gt_reset'); } catch (e) {}   // cookie is gone, re-arm for next time
+}
+})();
+</script>
+{% endverbatim %}
+</body>
+</html>

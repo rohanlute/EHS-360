@@ -555,7 +555,39 @@
           </a>
         </li>
         {% endif %}
-
+       <li class="nav-item {% if 'induction' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'induction' in request.path %}active{% endif %}">
+            <i class="nav-icon fas fa-graduation-cap"></i>
+            <p>Induction Management <i class="right fas fa-angle-left"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="{% url 'induction:dashboard' %}" class="nav-link">
+                <i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'induction:question_list' %}" class="nav-link">
+                <i class="nav-icon fas fa-question-circle"></i><p>Induction Que</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'induction:video_list' %}" class="nav-link">
+                <i class="nav-icon fas fa-video"></i><p>Induction Video</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'induction:assign_list' %}" class="nav-link">
+                <i class="nav-icon fas fa-clipboard-list"></i><p>Assign Que</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'induction:scorecard_list' %}" class="nav-link">
+                <i class="nav-icon fas fa-trophy"></i><p>Scorecard</p>
+              </a>
+            </li>
+          </ul>
+        </li>
         <!-- 11. MONTHLY ENVIRONMENTAL DATA -->
         {% if request.user.can_access_env_data_module %}
         <li class="nav-item {% if 'env-data' in request.path or 'data_collection' in request.path %}menu-open{% endif %}">

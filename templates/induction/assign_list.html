@@ -1,0 +1,1587 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% translate "Assigned Questionnaires" %}{% endblock %}
+{% block page_title %}{% translate "Assigned Questionnaires" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'dashboards:home' %}">{% translate "Home" %}</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="#">{% translate "Induction Management" %}</a>
+</li>
+<li class="breadcrumb-item active">{% translate "Assign Que" %}</li>
+{% endblock %}
+
+{% block content %}
+
+<style>
+/* ===================== STATISTICS ===================== */
+
+.ind-stat {
+    border-radius: 10px;
+    padding: 16px 20px;
+    background: #fff;
+    border: 1px solid #e3e6f0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: transform .15s ease, box-shadow .15s ease;
+    height: 100%;
+}
+
+.ind-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,.06);
+}
+
+.ind-stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.ind-stat-body b {
+    display: block;
+    font-size: 22px;
+    line-height: 1.1;
+    color: #2c3e50;
+}
+
+.ind-stat-body span {
+    font-size: 12.5px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.ind-stat-icon.bg-primary {
+    background: linear-gradient(135deg, #4e73df, #2e59d9);
+}
+
+.ind-stat-icon.bg-success {
+    background: linear-gradient(135deg, #1cc88a, #13855c);
+}
+
+.ind-stat-icon.bg-warning {
+    background: linear-gradient(135deg, #f6c23e, #dda20a);
+}
+
+.ind-stat-icon.bg-info {
+    background: linear-gradient(135deg, #36b9cc, #258391);
+}
+
+/* ===================== TOOLBAR ===================== */
+
+.ind-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    padding: 14px 16px;
+    background: #f8f9fc;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    border: 1px solid #e3e6f0;
+}
+
+.ind-toolbar .search-wrap {
+    flex: 1 1 280px;
+    position: relative;
+}
+
+.ind-toolbar .search-wrap i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #adb5bd;
+    pointer-events: none;
+}
+
+.ind-toolbar .search-wrap input {
+    padding-left: 36px;
+    border-radius: 8px;
+    border: 1px solid #d1d3e2;
+    height: 40px;
+}
+
+.ind-toolbar .search-wrap input:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 .15rem rgba(78,115,223,.2);
+}
+
+.ind-toolbar select.filter-status {
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #d1d3e2;
+    min-width: 150px;
+}
+
+/* ===================== TABLE ===================== */
+
+.asg-table thead th {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #6c757d;
+    background: #f8f9fc;
+    border-top: none;
+    padding: 12px 16px;
+    font-weight: 600;
+}
+
+.asg-table tbody td {
+    padding: 14px 16px;
+    vertical-align: middle;
+}
+
+.asg-table tbody tr {
+    transition: background .1s;
+}
+
+.asg-table tbody tr:hover {
+    background: #f8f9fc;
+}
+
+/* ===================== PLANT CHIPS ===================== */
+
+.asg-chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: rgba(78,115,223,.1);
+    color: #4e73df;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 2px 3px 2px 0;
+}
+
+/* ===================== QUESTION COUNT ===================== */
+
+.asg-qpill {
+    display: inline-block;
+    min-width: 32px;
+    text-align: center;
+    background: #4e73df;
+    color: #fff;
+    border-radius: 99px;
+    padding: 2px 10px;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+/* ===================== SCORING ===================== */
+
+.asg-scoring {
+    font-size: 12.5px;
+    color: #5a5c69;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.asg-scoring .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4e73df;
+}
+
+.asg-scoring.manual .dot {
+    background: #f6c23e;
+}
+
+/* ===================== STATUS ===================== */
+
+.asg-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid;
+}
+
+.asg-tag::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+}
+
+.asg-tag.a {
+    background: #dcf5e8;
+    color: #13855c;
+    border-color: #b5e3cb;
+}
+
+.asg-tag.i {
+    background: #eef0f2;
+    color: #6c757d;
+    border-color: #dfe3e8;
+}
+
+/* ===================== ACTIONS ===================== */
+
+.asg-actions {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.asg-actions .btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    transition: all .15s;
+    margin-left: 2px;
+}
+
+.asg-actions .btn-qr {
+    color: #36b9cc;
+}
+
+.asg-actions .btn-qr:hover {
+    background: rgba(54,185,204,.1);
+    border-color: rgba(54,185,204,.3);
+}
+
+.asg-actions .btn-view {
+    color: #5a5c69;
+}
+
+.asg-actions .btn-view:hover {
+    background: rgba(90,92,105,.1);
+    border-color: rgba(90,92,105,.3);
+}
+
+.asg-actions .btn-edit {
+    color: #4e73df;
+}
+
+.asg-actions .btn-edit:hover {
+    background: rgba(78,115,223,.1);
+    border-color: rgba(78,115,223,.3);
+}
+
+.asg-actions .btn-del {
+    color: #e74a3b;
+}
+
+.asg-actions .btn-del:hover {
+    background: rgba(231,74,59,.1);
+    border-color: rgba(231,74,59,.3);
+}
+
+/* ===================== EMPTY STATE ===================== */
+
+.asg-empty {
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.asg-empty i {
+    font-size: 54px;
+    color: #d1d3e2;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.asg-empty h5 {
+    color: #5a5c69;
+    margin-bottom: 8px;
+}
+
+.asg-empty p {
+    color: #858796;
+    margin-bottom: 20px;
+}
+
+/* ===================== QR MODAL ===================== */
+
+#qrModal .qr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+}
+
+@media (max-width: 700px) {
+    #qrModal .qr-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+#qrModal .qr-box {
+    background: #fff;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid #e3e6f0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 240px;
+}
+
+#qrModal .qr-box img {
+    max-width: 100%;
+}
+
+#qrModal .asb {
+    background: #f8f9fc;
+    border: 1px solid #e3e6f0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 14px;
+    line-height: 1.9;
+    font-size: 13.5px;
+}
+
+#qrModal .asb small {
+    color: #858796;
+    font-size: 11px;
+    letter-spacing: .08em;
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+#qrModal .qr-status {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+/* Read-only plant display (row mode) */
+#qrModal .qr-readonly {
+    border: 1px solid #e3e6f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: #f8f9fc;
+    font-weight: 600;
+    color: #2c3e50;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+#qrModal .qr-readonly i {
+    color: #858796;
+    margin-right: 8px;
+}
+</style>
+
+
+<!-- ===================== STATISTICS ===================== -->
+
+<div class="row mb-3">
+
+    <div class="col-6 col-md-3 mb-2">
+        <div class="ind-stat">
+            <div class="ind-stat-icon bg-primary">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="ind-stat-body">
+                <b>{{ page.paginator.count }}</b>
+                <span>{% translate "Total Assigned" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-3 mb-2">
+        <div class="ind-stat">
+            <div class="ind-stat-icon bg-success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="ind-stat-body">
+                <b>{{ active_count|default:"0" }}</b>
+                <span>{% translate "Active" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-3 mb-2">
+        <div class="ind-stat">
+            <div class="ind-stat-icon bg-info">
+                <i class="fas fa-list-ol"></i>
+            </div>
+            <div class="ind-stat-body">
+                <b>{{ total_questions|default:"0" }}</b>
+                <span>{% translate "Questions Linked" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-3 mb-2">
+        <div class="ind-stat">
+            <div class="ind-stat-icon bg-warning">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="ind-stat-body">
+                <b>{{ covered_plants|default:"0" }}</b>
+                <span>{% translate "Plants Covered" %}</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ===================== MAIN CARD ===================== -->
+
+<div class="ehs-card">
+
+    <div class="card-header">
+        <div class="row align-items-center">
+
+            <div class="col">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-clipboard-check mr-2"></i>
+                    {% translate "All Assigned Questionnaires" %}
+                </h3>
+            </div>
+
+            <div class="col-auto">
+
+                <button class="btn btn-outline-info btn-sm mr-2"
+                        type="button"
+                        onclick="qrModalAll()">
+                    <i class="fas fa-qrcode mr-1"></i>
+                    {% translate "Download QR" %}
+                </button>
+
+                <button class="btn btn-primary btn-sm"
+                        type="button"
+                        onclick="aModal()">
+                    <i class="fas fa-plus mr-1"></i>
+                    {% translate "Assign" %}
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+
+
+    <div class="card-body">
+
+        <!-- ===================== SEARCH AND FILTER ===================== -->
+
+        <form method="GET" class="ind-toolbar">
+
+            <div class="search-wrap">
+                <i class="fas fa-search"></i>
+
+                <input type="text"
+                       name="q"
+                       class="form-control"
+                       placeholder="{% translate 'Search by plant...' %}"
+                       value="{{ q }}"
+                       onchange="this.form.submit()">
+            </div>
+
+            <select name="status"
+                    class="filter-status"
+                    onchange="this.form.submit()">
+
+                <option value="">
+                    {% translate "All status" %}
+                </option>
+
+                <option value="active"
+                    {% if request.GET.status == 'active' %}selected{% endif %}>
+                    {% translate "Active" %}
+                </option>
+
+                <option value="inactive"
+                    {% if request.GET.status == 'inactive' %}selected{% endif %}>
+                    {% translate "Inactive" %}
+                </option>
+
+            </select>
+
+        </form>
+
+
+        <!-- ===================== ASSIGNMENT TABLE ===================== -->
+
+        {% if page.object_list %}
+
+        <div class="table-responsive">
+
+            <table class="table asg-table mb-0">
+
+                <thead>
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th>{% translate "Plants" %}</th>
+                        <th style="width:110px" class="text-center">
+                            {% translate "Questions" %}
+                        </th>
+                        <th style="width:170px">
+                            {% translate "Scoring type" %}
+                        </th>
+                        <th style="width:100px" class="text-center">
+                            {% translate "Passing" %}
+                        </th>
+                        <th style="width:130px">
+                            {% translate "Created on" %}
+                        </th>
+                        <th style="width:110px">
+                            {% translate "Status" %}
+                        </th>
+                        <th style="width:170px" class="text-right">
+                            {% translate "Actions" %}
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for q in page %}
+
+                    <tr>
+
+                        <td class="text-muted">
+                            {{ forloop.counter0|add:page.start_index }}
+                        </td>
+
+                        <td>
+                            {% for link in q.plant_links.all %}
+                                <span class="asg-chip">
+                                    <i class="fas fa-building mr-1"
+                                       style="font-size:10px;"></i>
+                                    {{ link.plant.name }}
+                                </span>
+                            {% empty %}
+                                <span class="text-muted small">—</span>
+                            {% endfor %}
+                        </td>
+
+                        <td class="text-center">
+                            <span class="asg-qpill">
+                                {{ q.question_count }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="asg-scoring {% if q.scoring_type == 'MANUAL' %}manual{% endif %}">
+                                <span class="dot"></span>
+
+                                {% if q.scoring_type == 'AUTO' %}
+                                    {% translate "Automatic" %}
+                                {% else %}
+                                    {% translate "Manual" %}
+                                {% endif %}
+                            </span>
+                        </td>
+
+                        <td class="text-center">
+                            <b>{{ q.passing_percentage|floatformat:"-2" }}%</b>
+                        </td>
+
+                        <td class="text-muted small">
+                            {{ q.created_at|date:"d M Y" }}
+                        </td>
+
+                        <td>
+                            <span class="asg-tag {% if q.is_active %}a{% else %}i{% endif %}">
+                                {% if q.is_active %}
+                                    {% translate "Active" %}
+                                {% else %}
+                                    {% translate "Inactive" %}
+                                {% endif %}
+                            </span>
+                        </td>
+
+                        <td class="asg-actions">
+
+                            <button type="button"
+                                    class="btn btn-qr"
+                                    title="{% translate 'Download QR' %}"
+                                    data-plant-id="{{ q.plant_links.first.plant.id|default:'' }}"
+                                    data-plant-name="{{ q.plant_links.first.plant.name|default:''|escape }}"
+                                    onclick="qrModal(this.dataset.plantId, this.dataset.plantName)">
+                                <i class="fas fa-qrcode"></i>
+                            </button>
+
+                            <a class="btn btn-view"
+                               href="{% url 'induction:assign_detail' q.pk %}"
+                               title="{% translate 'View' %}">
+                                <i class="fas fa-eye"></i>
+                            </a>
+
+                            <button type="button"
+                                    class="btn btn-edit"
+                                    title="{% translate 'Edit' %}"
+                                    onclick="aModal({{ q.pk }})">
+                                <i class="fas fa-pen"></i>
+                            </button>
+
+                            <form method="post"
+                                  action="{% url 'induction:assign_delete' q.pk %}"
+                                  style="display:inline"
+                                  onsubmit="return confirm('{% translate "Delete this questionnaire? If it has submitted attempts, it will be made inactive instead." %}');">
+
+                                {% csrf_token %}
+
+                                <button type="submit"
+                                        class="btn btn-del"
+                                        title="{% translate 'Delete' %}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+
+                            </form>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- ===================== PAGINATION ===================== -->
+
+        {% if page.has_other_pages %}
+
+        <nav class="mt-3">
+
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+
+                {% if page.has_previous %}
+
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?page={{ page.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+
+                {% endif %}
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        {{ page.number }} / {{ page.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if page.has_next %}
+
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?page={{ page.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status|urlencode }}{% endif %}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+
+                {% endif %}
+
+            </ul>
+
+        </nav>
+
+        {% endif %}
+
+
+        {% else %}
+
+        <!-- ===================== EMPTY STATE ===================== -->
+
+        <div class="asg-empty">
+
+            <i class="fas fa-clipboard"></i>
+
+            <h5>
+                {% translate "No questionnaires assigned yet" %}
+            </h5>
+
+            <p>
+                {% translate "Assign a questionnaire to plants to get started." %}
+            </p>
+
+            <button class="btn btn-primary"
+                    type="button"
+                    onclick="aModal()">
+                <i class="fas fa-plus mr-1"></i>
+                {% translate "Assign Questionnaire" %}
+            </button>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- ===================== ADD / EDIT MODAL ===================== -->
+
+<div class="modal fade"
+     id="assignModal"
+     tabindex="-1"
+     role="dialog"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-xl" role="document">
+
+        <div class="modal-content">
+
+            <div class="modal-header bg-light">
+
+                <h5 class="modal-title" id="aModalTitle">
+                    <i class="fas fa-plus mr-2 text-primary"></i>
+                    {% translate "Assign Questionnaire" %}
+                </h5>
+
+                <button type="button"
+                        class="close"
+                        data-dismiss="modal"
+                        onclick="closeAModal()">
+                    <span>&times;</span>
+                </button>
+
+            </div>
+
+            <div class="modal-body"
+                 id="aModalBody"
+                 style="background:#f8f9fc;">
+
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-circle-notch fa-spin fa-2x mb-2"></i>
+                    <div>{% translate "Loading..." %}</div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===================== QR MODAL (SINGLE MODAL, TWO MODES) ===================== -->
+
+<div class="modal fade"
+     id="qrModal"
+     tabindex="-1"
+     role="dialog"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg" role="document">
+
+        <div class="modal-content">
+
+            <div class="modal-header bg-light">
+
+                <h5 class="modal-title" id="qrModalTitle">
+                    <i class="fas fa-qrcode mr-2 text-info"></i>
+                    {% translate "Plant Induction QR Code" %}
+                </h5>
+
+                <button type="button"
+                        class="close"
+                        data-dismiss="modal"
+                        onclick="closeQR()">
+                    <span>&times;</span>
+                </button>
+
+            </div>
+
+
+            <div class="modal-body">
+
+                <div class="qr-grid">
+
+                    <div>
+
+                        <!-- Hidden field that always holds the plant id being used -->
+                        <input type="hidden" id="qrCurrentPlantId">
+
+                        <!-- Label changes based on mode -->
+                        <label class="font-weight-bold" id="qrPlantLabel">
+                            {% translate "Select plant" %} *
+                        </label>
+
+                        <!-- MODE: ALL — free dropdown (first plant selected by default) -->
+                        <select id="qrPlantSelect"
+                                class="form-control"
+                                onchange="qrUpdate()">
+
+                            {% for p in qr_form.fields.plant.queryset %}
+
+                                <option value="{{ p.id }}">
+                                    {{ p.name }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <!-- MODE: ROW — read-only display (user cannot change) -->
+                        <div id="qrPlantReadonly"
+                             class="qr-readonly"
+                             style="display:none;">
+                            <i class="fas fa-lock"></i>
+                            <span id="qrPlantReadonlyName">—</span>
+                        </div>
+
+
+                        <div class="asb">
+
+                            <small>{% translate "ASSIGNED TO" %}</small>
+
+                            <div id="qrAssigned">
+                                <span class="text-muted small">—</span>
+                            </div>
+
+                        </div>
+
+
+                        <button class="btn btn-primary btn-block mt-3"
+                                type="button"
+                                onclick="downloadQR()">
+
+                            <i class="fas fa-download mr-1"></i>
+                            {% translate "Download QR code" %}
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="qr-box">
+
+                        <img id="qrImage"
+                             alt="QR"
+                             style="width:200px;height:200px;">
+
+                        <div class="qr-status" id="qrStatus"></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-footer bg-light">
+
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="closeQR()">
+                    {% translate "Close" %}
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+
+/* ============================================================
+   URLS AND CSRF
+   ============================================================ */
+
+const A_CSRF = "{{ csrf_token }}";
+
+const A_URLS = {
+    create: "{% url 'induction:assign_create' %}",
+    edit: "{% url 'induction:assign_edit' 0 %}",
+    qrInfo: "{% url 'induction:qr_info' %}",
+    qrImage: "{% url 'induction:qr_image' 0 %}",
+    qrDownload: "{% url 'induction:qr_download' 0 %}"
+};
+
+
+/* ============================================================
+   ADD / EDIT ASSIGNMENT MODAL
+   ============================================================ */
+
+function aModal(id) {
+
+    const titleEl = document.getElementById('aModalTitle');
+
+    const icon = id ? 'fa-edit' : 'fa-plus';
+
+    const title = id
+        ? '{% translate "Edit Questionnaire" %}'
+        : '{% translate "Assign Questionnaire" %}';
+
+    titleEl.innerHTML =
+        `<i class="fas ${icon} mr-2 text-primary"></i>${title}`;
+
+
+    const modalBody = document.getElementById('aModalBody');
+
+    modalBody.innerHTML = `
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-circle-notch fa-spin fa-2x mb-2"></i>
+            <div>{% translate "Loading..." %}</div>
+        </div>
+    `;
+
+    showModal('assignModal');
+
+
+    const url = id
+        ? A_URLS.edit.replace('/0/', '/' + id + '/')
+        : A_URLS.create;
+
+
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Unable to load assignment form.');
+        }
+
+        return response.text();
+    })
+
+    .then(html => {
+
+        modalBody.innerHTML = html;
+
+        /*
+         * IMPORTANT:
+         * Scripts inside AJAX-loaded innerHTML do not execute
+         * automatically. Recreate them so the form JavaScript runs.
+         */
+
+        const scripts = Array.from(
+            modalBody.querySelectorAll('script')
+        );
+
+        scripts.forEach(oldScript => {
+
+            const newScript = document.createElement('script');
+
+            Array.from(oldScript.attributes).forEach(attr => {
+                newScript.setAttribute(attr.name, attr.value);
+            });
+
+            newScript.textContent = oldScript.textContent;
+
+            oldScript.parentNode.replaceChild(
+                newScript,
+                oldScript
+            );
+
+        });
+
+
+        // Bind the AJAX form submit event
+        bindAssignForm(id);
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        modalBody.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                {% translate "Could not load form. Please try again." %}
+            </div>
+        `;
+
+    });
+
+}
+
+
+/* ============================================================
+   ASSIGNMENT FORM SUBMISSION
+   ============================================================ */
+
+function bindAssignForm(id) {
+
+    const form = document.querySelector(
+        '#aModalBody #assignQuestionnaireForm'
+    );
+
+    if (!form) {
+        console.error('assignQuestionnaireForm not found.');
+        return;
+    }
+
+
+    // Prevent duplicate event binding
+    if (form.dataset.submitBound === 'true') {
+        return;
+    }
+
+    form.dataset.submitBound = 'true';
+
+
+    form.addEventListener('submit', function(e) {
+
+        e.preventDefault();
+
+
+        // Get all form values, including hidden sequence and marks JSON
+        const fd = new FormData(form);
+
+
+        const url = id
+            ? A_URLS.edit.replace('/0/', '/' + id + '/')
+            : A_URLS.create;
+
+
+        // Disable submit button during submission
+        const submitButton = form.querySelector(
+            'button[type="submit"], input[type="submit"]'
+        );
+
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+
+
+        fetch(url, {
+
+            method: 'POST',
+
+            body: fd,
+
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': A_CSRF
+            }
+
+        })
+
+        .then(async response => {
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok && !data.errors) {
+                throw new Error(
+                    data.message || 'Unable to save questionnaire.'
+                );
+            }
+
+            return data;
+
+        })
+
+        .then(resp => {
+
+            if (resp.ok) {
+
+                closeAModal();
+
+                location.reload();
+
+            } else {
+
+                renderAssignErrors(
+                    form,
+                    resp.errors || {}
+                );
+
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+
+            }
+
+        })
+
+        .catch(error => {
+
+            console.error(error);
+
+            alert(error.message || 'Save failed.');
+
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
+
+        });
+
+    });
+
+}
+
+
+/* ============================================================
+   DISPLAY FORM VALIDATION ERRORS
+   ============================================================ */
+
+function renderAssignErrors(form, errors) {
+
+    // Remove previous validation messages
+    form.querySelectorAll('.invalid-feedback').forEach(el => {
+        el.remove();
+    });
+
+    form.querySelectorAll('.is-invalid').forEach(el => {
+        el.classList.remove('is-invalid');
+    });
+
+
+    // Remove previous non-field error
+    form.querySelectorAll('.assign-server-error').forEach(el => {
+        el.remove();
+    });
+
+
+    Object.entries(errors).forEach(([field, data]) => {
+
+        const messages = Array.isArray(data) ? data : [data];
+
+        const firstMessage = messages[0];
+
+        const message = firstMessage?.message || firstMessage || '';
+
+        const input = form.querySelector(
+            `[name="${CSS.escape(field)}"]`
+        );
+
+        if (!input) {
+            return;
+        }
+
+
+        input.classList.add('is-invalid');
+
+
+        const div = document.createElement('div');
+
+        div.className = 'invalid-feedback d-block';
+
+        div.textContent = message;
+
+
+        input.parentNode.appendChild(div);
+
+    });
+
+
+    // Non-field errors
+    const nonField = errors.__all__ || errors.non_field_errors;
+
+    if (nonField) {
+
+        const alert = document.createElement('div');
+
+        alert.className =
+            'alert alert-danger mt-3 mb-0 assign-server-error';
+
+        const message = Array.isArray(nonField)
+            ? (nonField[0]?.message || nonField[0])
+            : nonField;
+
+        alert.textContent = message;
+
+        form.prepend(alert);
+
+    }
+
+}
+
+
+/* ============================================================
+   CLOSE ASSIGN MODAL
+   ============================================================ */
+
+function closeAModal() {
+    hideModal('assignModal');
+}
+
+
+/* ============================================================
+   QR MODAL — ROW MODE (READ-ONLY PLANT)
+   ============================================================ */
+
+function qrModal(plantId, plantName) {
+
+    if (!plantId) {
+        alert('{% translate "This assignment has no plant linked." %}');
+        return;
+    }
+
+    openQrModal({
+        mode: 'row',
+        plantId: plantId,
+        plantName: plantName || ('#' + plantId)
+    });
+
+}
+
+
+/* ============================================================
+   QR MODAL — ALL MODE (FREE DROPDOWN, FIRST PLANT DEFAULT)
+   ============================================================ */
+
+function qrModalAll() {
+
+    openQrModal({
+        mode: 'all'
+    });
+
+}
+
+
+/* ============================================================
+   SHARED QR MODAL OPENER
+   ============================================================ */
+
+function openQrModal(opts) {
+
+    const mode = opts.mode || 'all';
+
+    const select       = document.getElementById('qrPlantSelect');
+    const readonly     = document.getElementById('qrPlantReadonly');
+    const readonlyName = document.getElementById('qrPlantReadonlyName');
+    const hiddenId     = document.getElementById('qrCurrentPlantId');
+    const label        = document.getElementById('qrPlantLabel');
+    const title        = document.getElementById('qrModalTitle');
+
+    // Reset shared UI
+    document.getElementById('qrAssigned').innerHTML =
+        '<span class="text-muted small">—</span>';
+    document.getElementById('qrStatus').textContent = '';
+    document.getElementById('qrImage').removeAttribute('src');
+
+
+    if (mode === 'row') {
+
+        // Show read-only, hide dropdown
+        select.style.display = 'none';
+        select.selectedIndex = -1;
+        readonly.style.display = 'flex';
+        readonlyName.textContent = opts.plantName;
+        hiddenId.value = opts.plantId;
+
+        label.textContent = '{% translate "Plant" %}';
+
+        title.innerHTML =
+            '<i class="fas fa-qrcode mr-2 text-info"></i>' +
+            '{% translate "Plant Induction QR Code" %}';
+
+        showModal('qrModal');
+        qrUpdate();   // uses hiddenId
+
+    } else {
+
+        // Show dropdown, hide read-only
+        select.style.display = 'block';
+        readonly.style.display = 'none';
+        readonlyName.textContent = '';
+        hiddenId.value = '';
+
+        // Default to the first plant in the dropdown
+        if (select.options.length > 0) {
+            select.selectedIndex = 0;
+        }
+
+        label.textContent = '{% translate "Select plant" %} *';
+
+        title.innerHTML =
+            '<i class="fas fa-qrcode mr-2 text-info"></i>' +
+            '{% translate "Download Plant QR Code" %}';
+
+        showModal('qrModal');
+
+        // Auto-load QR info for the first plant
+        qrUpdate();
+    }
+
+}
+
+
+/* ============================================================
+   LOAD QR INFORMATION (WORKS FOR BOTH MODES)
+   ============================================================ */
+
+function qrUpdate() {
+
+    const select   = document.getElementById('qrPlantSelect');
+    const hiddenId = document.getElementById('qrCurrentPlantId');
+
+    // Determine which plant id to use:
+    // - ALL mode: dropdown value
+    // - ROW mode: hidden input value
+    let plantId = '';
+
+    if (hiddenId.value) {
+        // ROW mode
+        plantId = hiddenId.value;
+    } else if (select && select.value) {
+        // ALL mode
+        plantId = select.value;
+        hiddenId.value = plantId;
+    }
+
+    if (!plantId) {
+        // No selection — clear panel
+        document.getElementById('qrAssigned').innerHTML =
+            '<span class="text-muted small">—</span>';
+        document.getElementById('qrStatus').textContent = '';
+        document.getElementById('qrImage').removeAttribute('src');
+        return;
+    }
+
+
+    const assignedEl = document.getElementById('qrAssigned');
+    const statusEl   = document.getElementById('qrStatus');
+    const imgEl      = document.getElementById('qrImage');
+
+
+    assignedEl.innerHTML =
+        '<span class="text-muted small">{% translate "Loading..." %}</span>';
+
+    statusEl.textContent = '';
+
+    imgEl.removeAttribute('src');
+
+
+    fetch(`${A_URLS.qrInfo}?plant=${encodeURIComponent(plantId)}`, {
+
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+
+    })
+
+    .then(response => {
+
+        if (!response.ok) {
+            throw new Error('Unable to load plant information.');
+        }
+
+        return response.json();
+
+    })
+
+    .then(data => {
+
+        if (!data.ok) {
+
+            assignedEl.innerHTML =
+                '<span class="text-danger small">{% translate "Unable to load plant info." %}</span>';
+
+            return;
+
+        }
+
+
+        // Display plant information safely
+        assignedEl.replaceChildren();
+
+
+        const plantLine = document.createElement('div');
+
+        plantLine.textContent = data.plant || '';
+
+        assignedEl.appendChild(plantLine);
+
+
+        if (data.assigned) {
+
+            const questionLine = document.createElement('div');
+
+            questionLine.textContent =
+                `${data.questions} {% translate "questions assigned" %}`;
+
+            assignedEl.appendChild(questionLine);
+
+        } else {
+
+            const warning = document.createElement('div');
+
+            warning.className = 'text-warning';
+
+            warning.textContent =
+                '{% translate "No questionnaire assigned yet" %}';
+
+            assignedEl.appendChild(warning);
+
+        }
+
+
+        statusEl.textContent = data.assigned
+            ? '● {% translate "Ready to scan" %}'
+            : '● {% translate "Not assigned yet" %}';
+
+        statusEl.style.color = data.assigned
+            ? '#13855c'
+            : '#e74a3b';
+
+
+        // QR image
+        imgEl.src = data.image_url ||
+            A_URLS.qrImage.replace('/0/', '/' + plantId + '/');
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        assignedEl.innerHTML =
+            '<span class="text-danger small">{% translate "Unable to load plant info." %}</span>';
+
+    });
+
+}
+
+
+/* ============================================================
+   DOWNLOAD QR CODE (WORKS FOR BOTH MODES)
+   ============================================================ */
+
+function downloadQR() {
+
+    const hiddenId = document.getElementById('qrCurrentPlantId');
+    const select   = document.getElementById('qrPlantSelect');
+
+    // ROW mode: hidden input holds the locked plant id.
+    // ALL mode: dropdown value.
+    const plantId = hiddenId.value || (select ? select.value : '');
+
+    if (!plantId) {
+        alert('{% translate "No plant available." %}');
+        return;
+    }
+
+    window.location.href =
+        A_URLS.qrDownload.replace('/0/', '/' + plantId + '/');
+
+}
+
+
+/* ============================================================
+   CLOSE QR MODAL
+   ============================================================ */
+
+function closeQR() {
+
+    // Reset state so the next open is clean
+    document.getElementById('qrCurrentPlantId').value = '';
+
+    const sel = document.getElementById('qrPlantSelect');
+    if (sel && sel.options.length > 0) {
+        sel.selectedIndex = 0;   // default back to first plant
+    } else if (sel) {
+        sel.value = '';
+    }
+    sel.style.display = 'block';
+
+    document.getElementById('qrPlantReadonly').style.display = 'none';
+    document.getElementById('qrPlantReadonlyName').textContent = '';
+    document.getElementById('qrImage').removeAttribute('src');
+    document.getElementById('qrAssigned').innerHTML =
+        '<span class="text-muted small">—</span>';
+    document.getElementById('qrStatus').textContent = '';
+
+    hideModal('qrModal');
+}
+
+
+/* ============================================================
+   MODAL HELPERS - BOOTSTRAP 4
+   ============================================================ */
+
+function showModal(id) {
+
+    const el = document.getElementById(id);
+
+    if (!el) return;
+
+
+    // Use Bootstrap's modal API if available
+    if (window.jQuery && typeof jQuery.fn.modal === 'function') {
+
+        jQuery(el).modal('show');
+
+        return;
+
+    }
+
+
+    el.classList.add('show');
+
+    el.style.display = 'block';
+
+    el.style.backgroundColor = 'rgba(0,0,0,.5)';
+
+    el.setAttribute('aria-modal', 'true');
+
+    el.removeAttribute('aria-hidden');
+
+}
+
+
+function hideModal(id) {
+
+    const el = document.getElementById(id);
+
+    if (!el) return;
+
+
+    if (window.jQuery && typeof jQuery.fn.modal === 'function') {
+
+        jQuery(el).modal('hide');
+
+        return;
+
+    }
+
+
+    el.classList.remove('show');
+
+    el.style.display = 'none';
+
+    el.style.backgroundColor = '';
+
+    el.setAttribute('aria-hidden', 'true');
+
+    el.removeAttribute('aria-modal');
+
+}
+
+</script>
+
+{% endblock %}

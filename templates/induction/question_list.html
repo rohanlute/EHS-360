@@ -1,0 +1,451 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% translate "Induction Questions" %}{% endblock %}
+{% block page_title %}{% translate "Induction Questions" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">{% translate "Home" %}</a></li>
+<li class="breadcrumb-item"><a href="#">{% translate "Induction Management" %}</a></li>
+<li class="breadcrumb-item active">{% translate "Induction Que" %}</li>
+{% endblock %}
+
+{% block content %}
+<style>
+  /* ---- Page-scoped styles ---- */
+  a.ind-stat, a.ind-stat:hover { text-decoration: none; color: inherit; }
+  .ind-stat {
+    border-radius: 10px; padding: 16px 20px; background: #fff; border: 1px solid #e3e6f0;
+    display: flex; align-items: center; gap: 14px; height: 100%;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s;
+  }
+  .ind-stat:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.06); }
+  .ind-stat.on { border-color: #4e73df; box-shadow: 0 0 0 3px rgba(78,115,223,.15); }
+  .ind-stat-icon {
+    width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #fff; flex-shrink: 0;
+  }
+  .ind-stat-body b { display: block; font-size: 22px; line-height: 1.1; color: #2c3e50; }
+  .ind-stat-body span { font-size: 12.5px; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; }
+  .ind-stat-icon.bg-primary  { background: linear-gradient(135deg, #4e73df, #2e59d9); }
+  .ind-stat-icon.bg-success  { background: linear-gradient(135deg, #1cc88a, #13855c); }
+  .ind-stat-icon.bg-warning  { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+  .ind-stat-icon.bg-info     { background: linear-gradient(135deg, #36b9cc, #258391); }
+
+  /* Toolbar */
+  .ind-toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    padding: 14px 16px; background: #f8f9fc; border-radius: 10px; margin-bottom: 16px; border: 1px solid #e3e6f0;
+  }
+  .ind-toolbar .search-wrap { flex: 1 1 260px; position: relative; }
+  .ind-toolbar .search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #adb5bd; pointer-events: none; }
+  .ind-toolbar .search-wrap input { padding-left: 36px; border-radius: 8px; border: 1px solid #d1d3e2; height: 40px; }
+  .ind-toolbar .search-wrap input:focus { border-color: #4e73df; box-shadow: 0 0 0 .15rem rgba(78,115,223,.2); }
+  .ind-pills { display: flex; gap: 4px; background: #fff; padding: 4px; border-radius: 8px; border: 1px solid #d1d3e2; }
+  .ind-pills a { padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; color: #6c757d; text-decoration: none; transition: all .15s; }
+  .ind-pills a:hover { color: #4e73df; background: #f1f3f8; }
+  .ind-pills a.active { background: #4e73df; color: #fff; }
+
+  /* Table */
+  .ind-table thead th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; background: #f8f9fc; border-top: none; padding: 12px 16px; font-weight: 600; }
+  .ind-table tbody td { padding: 14px 16px; vertical-align: middle; }
+  .ind-table tbody tr { transition: background .1s; }
+  .ind-table tbody tr:hover { background: #f8f9fc; }
+  .ind-question-text { font-weight: 500; color: #2c3e50; }
+  .ind-answer { color: #1cc88a; font-weight: 500; }
+  .ind-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .ind-status-dot.on  { background: #1cc88a; box-shadow: 0 0 0 3px rgba(28,200,138,.18); }
+  .ind-status-dot.off { background: #e74a3b; box-shadow: 0 0 0 3px rgba(231,74,59,.18); }
+  .ind-actions .btn { width: 32px; height: 32px; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; transition: all .15s; }
+  .ind-actions .btn-view { color: #36b9cc; }
+  .ind-actions .btn-view:hover { background: rgba(54,185,204,.1); border-color: rgba(54,185,204,.3); }
+  .ind-actions .btn-edit { color: #4e73df; }
+  .ind-actions .btn-edit:hover { background: rgba(78,115,223,.1); border-color: rgba(78,115,223,.3); }
+  .ind-actions .btn-del { color: #e74a3b; }
+  .ind-actions .btn-del:hover { background: rgba(231,74,59,.1); border-color: rgba(231,74,59,.3); }
+
+  /* Empty state */
+  .ind-empty { padding: 60px 20px; text-align: center; }
+  .ind-empty i { font-size: 54px; color: #d1d3e2; margin-bottom: 16px; display: block; }
+  .ind-empty h5 { color: #5a5c69; margin-bottom: 8px; }
+  .ind-empty p { color: #858796; margin-bottom: 20px; }
+
+  /* Modal question blocks */
+  .qb { border: 1px solid #e3e6f0; border-radius: 10px; padding: 18px 20px; background: #fafbfc; margin-bottom: 14px; transition: border-color .15s; }
+  .qb:focus-within { border-color: #4e73df; background: #fff; }
+  .qb .option-row { display: flex; align-items: stretch; margin-bottom: 8px; border: 1px solid #d1d3e2; border-radius: 8px; background: #fff; transition: all .15s; overflow: hidden; }
+  .qb .option-row:has(input.cc:checked) { border-color: #1cc88a; background: #f0fdf7; box-shadow: 0 0 0 3px rgba(28,200,138,.12); }
+  .qb .option-row .option-letter { width: 42px; display: flex; align-items: center; justify-content: center; background: #f1f3f8; color: #6c757d; font-weight: 700; font-size: 14px; cursor: pointer; border-right: 1px solid #e3e6f0; user-select: none; }
+  .qb .option-row:has(input.cc:checked) .option-letter { background: #1cc88a; color: #fff; border-right-color: #1cc88a; }
+  .qb .option-row .option-letter .cc { position: absolute; opacity: 0; pointer-events: none; }
+  .qb .option-row input.oo { border: none; border-radius: 0; background: transparent; flex: 1; padding: 10px 14px; font-size: 14px; }
+  .qb .option-row input.oo:focus { box-shadow: none; outline: none; }
+  .custom-switch .custom-control-label::before { cursor: pointer; }
+  .custom-switch .custom-control-label { cursor: pointer; font-size: 14px; }
+</style>
+
+<!-- ===================== STATS (click a tile to filter) ===================== -->
+<div class="row mb-3">
+  <div class="col-6 col-md-3 mb-2">
+    <a class="ind-stat {% if not status %}on{% endif %}" href="?{{ base_qs }}">
+      <div class="ind-stat-icon bg-primary"><i class="fas fa-question-circle"></i></div>
+      <div class="ind-stat-body"><b>{{ total_count }}</b><span>{% translate "Total" %}</span></div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3 mb-2">
+    <a class="ind-stat {% if status == 'active' %}on{% endif %}" href="?{{ base_qs }}{% if base_qs %}&{% endif %}status=active">
+      <div class="ind-stat-icon bg-success"><i class="fas fa-check-circle"></i></div>
+      <div class="ind-stat-body"><b>{{ active_count }}</b><span>{% translate "Active" %}</span></div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3 mb-2">
+    <a class="ind-stat {% if status == 'inactive' %}on{% endif %}" href="?{{ base_qs }}{% if base_qs %}&{% endif %}status=inactive">
+      <div class="ind-stat-icon bg-warning"><i class="fas fa-pause-circle"></i></div>
+      <div class="ind-stat-body"><b>{{ inactive_count }}</b><span>{% translate "Inactive" %}</span></div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3 mb-2">
+    <a class="ind-stat {% if status == 'used' %}on{% endif %}" href="?{{ base_qs }}{% if base_qs %}&{% endif %}status=used">
+      <div class="ind-stat-icon bg-info"><i class="fas fa-clipboard-list"></i></div>
+      <div class="ind-stat-body"><b>{{ used_count }}</b><span>{% translate "In Use" %}</span></div>
+    </a>
+  </div>
+</div>
+
+<!-- ===================== MAIN CARD ===================== -->
+<div class="ehs-card">
+  <div class="card-header">
+    <div class="row align-items-center">
+      <div class="col">
+        <h3 class="card-title mb-0"><i class="fas fa-question-circle mr-2"></i>{% translate "All Induction Questions" %}</h3>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-outline-secondary btn-sm mr-2" onclick="qModal(null, true)">
+          <i class="fas fa-layer-group mr-1"></i> {% translate "Bulk Add" %}
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="qModal()">
+          <i class="fas fa-plus mr-1"></i> {% translate "Add Question" %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- Toolbar -->
+    <form method="GET" class="ind-toolbar" id="filterForm">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" name="q" class="form-control" placeholder="{% translate 'Search questions...' %}"
+               value="{{ q }}" onchange="this.form.submit()">
+      </div>
+
+      <div class="ind-pills">
+        <a href="?{{ base_qs }}" class="{% if not status %}active{% endif %}">{% translate "All" %}</a>
+        <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}status=active" class="{% if status == 'active' %}active{% endif %}">{% translate "Active" %}</a>
+        <a href="?{{ base_qs }}{% if base_qs %}&{% endif %}status=inactive" class="{% if status == 'inactive' %}active{% endif %}">{% translate "Inactive" %}</a>
+      </div>
+      <input type="hidden" name="status" value="{{ status }}">
+    </form>
+
+    <!-- Table -->
+    {% if page.object_list %}
+    <div class="table-responsive">
+      <table class="table ind-table mb-0">
+        <thead>
+          <tr>
+            <th style="width:50px">#</th>
+            <th>{% translate "Question" %}</th>
+            <th style="width:80px" class="text-center">{% translate "Options" %}</th>
+            <th>{% translate "Correct Answer" %}</th>
+            <th style="width:110px" class="text-center">{% translate "Used" %}</th>
+            <th style="width:120px">{% translate "Created" %}</th>
+            <th style="width:120px">{% translate "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for qobj in page %}
+          <tr>
+            <td class="text-muted">{{ forloop.counter0|add:page.start_index }}</td>
+            <td>
+              <div class="ind-question-text">
+                {% if qobj.is_active %}<span class="ind-status-dot on" title="Active"></span>{% else %}<span class="ind-status-dot off" title="Inactive"></span>{% endif %}
+                {{ qobj.question_text }}
+              </div>
+            </td>
+            <td class="text-center"><span class="badge badge-light border">{{ qobj.options.count }}</span></td>
+            <td>
+              {% if qobj.correct %}
+                <span class="ind-answer"><i class="fas fa-check-circle mr-1"></i>{{ qobj.correct.option_text }}</span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-center">
+              {% if qobj.used_in %}<span class="badge badge-info">{{ qobj.used_in }}</span>{% else %}<span class="text-muted small">{% translate "unused" %}</span>{% endif %}
+            </td>
+            <td class="text-muted small">{{ qobj.created_at|date:"d M Y" }}</td>
+            <td class="ind-actions">
+              <button class="btn btn-view" title="{% translate 'View' %}" onclick="qView({{ qobj.id }})"><i class="fas fa-eye"></i></button>
+              <button class="btn btn-edit" title="{% translate 'Edit' %}" onclick="qModal({{ qobj.id }})"><i class="fas fa-pen"></i></button>
+              <form method="post" action="{% url 'induction:question_delete' qobj.id %}" style="display:inline"
+                    onsubmit="return confirm('{% translate "Delete this question? This cannot be undone." %}');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-del" title="{% translate 'Delete' %}"><i class="fas fa-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination (keeps search + status) -->
+    {% if page.has_other_pages %}
+    <nav class="mt-3">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if page.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}{% if base_qs %}&{{ base_qs }}{% endif %}{% if status %}&status={{ status }}{% endif %}"><i class="fas fa-chevron-left"></i></a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">{{ page.number }} / {{ page.paginator.num_pages }}</span></li>
+        {% if page.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}{% if base_qs %}&{{ base_qs }}{% endif %}{% if status %}&status={{ status }}{% endif %}"><i class="fas fa-chevron-right"></i></a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="ind-empty">
+      <i class="fas fa-question-circle"></i>
+      {% if q or status %}
+        <h5>{% translate "No questions match your filters" %}</h5>
+        <p>{% translate "Try a different search or status." %}</p>
+        <a class="btn btn-outline-secondary" href="?">{% translate "Clear filters" %}</a>
+      {% else %}
+        <h5>{% translate "No questions yet" %}</h5>
+        <p>{% translate "Create your first induction question to get started." %}</p>
+        <button class="btn btn-primary" onclick="qModal()"><i class="fas fa-plus mr-1"></i> {% translate "Add Question" %}</button>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ===================== MODAL ===================== -->
+<div class="modal fade" id="questionModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="qModalTitle"><i class="fas fa-plus-circle mr-2 text-primary"></i>{% translate "Add Question" %}</h5>
+        <button type="button" class="close" data-dismiss="modal" onclick="closeQModal()"><span>&times;</span></button>
+      </div>
+      <div class="modal-body" id="qModalBody" style="background:#f8f9fc;"></div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary" onclick="closeQModal()">{% translate "Cancel" %}</button>
+        <button type="button" class="btn btn-primary" onclick="qSave()"><i class="fas fa-save mr-1"></i> {% translate "Save Question" %}</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* =====================================================================
+   STATE
+   ===================================================================== */
+const Q_CSRF = "{{ csrf_token }}";
+const Q_URLS = {
+  create: "{% url 'induction:question_create' %}",
+  edit:   "{% url 'induction:question_edit' 0 %}",
+  bulk:   "{% url 'induction:question_bulk_create' %}",
+  view:   "{% url 'induction:question_view' 0 %}",
+};
+let Q_MODE = 'create';
+let Q_EDIT_ID = 0;
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* Prefill map from server */
+const Q_EXISTING = {};
+{% for qobj in page %}
+Q_EXISTING[{{ qobj.id }}] = {
+  question_text: "{{ qobj.question_text|escapejs }}",
+  is_active: {% if qobj.is_active %}true{% else %}false{% endif %},
+  correct:    {% if qobj.correct %}{{ qobj.correct.sort_order|add:"-1" }}{% else %}-1{% endif %},
+  options: [
+    {% for o in qobj.options.all %}"{{ o.option_text|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}
+  ]
+};
+{% endfor %}
+
+/* =====================================================================
+   MODAL OPEN / CLOSE
+   ===================================================================== */
+function qModal(id, bulk) {
+  Q_EDIT_ID = id || 0;
+  Q_MODE = id ? 'edit' : (bulk ? 'bulk' : 'create');
+
+  const titleEl = document.getElementById('qModalTitle');
+  const icon = id ? 'fa-edit' : (bulk ? 'fa-layer-group' : 'fa-plus-circle');
+  const title = id ? '{% translate "Edit Question" %}'
+                   : (bulk ? '{% translate "Add Bulk Questions" %}' : '{% translate "Add Question" %}');
+  titleEl.innerHTML = `<i class="fas ${icon} mr-2 text-primary"></i>${title}`;
+
+  const body = document.getElementById('qModalBody');
+  body.innerHTML = '';
+
+  if (Q_MODE === 'edit') {
+    body.appendChild(qBlock(Q_EXISTING[id] || {}));
+  } else if (Q_MODE === 'bulk') {
+    body.appendChild(qBlock({}));
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'btn btn-outline-primary btn-sm btn-block mt-2';
+    addBtn.innerHTML = '<i class="fas fa-plus mr-1"></i> {% translate "Add another question" %}';
+    addBtn.onclick = () => { body.insertBefore(qBlock({}), addBtn); };
+    body.appendChild(addBtn);
+  } else {
+    body.appendChild(qBlock({}));
+  }
+  showQModal();
+}
+
+function showQModal() {
+  const el = document.getElementById('questionModal');
+  el.classList.add('show'); el.style.display = 'block'; el.style.backgroundColor = 'rgba(0,0,0,.5)';
+}
+function closeQModal() {
+  const el = document.getElementById('questionModal');
+  el.classList.remove('show'); el.style.display = 'none'; el.style.backgroundColor = '';
+}
+
+/* =====================================================================
+   QUESTION BLOCK
+   ===================================================================== */
+function qBlock(q) {
+  q = q || {};
+  const opts = (q.options && q.options.length === 4 ? q.options : ['','','','']);
+  const correct = (typeof q.correct === 'number') ? q.correct : -1;
+  const active = (q.is_active === false) ? false : true;
+  const uid = 'qb_' + Math.random().toString(36).slice(2, 8);
+  const letters = ['A', 'B', 'C', 'D'];
+
+  const div = document.createElement('div');
+  div.className = 'qb';
+  div.innerHTML = `
+    <div class="form-group mb-3">
+      <label class="font-weight-bold mb-1"><i class="fas fa-question mr-1 text-primary"></i>{% translate "Question" %}</label>
+      <textarea class="form-control qq" rows="2" placeholder="{% translate 'Type the question here...' %}">${esc(q.question_text || '')}</textarea>
+    </div>
+
+    <label class="font-weight-bold mb-2">
+      <i class="fas fa-list-ul mr-1 text-primary"></i>{% translate "Options" %}
+      <small class="text-muted font-weight-normal ml-1">({% translate "tick the correct one" %})</small>
+    </label>
+
+    <div class="options-list">
+      ${opts.map((o, i) => `
+        <div class="option-row">
+          <label class="option-letter" for="${uid}_opt${i}">
+            <input type="radio" id="${uid}_opt${i}" name="${uid}_correct" class="cc" ${correct === i ? 'checked' : ''}>
+            ${letters[i]}
+          </label>
+          <input class="oo" value="${esc(o)}" placeholder="{% translate 'Option' %} ${letters[i]}">
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="d-flex align-items-center mt-3">
+      <div class="custom-control custom-switch">
+        <input type="checkbox" class="custom-control-input status-switch" id="${uid}_status" ${active ? 'checked' : ''}>
+        <label class="custom-control-label" for="${uid}_status" id="${uid}_statusLabel">
+          ${active ? '{% translate "Active" %}' : '{% translate "Inactive" %}'}
+        </label>
+      </div>
+    </div>
+  `;
+
+  const sw = div.querySelector('.status-switch');
+  const lbl = div.querySelector(`#${uid}_statusLabel`);
+  sw.addEventListener('change', () => {
+    lbl.textContent = sw.checked ? '{% translate "Active" %}' : '{% translate "Inactive" %}';
+  });
+  return div;
+}
+
+/* =====================================================================
+   SAVE
+   ===================================================================== */
+function qSave() {
+  const blocks = [...document.querySelectorAll('#qModalBody .qb')];
+  if (!blocks.length) return;
+
+  const data = blocks.map(b => {
+    const text = b.querySelector('.qq').value.trim();
+    const opts = [...b.querySelectorAll('.oo')].map(x => x.value.trim());
+    const correct = [...b.querySelectorAll('.cc')].findIndex(x => x.checked);
+    const active = b.querySelector('.status-switch').checked;
+    return { text, opts, correct, active };
+  });
+
+  for (const d of data) {
+    if (!d.text) { alert('{% translate "Question text is required." %}'); return; }
+    if (d.opts.some(o => !o)) { alert('{% translate "All 4 options are required." %}'); return; }
+    if (d.correct < 0) { alert('{% translate "Please select the correct option." %}'); return; }
+  }
+
+  if (Q_MODE === 'edit') {
+    postOne(Q_URLS.edit.replace('/0/', '/' + Q_EDIT_ID + '/'), data[0]);
+  } else if (Q_MODE === 'bulk') {
+    postBulk(data);
+  } else {
+    postOne(Q_URLS.create, data[0]);
+  }
+}
+
+function postOne(url, d) {
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', Q_CSRF);
+  fd.append('question_text', d.text);
+  if (d.active) fd.append('is_active', 'on');
+  d.opts.forEach((o, i) => fd.append('option_' + (i + 1), o));
+  fd.append('correct', String(d.correct + 1));
+
+  fetch(url, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => r.json().catch(() => ({})))
+    .then(resp => {
+      if (resp.ok || resp.errors === undefined) { closeQModal(); location.reload(); }
+      else { alert('{% translate "Could not save. Check the fields." %}'); console.error(resp); }
+    });
+}
+
+function postBulk(data) {
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', Q_CSRF);
+  fd.append('form-TOTAL_FORMS', String(data.length));
+  fd.append('form-INITIAL_FORMS', '0');
+  fd.append('form-MIN_NUM_FORMS', '0');
+  fd.append('form-MAX_NUM_FORMS', '1000');
+  data.forEach((d, i) => {
+    fd.append(`form-${i}-question_text`, d.text);
+    if (d.active) fd.append(`form-${i}-is_active`, 'on');
+    d.opts.forEach((o, j) => fd.append(`form-${i}-option_${j + 1}`, o));
+    fd.append(`form-${i}-correct`, String(d.correct + 1));
+  });
+
+  fetch(Q_URLS.bulk, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => r.json().catch(() => ({})))
+    .then(resp => {
+      if (resp.ok) { closeQModal(); location.reload(); }
+      else { alert('{% translate "Bulk add failed." %}'); console.error(resp); }
+    });
+}
+
+function qView(id) {
+  window.location.href = Q_URLS.view.replace('/0/', '/' + id + '/');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,581 @@
+{% load i18n %}
+
+<style>
+  .asf-wrapper{--a:#4e73df;--a-soft:rgba(78,115,223,.09);--a-line:#c9d6f7;--ink:#1f2d3d;--mut:#7b8794;--line:#e4e8f0;--ok:#16a34a;--bad:#dc2626;--warn:#d97706;
+    color:var(--ink);font-size:13px;margin:-10px}
+  .asf-wrapper *{box-sizing:border-box}
+
+  /* summary strip */
+  .asf-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+  .asf-sum{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid var(--line)}
+  .asf-sum i{width:36px;height:36px;border-radius:10px;background:var(--a-soft);color:var(--a);display:flex;align-items:center;justify-content:center;font-size:15px}
+  .asf-sum b{display:block;font-size:18px;line-height:1.1;font-weight:800}
+  .asf-sum span{font-size:11px;color:var(--mut);font-weight:700}
+  .asf-sum.ok i{background:#e7f7ee;color:var(--ok)}.asf-sum.bad i{background:#fdecec;color:var(--bad)}
+
+  /* sections */
+  .asf-section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 8px 24px -20px rgba(31,45,61,.35)}
+  .asf-section-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .asf-step{width:34px;height:34px;border-radius:10px;background:var(--a);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0}
+  .asf-section-heading h6{font-size:14.5px;font-weight:800;margin:0}
+  .asf-section-heading p{font-size:12px;color:var(--mut);margin:3px 0 0}
+  .asf-section-heading .asf-tools{margin-left:auto}
+  .asf-label{font-size:12px;font-weight:800;color:#4a5568;margin-bottom:9px;display:block}
+  .asf-required{color:var(--bad)}
+  .asf-help{color:var(--mut);font-size:11.5px;margin-top:6px}
+  .asf-error{color:var(--bad);font-size:12px;margin-top:6px;font-weight:600}
+  .asf-formerr{display:none;margin-bottom:14px;padding:11px 14px;border-radius:10px;background:#fdecec;border:1px solid #f6c9c9;color:#9b1c1c;font-weight:700;font-size:12.5px}
+  .asf-formerr.show{display:block}
+
+  .asf-mini{border:0;background:#eef2f8;color:var(--a);border-radius:8px;padding:5px 11px;font-size:11.5px;font-weight:800;cursor:pointer}
+  .asf-mini:hover{background:var(--a-soft)}
+  .asf-count{background:var(--a-soft);color:var(--a);border-radius:99px;padding:6px 12px;font-size:11.5px;font-weight:800;white-space:nowrap}
+
+  /* plants */
+  .asf-plant-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+  .asf-plant-option{position:relative;display:flex;align-items:center;gap:11px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;cursor:pointer;margin:0;transition:.15s;background:#fff}
+  .asf-plant-option:hover{border-color:var(--a-line);background:#fafbff}
+  .asf-plant-option.selected{border-color:var(--a);background:var(--a-soft)}
+  .asf-plant-option input{position:absolute;opacity:0;pointer-events:none}
+  .asf-plant-option .ico{width:34px;height:34px;border-radius:10px;background:#eef2f8;color:#7b8794;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:.15s}
+  .asf-plant-option.selected .ico{background:var(--a);color:#fff}
+  .asf-plant-option span.nm{font-size:12.5px;font-weight:700;flex:1;min-width:0}
+  .asf-plant-option .tick{width:20px;height:20px;border-radius:50%;border:1.5px solid #cdd5e1;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;flex-shrink:0;transition:.15s}
+  .asf-plant-option.selected .tick{background:var(--a);border-color:var(--a);color:#fff}
+  .asf-plant-option:focus-within{outline:2px solid var(--a);outline-offset:2px}
+
+  /* questions */
+  .asf-question-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .asf-search{position:relative;flex:1 1 220px}
+  .asf-search i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#a0aec0;font-size:12px}
+  .asf-search input{padding-left:34px;height:38px;font-size:12.5px;border-radius:10px;border:1px solid #d6dce8;width:100%}
+  .asf-question-list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;padding:2px 4px 2px 2px}
+  .asf-question-option{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;cursor:pointer;margin:0;transition:.15s;background:#fff}
+  .asf-question-option:hover{background:#fafbff;border-color:var(--a-line)}
+  .asf-question-option.selected{background:var(--a-soft);border-color:var(--a)}
+  .asf-question-option input{margin-top:2px;accent-color:var(--a);width:16px;height:16px;flex-shrink:0}
+  .asf-question-text{font-size:12.5px;line-height:1.5;color:#3b4859;font-weight:600}
+  .asf-question-code{display:block;color:var(--mut);font-size:10.5px;font-weight:800;margin-bottom:2px;letter-spacing:.03em}
+  .asf-nomatch{display:none;text-align:center;color:var(--mut);padding:18px;font-weight:600}
+
+  .asf-conditional{display:none}.asf-conditional.show{display:block;animation:asfIn .25s ease-out}
+  @keyframes asfIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+  /* sequence */
+  .asf-info{background:#f1f5ff;border:1px solid #dce5ff;border-radius:10px;padding:10px 13px;color:#4a63a3;font-size:12px;margin-bottom:12px;font-weight:600}
+  .asf-sequence-list{display:flex;flex-direction:column;gap:8px}
+  .asf-sequence-item{display:flex;align-items:center;gap:11px;padding:10px 12px;background:#fff;border:1.5px solid var(--line);border-radius:12px;cursor:grab;transition:.15s}
+  .asf-sequence-item:hover{border-color:var(--a)}
+  .asf-sequence-item.dragging{opacity:.4;border-style:dashed;border-color:var(--a)}
+  .asf-drag{color:#b4bccb;font-size:15px}
+  .asf-sequence-number{min-width:28px;height:28px;border-radius:8px;background:var(--a);color:#fff;font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .asf-sequence-text{flex:1;font-size:12.5px;line-height:1.5;font-weight:600;color:#3b4859;min-width:0}
+  .asf-ibtn{border:0;background:#eef2f8;color:#64748b;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:11px}
+  .asf-ibtn:hover{background:var(--a-soft);color:var(--a)}
+  .asf-ibtn:disabled{opacity:.35;cursor:default}
+  .asf-remove{background:#fdecec;color:var(--bad)}.asf-remove:hover{background:#fbd5d5;color:var(--bad)}
+
+  /* scoring */
+  .asf-scoring-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
+  .asf-scoring-card{position:relative;display:flex;gap:12px;border:1.5px solid var(--line);padding:14px;border-radius:12px;cursor:pointer;transition:.15s;margin:0;background:#fff}
+  .asf-scoring-card:hover{border-color:var(--a-line)}
+  .asf-scoring-card.active{border-color:var(--a);background:var(--a-soft)}
+  .asf-scoring-card input{position:absolute;opacity:0;pointer-events:none}
+  .asf-scoring-card .ico{width:38px;height:38px;border-radius:11px;background:#eef2f8;color:#64748b;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .asf-scoring-card.active .ico{background:var(--a);color:#fff}
+  .asf-scoring-card strong{font-size:13px;display:block}
+  .asf-scoring-card p{font-size:11.5px;color:var(--mut);margin:4px 0 0;line-height:1.5}
+  .asf-scoring-card:focus-within{outline:2px solid var(--a);outline-offset:2px}
+
+  .asf-marks-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;gap:8px}
+  .asf-marks-head .asf-label{margin:0}
+  .asf-marks-table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .asf-marks-table th{background:#f7f9fc;color:#6b7686;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}
+  .asf-marks-table td{padding:10px 12px;border-bottom:1px solid #eef1f6;font-size:12.5px;color:#3b4859;font-weight:600;vertical-align:middle}
+  .asf-marks-table tr:last-child td{border-bottom:0}
+  .asf-marks-input{width:92px;height:34px;border:1px solid #d6dce8;border-radius:8px;padding:6px 9px;font-size:12.5px;text-align:center;font-weight:700}
+  .asf-marks-input:focus{outline:2px solid var(--a);border-color:transparent}
+  .asf-marks-input[readonly]{background:#f7f9fc;color:#7b8794;border-color:var(--line)}
+
+  .asf-total{margin-top:14px;padding:14px 16px;background:#f7f9fc;border:1px solid var(--line);border-radius:12px}
+  .asf-total-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .asf-total strong{font-size:12.5px}
+  .asf-total-value{font-weight:800;font-size:18px;color:var(--ok)}
+  .asf-bar{height:8px;border-radius:99px;background:#e6ebf3;overflow:hidden;margin-top:10px}
+  .asf-bar b{display:block;height:100%;width:0;border-radius:99px;background:var(--ok);transition:width .25s,background .25s}
+  .asf-total small{display:block;margin-top:7px;color:var(--mut);font-weight:700;font-size:11.5px}
+
+  /* passing */
+  .asf-passing{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+  .asf-pass-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .asf-pass-input{position:relative;width:130px}
+  .asf-pass-input input{width:100%;height:42px;border-radius:10px;border:1px solid #d6dce8;padding:6px 32px 6px 12px;font-size:16px;font-weight:800}
+  .asf-pass-input::after{content:"%";position:absolute;right:12px;top:50%;transform:translateY(-50%);font-weight:800;color:var(--mut)}
+  .asf-presets{display:flex;gap:6px;flex-wrap:wrap}
+  .asf-preset{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:6px 13px;font-size:12px;font-weight:800;color:#64748b;cursor:pointer}
+  .asf-preset:hover{border-color:var(--a-line);color:var(--a)}
+  .asf-preset.on{background:var(--a);border-color:var(--a);color:#fff}
+  .asf-hint{margin-top:10px;font-size:12px;font-weight:700;color:var(--mut)}
+  .asf-hint i{color:var(--a);margin-right:5px}
+
+  /* footer */
+  .asf-footer{display:none;position:sticky;bottom:-1px;z-index:5;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:12px 4px 4px;background:linear-gradient(to top,#fff 78%,rgba(255,255,255,0));margin-top:6px}
+  .asf-footer.show{display:flex}
+  .asf-foot-note{font-size:12px;font-weight:700;color:var(--mut)}
+  .asf-foot-btns{display:flex;gap:9px;margin-left:auto}
+
+  @media (max-width:640px){.asf-summary{grid-template-columns:1fr}.asf-scoring-grid{grid-template-columns:1fr}}
+  @media (prefers-reduced-motion:reduce){.asf-wrapper *{animation:none!important;transition:none!important}}
+</style>
+
+<div class="asf-wrapper">
+  <form id="assignQuestionnaireForm" method="POST" novalidate
+        data-new="{% if questionnaire.pk or form.is_bound %}0{% else %}1{% endif %}">
+    {% csrf_token %}
+    {# names must match QuestionnaireForm: question_order ("5,2,9") and marks_json #}
+    <input type="hidden" name="question_order" id="asfQuestionOrder">
+    <input type="hidden" name="marks_json" id="asfQuestionMarks">
+
+    {# FIX 2: saved sequence + marks, so Edit can restore them #}
+    {{ existing_order|json_script:"asfExistingOrder" }}
+    {{ existing_marks|json_script:"asfExistingMarks" }}
+
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="asf-formerr" id="asfFormError" role="alert"></div>
+
+    <!-- summary -->
+    <div class="asf-summary">
+      <div class="asf-sum"><i class="fas fa-industry"></i><div><b id="asfSumPlants">0</b><span>{% translate "Plants selected" %}</span></div></div>
+      <div class="asf-sum"><i class="fas fa-list-check"></i><div><b id="asfSumQuestions">0</b><span>{% translate "Questions selected" %}</span></div></div>
+      <div class="asf-sum" id="asfSumMarksBox"><i class="fas fa-star-half-stroke"></i><div><b id="asfSumMarks">0 / 100</b><span>{% translate "Total marks" %}</span></div></div>
+    </div>
+
+    <!-- A: PLANTS -->
+    <div class="asf-section">
+      <div class="asf-section-heading">
+        <div class="asf-step">A</div>
+        <div>
+          <h6>{% translate "Select plants" %}</h6>
+          <p>{% translate "This questionnaire will be used at every plant you tick." %}</p>
+        </div>
+        <div class="asf-tools d-flex align-items-center" style="gap:6px">
+          <button type="button" class="asf-mini" id="asfPlantAll">{% translate "Select all" %}</button>
+          <button type="button" class="asf-mini" id="asfPlantNone">{% translate "Clear" %}</button>
+        </div>
+      </div>
+
+      <div class="asf-plant-grid">
+        {% for choice in form.plants %}
+          <label class="asf-plant-option">
+            {{ choice.tag }}
+            <span class="ico"><i class="fas fa-industry"></i></span>
+            <span class="nm">{{ choice.choice_label }}</span>
+            <span class="tick"><i class="fas fa-check"></i></span>
+          </label>
+        {% empty %}
+          <div class="text-muted small">{% translate "No plants available." %}</div>
+        {% endfor %}
+      </div>
+      {% if form.plants.errors %}<div class="asf-error">{{ form.plants.errors }}</div>{% endif %}
+    </div>
+
+    <!-- B: QUESTIONS -->
+    <div class="asf-section">
+      <div class="asf-section-heading">
+        <div class="asf-step">B</div>
+        <div>
+          <h6>{% translate "Select induction questions" %}</h6>
+          <p>{% translate "Choose the questions to include in the assessment." %}</p>
+        </div>
+      </div>
+
+      <div class="asf-question-toolbar">
+        <div class="asf-search">
+          <i class="fas fa-search"></i>
+          <input type="text" id="asfQuestionSearch" class="form-control" placeholder="{% translate 'Search questions...' %}" aria-label="{% translate 'Search questions' %}">
+        </div>
+        <button type="button" class="asf-mini" id="asfQAll">{% translate "Select shown" %}</button>
+        <button type="button" class="asf-mini" id="asfQNone">{% translate "Clear shown" %}</button>
+        <span class="asf-count"><span id="asfSelectedCount">0</span> {% translate "Selected" %}</span>
+      </div>
+
+      <div class="asf-question-list" id="asfQuestionList">
+        {% for choice in form.questions %}
+          <label class="asf-question-option" data-question-row data-question-id="{{ choice.data.value }}" data-question-text="{{ choice.choice_label|striptags|lower }}">
+            {{ choice.tag }}
+            <span class="asf-question-text">
+              <span class="asf-question-code">{% translate "Question" %} {{ forloop.counter }}</span>
+              <span class="asf-qlabel">{{ choice.choice_label }}</span>
+            </span>
+          </label>
+        {% empty %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-question-circle fa-2x mb-2"></i>
+            <p class="mb-0">{% translate "No active questions available." %}</p>
+          </div>
+        {% endfor %}
+        <div class="asf-nomatch" id="asfNoMatch">{% translate "No questions match your search." %}</div>
+      </div>
+      {% if form.questions.errors %}<div class="asf-error">{{ form.questions.errors }}</div>{% endif %}
+    </div>
+
+    <!-- C: SEQUENCE -->
+    <div class="asf-section asf-conditional" id="asfSequenceSection">
+      <div class="asf-section-heading">
+        <div class="asf-step">C</div>
+        <div>
+          <h6>{% translate "Arrange question sequence" %}</h6>
+          <p>{% translate "Drag to reorder, or use the arrow buttons." %}</p>
+        </div>
+      </div>
+      <div class="asf-info"><i class="fas fa-info-circle mr-1"></i> {% translate "Participants will see the questions in this order." %}</div>
+      <div class="asf-sequence-list" id="asfSequenceList"></div>
+    </div>
+
+    <!-- D: SCORING -->
+    <div class="asf-section asf-conditional" id="asfScoringSection">
+      <div class="asf-section-heading">
+        <div class="asf-step">D</div>
+        <div>
+          <h6>{% translate "Scoring configuration" %}</h6>
+          <p>{% translate "Set the marks for each question and the minimum passing percentage." %}</p>
+        </div>
+      </div>
+
+      <label class="asf-label">{% translate "Scoring type" %} <span class="asf-required">*</span></label>
+      <div class="asf-scoring-grid">
+        {% for choice in form.scoring_type %}
+          <label class="asf-scoring-card" data-scoring-card>
+            {{ choice.tag }}
+            <span class="ico"><i class="fas {% if choice.data.value == 'AUTO' %}fa-wand-magic-sparkles{% else %}fa-sliders{% endif %}"></i></span>
+            <span>
+              <strong>{{ choice.choice_label }}</strong>
+              <p>{% if choice.data.value == 'AUTO' %}{% translate "Marks are shared equally between the selected questions." %}{% else %}{% translate "Set the marks for each question yourself." %}{% endif %}</p>
+            </span>
+          </label>
+        {% endfor %}
+      </div>
+      {% if form.scoring_type.errors %}<div class="asf-error">{{ form.scoring_type.errors }}</div>{% endif %}
+
+      <div class="asf-marks-head">
+        <label class="asf-label">{% translate "Marks per question" %}</label>
+        <button type="button" class="asf-mini" id="asfSplit" style="display:none"><i class="fas fa-equals mr-1"></i> {% translate "Split equally" %}</button>
+      </div>
+      <div class="table-responsive">
+        <table class="asf-marks-table">
+          <thead><tr>
+            <th style="width:70px">{% translate "No." %}</th>
+            <th>{% translate "Question" %}</th>
+            <th style="width:120px">{% translate "Marks" %}</th>
+          </tr></thead>
+          <tbody id="asfMarksBody"></tbody>
+        </table>
+      </div>
+
+      <div class="asf-total">
+        <div class="asf-total-top">
+          <strong>{% translate "Total assessment marks" %}</strong>
+          <span class="asf-total-value" id="asfTotalMarks">0 / 100</span>
+        </div>
+        <div class="asf-bar"><b id="asfTotalBar"></b></div>
+        <small id="asfRemaining"></small>
+      </div>
+      <div class="asf-error" id="asfMarksError"></div>
+
+      <!-- passing percentage (default 0) -->
+      <div class="asf-passing">
+        <label class="asf-label" for="id_passing_percentage">{% translate "Minimum passing percentage" %} <span class="asf-required">*</span></label>
+        <div class="asf-pass-row">
+          <div class="asf-pass-input">{{ form.passing_percentage }}</div>
+          <div class="asf-presets" id="asfPresets">
+            <button type="button" class="asf-preset" data-v="0">0%</button>
+            <button type="button" class="asf-preset" data-v="40">40%</button>
+            <button type="button" class="asf-preset" data-v="50">50%</button>
+            <button type="button" class="asf-preset" data-v="60">60%</button>
+            <button type="button" class="asf-preset" data-v="75">75%</button>
+            <button type="button" class="asf-preset" data-v="80">80%</button>
+          </div>
+        </div>
+        <div class="asf-hint" id="asfPassHint"></div>
+        {% if form.passing_percentage.errors %}<div class="asf-error">{{ form.passing_percentage.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="asf-footer" id="asfFooter">
+      <span class="asf-foot-note" id="asfFootNote"></span>
+      <div class="asf-foot-btns">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="closeAModal()"><i class="fas fa-times mr-1"></i> {% translate "Cancel" %}</button>
+        <button type="submit" class="btn btn-primary btn-sm" id="asfSaveButton"><i class="fas fa-save mr-1"></i> {% translate "Save assignment" %}</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  /* FIX 3: guard on the FORM (fresh every time the modal loads), not on the
+     modal body, which is the same element each time and would block re-init. */
+  const root = document.getElementById("aModalBody") || document.body;
+  const form = root.querySelector("#assignQuestionnaireForm");
+  if (!form || form.dataset.asfInitialized === "true") return;
+  form.dataset.asfInitialized = "true";
+
+  const $ = s => root.querySelector(s);
+  const questionList = $("#asfQuestionList"), sequenceList = $("#asfSequenceList");
+  const sequenceSection = $("#asfSequenceSection"), scoringSection = $("#asfScoringSection"), footer = $("#asfFooter");
+  const countEl = $("#asfSelectedCount"), marksBody = $("#asfMarksBody"), totalEl = $("#asfTotalMarks");
+  const marksError = $("#asfMarksError"), orderInput = $("#asfQuestionOrder"), marksInput = $("#asfQuestionMarks");
+  const formErr = $("#asfFormError");
+  const sumPlants = $("#asfSumPlants"), sumQ = $("#asfSumQuestions"), sumMarks = $("#asfSumMarks"), sumBox = $("#asfSumMarksBox");
+  const bar = $("#asfTotalBar"), remaining = $("#asfRemaining"), splitBtn = $("#asfSplit"), footNote = $("#asfFootNote");
+
+  let selectedQuestions = [], questionMarks = {}, draggedItem = null;
+
+  const checkboxes = () => [...questionList.querySelectorAll('input[type="checkbox"]')];
+  const plantBoxes = () => [...root.querySelectorAll('input[name="plants"]')];
+  const scoringInputs = () => [...root.querySelectorAll('input[name="scoring_type"]')];
+  const isManual = () => { const c = scoringInputs().find(i => i.checked); return !!c && c.value.toUpperCase() === "MANUAL"; };
+  const getQuestion = id => {
+    const row = [...root.querySelectorAll("[data-question-row]")].find(el => String(el.dataset.questionId) === String(id));
+    const l = row && row.querySelector(".asf-qlabel");
+    return l ? l.innerText.trim() : "";
+  };
+  function showErr(msg) {
+    formErr.textContent = msg; formErr.classList.add("show");
+    formErr.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  function clearErr() { formErr.classList.remove("show"); }
+
+  /* ---------- passing percentage: DEFAULT = 0 on a new questionnaire ---------- */
+  const passInput = root.querySelector('[name="passing_percentage"]');
+  if (passInput) {
+    passInput.min = 0; passInput.max = 100; passInput.step = "0.01";
+    if (form.dataset.new === "1" || passInput.value === "") passInput.value = 0;
+  }
+  function paintPass() {
+    if (!passInput) return;
+    const v = Number(passInput.value);
+    root.querySelectorAll(".asf-preset").forEach(b => b.classList.toggle("on", Number(b.dataset.v) === v && passInput.value !== ""));
+    $("#asfPassHint").innerHTML = '<i class="fas fa-circle-info"></i>' + (
+      v === 0 ? "0% — everyone who submits the assessment passes." :
+      v > 100 || v < 0 || passInput.value === "" ? "Enter a value between 0 and 100." :
+      "Participants must score at least " + v + "% to pass.");
+  }
+  if (passInput) passInput.addEventListener("input", paintPass);
+  root.querySelectorAll(".asf-preset").forEach(b => b.addEventListener("click", () => { passInput.value = b.dataset.v; paintPass(); }));
+
+  /* ---------- plants ---------- */
+  function updatePlantStyles() {
+    let n = 0;
+    root.querySelectorAll(".asf-plant-option").forEach(label => {
+      const on = label.querySelector("input").checked; if (on) n++;
+      label.classList.toggle("selected", on);
+    });
+    sumPlants.textContent = n;
+  }
+  plantBoxes().forEach(i => i.addEventListener("change", updatePlantStyles));
+  $("#asfPlantAll").addEventListener("click", () => { plantBoxes().forEach(i => i.checked = true); updatePlantStyles(); });
+  $("#asfPlantNone").addEventListener("click", () => { plantBoxes().forEach(i => i.checked = false); updatePlantStyles(); });
+
+  /* ---------- questions ---------- */
+  function syncMarksFromDOM() {
+    marksBody.querySelectorAll("input.asf-marks-input").forEach((inp, i) => {
+      const id = selectedQuestions[i]; if (id !== undefined) questionMarks[id] = Number(inp.value) || 0;
+    });
+  }
+  checkboxes().forEach(input => {
+    if (input.checked) selectedQuestions.push(String(input.value));
+    input.addEventListener("change", function () {
+      const id = String(this.value);
+      if (this.checked) { if (!selectedQuestions.includes(id)) selectedQuestions.push(id); }
+      else { selectedQuestions = selectedQuestions.filter(x => x !== id); delete questionMarks[id]; }
+      syncMarksFromDOM(); updateInterface();
+    });
+  });
+
+  /* FIX 2: restore the saved sequence + marks (Edit) */
+  const readJson = id => { try { return JSON.parse(($("#" + id) || {}).textContent); } catch (e) { return null; } };
+  const savedOrder = (readJson("asfExistingOrder") || []).map(String);
+  const savedMarks = readJson("asfExistingMarks") || {};
+
+  selectedQuestions = [
+    ...savedOrder.filter(id => selectedQuestions.includes(id)),
+    ...selectedQuestions.filter(id => !savedOrder.includes(id))
+  ];
+  Object.keys(savedMarks).forEach(id => {
+    if (selectedQuestions.includes(String(id))) questionMarks[String(id)] = Number(savedMarks[id]) || 0;
+  });
+
+  $("#asfQuestionSearch").addEventListener("input", function () {
+    const s = this.value.toLowerCase().trim(); let shown = 0;
+    root.querySelectorAll("[data-question-row]").forEach(row => {
+      const ok = (row.dataset.questionText || "").includes(s);
+      row.style.display = ok ? "flex" : "none"; if (ok) shown++;
+    });
+    $("#asfNoMatch").style.display = shown ? "none" : "block";
+  });
+  function setShown(checked) {
+    syncMarksFromDOM();
+    root.querySelectorAll("[data-question-row]").forEach(row => {
+      if (row.style.display === "none") return;
+      const inp = row.querySelector('input[type="checkbox"]'), id = String(inp.value);
+      inp.checked = checked;
+      if (checked) { if (!selectedQuestions.includes(id)) selectedQuestions.push(id); }
+      else { selectedQuestions = selectedQuestions.filter(x => x !== id); delete questionMarks[id]; }
+    });
+    updateInterface();
+  }
+  $("#asfQAll").addEventListener("click", () => setShown(true));
+  $("#asfQNone").addEventListener("click", () => setShown(false));
+
+  function updateQuestionStyles() {
+    root.querySelectorAll("[data-question-row]").forEach(row =>
+      row.classList.toggle("selected", row.querySelector('input[type="checkbox"]').checked));
+  }
+  function updateInterface() {
+    const count = selectedQuestions.length, visible = count > 0;
+    countEl.textContent = count; sumQ.textContent = count;
+    sequenceSection.classList.toggle("show", visible);
+    scoringSection.classList.toggle("show", visible);
+    footer.classList.toggle("show", visible);
+    updateQuestionStyles(); renderSequence(); renderMarks();
+  }
+
+  /* ---------- sequence (drag + arrows) ---------- */
+  function move(id, dir) {
+    const i = selectedQuestions.indexOf(id), j = i + dir;
+    if (i < 0 || j < 0 || j >= selectedQuestions.length) return;
+    syncMarksFromDOM();
+    [selectedQuestions[i], selectedQuestions[j]] = [selectedQuestions[j], selectedQuestions[i]];
+    renderSequence(); renderMarks();
+  }
+  function renderSequence() {
+    sequenceList.innerHTML = "";
+    selectedQuestions.forEach((id, index) => {
+      const item = document.createElement("div");
+      item.className = "asf-sequence-item"; item.draggable = true; item.dataset.id = id;
+
+      const handle = document.createElement("span"); handle.className = "asf-drag"; handle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
+      const number = document.createElement("span"); number.className = "asf-sequence-number"; number.textContent = index + 1;
+      const text = document.createElement("span"); text.className = "asf-sequence-text"; text.textContent = getQuestion(id);
+
+      const mk = (cls, icon, label, fn, disabled) => {
+        const b = document.createElement("button"); b.type = "button"; b.className = "asf-ibtn " + cls;
+        b.innerHTML = '<i class="fas ' + icon + '"></i>'; b.title = label; b.setAttribute("aria-label", label); b.disabled = !!disabled;
+        b.addEventListener("click", fn); return b;
+      };
+      const up = mk("", "fa-chevron-up", "Move up", () => move(id, -1), index === 0);
+      const down = mk("", "fa-chevron-down", "Move down", () => move(id, 1), index === selectedQuestions.length - 1);
+      const remove = mk("asf-remove", "fa-times", "Remove", () => {
+        const cb = checkboxes().find(i => String(i.value) === id); if (cb) cb.checked = false;
+        syncMarksFromDOM(); selectedQuestions = selectedQuestions.filter(x => x !== id); delete questionMarks[id]; updateInterface();
+      });
+
+      item.append(handle, number, text, up, down, remove);
+      item.addEventListener("dragstart", e => {
+        draggedItem = item; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", id);
+        setTimeout(() => item.classList.add("dragging"), 0);
+      });
+      item.addEventListener("dragover", e => {
+        e.preventDefault(); if (!draggedItem || draggedItem === item) return;
+        const r = item.getBoundingClientRect();
+        sequenceList.insertBefore(draggedItem, e.clientY > r.top + r.height / 2 ? item.nextSibling : item);
+      });
+      item.addEventListener("drop", e => { e.preventDefault(); syncSequence(); });
+      item.addEventListener("dragend", () => { item.classList.remove("dragging"); draggedItem = null; syncSequence(); });
+      sequenceList.appendChild(item);
+    });
+  }
+  function syncSequence() {
+    syncMarksFromDOM();
+    selectedQuestions = [...sequenceList.querySelectorAll(".asf-sequence-item")].map(i => String(i.dataset.id));
+    renderSequence(); renderMarks();
+  }
+
+  /* ---------- marks ---------- */
+  function distributeMarks() {
+    const n = selectedQuestions.length; if (!n) return;
+    const each = Math.floor((100 / n) * 100) / 100; let used = 0;
+    selectedQuestions.forEach((id, i) => {
+      if (i === n - 1) questionMarks[id] = Math.round((100 - used) * 100) / 100;
+      else { questionMarks[id] = each; used += each; }
+    });
+  }
+  function resetMarksToZero() { questionMarks = {}; selectedQuestions.forEach(id => questionMarks[id] = 0); }
+
+  function renderMarks() {
+    marksBody.innerHTML = "";
+    const manual = isManual();
+    splitBtn.style.display = manual ? "" : "none";
+    if (manual) selectedQuestions.forEach(id => { if (questionMarks[id] === undefined) questionMarks[id] = 0; });
+    else distributeMarks();
+
+    selectedQuestions.forEach((id, index) => {
+      const tr = document.createElement("tr");
+      const a = document.createElement("td"); a.textContent = index + 1;
+      const q = document.createElement("td"); q.textContent = getQuestion(id);
+      const m = document.createElement("td");
+      const input = document.createElement("input");
+      input.type = "number"; input.min = "0"; input.max = "100"; input.step = "0.01";
+      input.className = "asf-marks-input"; input.value = questionMarks[id] ?? 0; input.readOnly = !manual;
+      input.setAttribute("aria-label", "Marks for question " + (index + 1));
+      input.addEventListener("input", function () { questionMarks[id] = Number(this.value) || 0; calculateTotal(); });
+      m.appendChild(input); tr.append(a, q, m); marksBody.appendChild(tr);
+    });
+    calculateTotal();
+  }
+  function calculateTotal() {
+    let total = 0;
+    marksBody.querySelectorAll("input.asf-marks-input").forEach((inp, i) => {
+      const id = selectedQuestions[i];
+      if (id !== undefined) { const v = Number(inp.value) || 0; questionMarks[id] = v; total += v; }
+    });
+    total = Math.round(total * 100) / 100;
+    const valid = Math.abs(total - 100) < 0.001, over = total > 100;
+    const color = valid ? "#16a34a" : over ? "#dc2626" : "#d97706";
+    totalEl.textContent = total.toFixed(2) + " / 100"; totalEl.style.color = color;
+    sumMarks.textContent = total.toFixed(total % 1 ? 2 : 0) + " / 100";
+    sumBox.classList.toggle("ok", valid); sumBox.classList.toggle("bad", !valid && selectedQuestions.length > 0);
+    bar.style.width = Math.min(100, total) + "%"; bar.style.background = color;
+    const diff = Math.round((100 - total) * 100) / 100;
+    remaining.textContent = valid ? "Marks add up to 100 ✓" : diff > 0 ? diff.toFixed(2) + " marks still to allocate" : Math.abs(diff).toFixed(2) + " marks over the limit";
+    marksError.textContent = valid ? "" : "Total marks must equal 100. Current total: " + total.toFixed(2);
+    footNote.textContent = valid ? "Ready to save" : "Marks must add up to 100 before saving";
+    return total;
+  }
+
+  splitBtn.addEventListener("click", () => { distributeMarks(); renderMarks(); });
+  scoringInputs().forEach(input => input.addEventListener("change", function () {
+    syncMarksFromDOM();
+    if (this.value.toUpperCase() === "MANUAL") resetMarksToZero(); else distributeMarks();
+    updateScoringCards(); renderMarks();
+  }));
+  function updateScoringCards() {
+    root.querySelectorAll("[data-scoring-card]").forEach(card => card.classList.toggle("active", card.querySelector("input").checked));
+  }
+
+  /* ---------- submit ---------- */
+  form.addEventListener("submit", function (event) {
+    clearErr();
+    if (!root.querySelectorAll('input[name="plants"]:checked').length) { event.preventDefault(); return showErr("Please select at least one plant."); }
+    if (!selectedQuestions.length) { event.preventDefault(); return showErr("Please select at least one question."); }
+    syncMarksFromDOM();
+    const total = selectedQuestions.reduce((s, id) => s + Number(questionMarks[id] || 0), 0);
+    if (Math.abs(total - 100) >= 0.001) { event.preventDefault(); return showErr("Total marks must equal 100. Current total: " + total.toFixed(2)); }
+    if (passInput) {
+      const p = Number(passInput.value);
+      if (passInput.value === "" || p < 0 || p > 100) { event.preventDefault(); return showErr("Minimum passing percentage must be between 0 and 100."); }
+    }
+    /* QuestionnaireForm.clean() splits question_order on commas */
+    orderInput.value = selectedQuestions.join(",");
+    const marks = {}; selectedQuestions.forEach(id => marks[id] = Number(questionMarks[id] || 0));
+    marksInput.value = JSON.stringify(marks);
+  });
+
+  /* ---------- initial state ---------- */
+  if (!scoringInputs().some(i => i.checked)) { const auto = scoringInputs().find(i => i.value.toUpperCase() === "AUTO"); if (auto) auto.checked = true; }
+  updatePlantStyles(); updateScoringCards(); paintPass(); updateInterface();
+})();
+</script>

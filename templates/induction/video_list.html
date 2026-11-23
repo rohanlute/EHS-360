@@ -1,0 +1,674 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% translate "Induction Videos" %}{% endblock %}
+{% block page_title %}{% translate "Induction Videos" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">{% translate "Home" %}</a></li>
+<li class="breadcrumb-item"><a href="#">{% translate "Induction Management" %}</a></li>
+<li class="breadcrumb-item active">{% translate "Induction Video" %}</li>
+{% endblock %}
+
+{% block content %}
+<style>
+  .ind-stat { border-radius: 10px; padding: 16px 20px; background: #fff; border: 1px solid #e3e6f0; display: flex; align-items: center; gap: 14px; transition: transform .15s ease, box-shadow .15s ease; height: 100%; }
+  .ind-stat:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.06); }
+  .ind-stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; flex-shrink: 0; }
+  .ind-stat-body b { display: block; font-size: 22px; line-height: 1.1; color: #2c3e50; }
+  .ind-stat-body span { font-size: 12.5px; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; }
+  .ind-stat-icon.bg-primary  { background: linear-gradient(135deg, #4e73df, #2e59d9); }
+  .ind-stat-icon.bg-success  { background: linear-gradient(135deg, #1cc88a, #13855c); }
+  .ind-stat-icon.bg-warning  { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+  .ind-stat-icon.bg-info     { background: linear-gradient(135deg, #36b9cc, #258391); }
+  .ind-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 14px 16px; background: #f8f9fc; border-radius: 10px; margin-bottom: 16px; border: 1px solid #e3e6f0; }
+  .ind-toolbar .search-wrap { flex: 1 1 280px; position: relative; }
+  .ind-toolbar .search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #adb5bd; pointer-events: none; }
+  .ind-toolbar .search-wrap input { padding-left: 36px; border-radius: 8px; border: 1px solid #d1d3e2; height: 40px; }
+  .ind-toolbar .search-wrap input:focus { border-color: #4e73df; box-shadow: 0 0 0 .15rem rgba(78,115,223,.2); }
+  .vid-table thead th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; background: #f8f9fc; border-top: none; padding: 12px 16px; font-weight: 600; }
+  .vid-table tbody td { padding: 14px 16px; vertical-align: middle; }
+  .vid-table tbody tr { transition: background .1s; }
+  .vid-table tbody tr:hover { background: #f8f9fc; }
+  .vid-lang-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; background: rgba(78,115,223,.1); color: #4e73df; font-size: 12px; font-weight: 600; }
+  .vid-lang-badge .code { opacity: .65; font-size: 10.5px; text-transform: uppercase; }
+  .vid-file { display: flex; align-items: center; gap: 10px; }
+  .vid-file .icon { width: 36px; height: 36px; border-radius: 8px; background: #f1f3f8; color: #4e73df; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .vid-file .meta { min-width: 0; }
+  .vid-file .name { font-size: 13.5px; font-weight: 500; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vid-file .sub { font-size: 11.5px; color: #858796; }
+  .vid-actions .btn { width: 32px; height: 32px; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; transition: all .15s; }
+  .vid-actions .btn-play { color: #1cc88a; }
+  .vid-actions .btn-play:hover { background: rgba(28,200,138,.1); border-color: rgba(28,200,138,.3); }
+  .vid-actions .btn-edit { color: #4e73df; }
+  .vid-actions .btn-edit:hover { background: rgba(78,115,223,.1); border-color: rgba(78,115,223,.3); }
+  .vid-actions .btn-del { color: #e74a3b; }
+  .vid-actions .btn-del:hover { background: rgba(231,74,59,.1); border-color: rgba(231,74,59,.3); }
+  .vid-empty { padding: 60px 20px; text-align: center; }
+  .vid-empty i { font-size: 54px; color: #d1d3e2; margin-bottom: 16px; display: block; }
+  .vid-empty h5 { color: #5a5c69; margin-bottom: 8px; }
+  .vid-empty p { color: #858796; margin-bottom: 20px; }
+  #videoPreviewModal video { width: 100%; border-radius: 8px; background: #000; max-height: 60vh; }
+
+  /* ============================================================
+     UPLOAD MODAL
+     ============================================================ */
+  #videoModal { --a:#4e73df; --a-soft:rgba(78,115,223,.09); --a-line:#c9d6f7; --ink:#1f2d3d; --mut:#7b8794; --line:#e4e8f0; --ok:#16a34a; --bad:#dc2626; }
+  #videoModal .modal-content { border: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px -20px rgba(31,45,61,.45); }
+  .uv-head { display: flex; align-items: center; gap: 14px; padding: 18px 22px; background: linear-gradient(135deg, #4e73df, #2e59d9); color: #fff; }
+  .uv-head .ico { width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .uv-head h5 { margin: 0; font-weight: 800; font-size: 17px; }
+  .uv-head p { margin: 2px 0 0; font-size: 12.5px; opacity: .85; }
+  .uv-head .close { margin-left: auto; color: #fff; opacity: .8; text-shadow: none; font-size: 26px; }
+  .uv-head .close:hover { opacity: 1; }
+  .uv-body { background: #f8f9fc; padding: 20px 22px; max-height: 68vh; overflow-y: auto; }
+
+  .uv-step { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
+  .uv-step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .uv-num { width: 28px; height: 28px; border-radius: 9px; background: var(--a); color: #fff; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .2s; }
+  .uv-step.done .uv-num { background: var(--ok); }
+  .uv-step-head h6 { margin: 0; font-size: 14px; font-weight: 800; color: var(--ink); }
+  .uv-step-head .hint { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--mut); background: #eef2f8; padding: 4px 10px; border-radius: 99px; white-space: nowrap; }
+
+  /* language picker */
+  .uv-search { position: relative; margin-bottom: 10px; }
+  .uv-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #a0aec0; font-size: 12px; }
+  .uv-search input { width: 100%; height: 38px; border: 1px solid #d6dce8; border-radius: 10px; padding: 0 12px 0 34px; font-size: 13px; }
+  .uv-search input:focus { outline: 0; border-color: var(--a); box-shadow: 0 0 0 .15rem rgba(78,115,223,.18); }
+  .uv-langs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 196px; overflow-y: auto; padding: 2px; }
+  .uv-lang { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: 11px; background: #fff; cursor: pointer; text-align: left; transition: .15s; }
+  .uv-lang:hover { border-color: var(--a-line); background: #fafbff; }
+  .uv-lang:focus-visible { outline: 2px solid var(--a); outline-offset: 2px; }
+  .uv-lang .badge-code { width: 34px; height: 34px; border-radius: 9px; background: #eef2f8; color: #5a6a85; font-size: 11px; font-weight: 800; text-transform: uppercase; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: .15s; }
+  .uv-lang .nm { font-size: 12.5px; font-weight: 700; color: #3b4859; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .uv-lang .tick { margin-left: auto; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #cdd5e1; color: transparent; font-size: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: .15s; }
+  .uv-lang.selected { border-color: var(--a); background: var(--a-soft); }
+  .uv-lang.selected .badge-code { background: var(--a); color: #fff; }
+  .uv-lang.selected .tick { background: var(--a); border-color: var(--a); color: #fff; }
+  .uv-lang[hidden] { display: none; }
+  .uv-note { display: none; text-align: center; color: var(--mut); font-weight: 600; font-size: 12.5px; padding: 18px 10px; }
+  .uv-note i { display: block; font-size: 26px; margin-bottom: 8px; color: #cbd2de; }
+  .uv-note.show { display: block; }
+  .uv-all-done { background: #e7f7ee; color: #13855c; border-radius: 10px; }
+
+  /* dropzone */
+  .uv-zone { border: 2px dashed #cdd5e1; border-radius: 14px; padding: 26px 16px; text-align: center; background: #fafbff; cursor: pointer; transition: .15s; }
+  .uv-zone:hover, .uv-zone.dragover { border-color: var(--a); background: var(--a-soft); }
+  .uv-zone:focus-visible { outline: 2px solid var(--a); outline-offset: 2px; }
+  .uv-zone .big { width: 54px; height: 54px; border-radius: 16px; background: var(--a-soft); color: var(--a); display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 10px; }
+  .uv-zone b { display: block; font-size: 13.5px; color: var(--ink); }
+  .uv-zone span { font-size: 12px; color: var(--mut); }
+  .uv-zone input { display: none; }
+  .uv-zone.locked { opacity: .5; pointer-events: none; }
+
+  /* file card */
+  .uv-file { display: none; gap: 14px; align-items: center; border: 1.5px solid var(--line); border-radius: 14px; padding: 12px; background: #fff; }
+  .uv-file.show { display: flex; }
+  .uv-thumb { width: 120px; height: 72px; border-radius: 10px; background: #0f172a; overflow: hidden; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 22px; }
+  .uv-thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .uv-file-info { min-width: 0; flex: 1; }
+  .uv-file-info .fn { font-size: 13px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .uv-file-info .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .uv-pill { font-size: 11px; font-weight: 800; background: #eef2f8; color: #5a6a85; border-radius: 99px; padding: 3px 10px; }
+  .uv-pill i { margin-right: 4px; }
+  .uv-file .rm { border: 0; background: #fdecec; color: var(--bad); width: 32px; height: 32px; border-radius: 9px; cursor: pointer; flex-shrink: 0; }
+  .uv-file .rm:hover { background: #fbd5d5; }
+  .uv-current { display: none; margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--mut); background: #eef2f8; border-radius: 10px; padding: 8px 12px; }
+  .uv-current.show { display: block; }
+
+  /* progress */
+  .uv-progress { display: none; margin-top: 12px; }
+  .uv-progress.show { display: block; }
+  .uv-progress .top { display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; color: #4a5568; margin-bottom: 6px; }
+  .uv-bar { height: 9px; border-radius: 99px; background: #e6ebf3; overflow: hidden; }
+  .uv-bar b { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #4e73df, #36b9cc); transition: width .15s; }
+
+  .uv-error { display: none; margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: #fdecec; border: 1px solid #f6c9c9; color: #9b1c1c; font-size: 12.5px; font-weight: 700; }
+  .uv-error.show { display: block; }
+
+  .uv-foot { display: flex; align-items: center; gap: 10px; padding: 14px 22px; background: #fff; border-top: 1px solid var(--line); }
+  .uv-foot .status { font-size: 12.5px; font-weight: 700; color: var(--mut); }
+  .uv-foot .status.ok { color: var(--ok); }
+  .uv-foot .btns { margin-left: auto; display: flex; gap: 8px; }
+
+  @media (max-width: 575px) { .uv-thumb { width: 84px; height: 56px; } .uv-langs { grid-template-columns: repeat(2, 1fr); } }
+  @media (prefers-reduced-motion: reduce) { #videoModal * { transition: none !important; } }
+</style>
+
+<!-- ===================== STATS ===================== -->
+<div class="row mb-3">
+  <div class="col-6 col-md-3 mb-2">
+    <div class="ind-stat">
+      <div class="ind-stat-icon bg-primary"><i class="fas fa-video"></i></div>
+      <div class="ind-stat-body"><b>{{ total_count|default:"0" }}</b><span>{% translate "Total Videos" %}</span></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3 mb-2">
+    <div class="ind-stat">
+      <div class="ind-stat-icon bg-success"><i class="fas fa-language"></i></div>
+      <div class="ind-stat-body"><b>{{ language_count|default:"0" }}</b><span>{% translate "Languages" %}</span></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3 mb-2">
+    <div class="ind-stat">
+      <div class="ind-stat-icon bg-info"><i class="fas fa-hdd"></i></div>
+      <div class="ind-stat-body"><b>{{ total_size|default:"0" }} MB</b><span>{% translate "Storage Used" %}</span></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3 mb-2">
+    <div class="ind-stat">
+      <div class="ind-stat-icon bg-warning"><i class="fas fa-exclamation-triangle"></i></div>
+      <div class="ind-stat-body"><b>{{ missing_count|default:"0" }}</b><span>{% translate "Missing" %}</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MAIN CARD ===================== -->
+<div class="ehs-card">
+  <div class="card-header">
+    <div class="row align-items-center">
+      <div class="col">
+        <h3 class="card-title mb-0"><i class="fas fa-video mr-2"></i>{% translate "All Induction Videos" %}</h3>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm" onclick="vModal()">
+          <i class="fas fa-upload mr-1"></i> {% translate "Upload Video" %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <form method="GET" class="ind-toolbar">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" name="q" class="form-control"
+               placeholder="{% translate 'Search by language or filename...' %}"
+               value="{{ q }}" onchange="this.form.submit()">
+      </div>
+    </form>
+
+    {% if page.object_list %}
+    <div class="table-responsive">
+      <table class="table vid-table mb-0">
+        <thead>
+          <tr>
+            <th style="width:50px">#</th>
+            <th style="width:150px">{% translate "Language" %}</th>
+            <th>{% translate "File" %}</th>
+            <th style="width:110px" class="text-center">{% translate "Duration" %}</th>
+            <th style="width:100px" class="text-center">{% translate "Size" %}</th>
+            <th style="width:130px">{% translate "Uploaded" %}</th>
+            <th style="width:130px">{% translate "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for video in page %}
+          <tr>
+            <td class="text-muted">{{ forloop.counter0|add:page.start_index }}</td>
+            <td>
+              <span class="vid-lang-badge">
+                <i class="fas fa-language"></i>
+                {{ video.language.name }}
+                <span class="code">{{ video.language.code }}</span>
+              </span>
+            </td>
+            <td>
+              <div class="vid-file">
+                <div class="icon"><i class="fas fa-file-video"></i></div>
+                <div class="meta">
+                  <div class="name" title="{{ video.file_name }}">{{ video.file_name|default:video.file.name }}</div>
+                  <div class="sub">
+                    {% if video.duration_seconds %}
+                      <span class="js-duration" data-seconds="{{ video.duration_seconds }}">{{ video.duration_seconds }}s</span>
+                    {% else %}{% translate "Duration unknown" %}{% endif %}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="text-center">
+              {% if video.duration_seconds %}
+                <span class="badge badge-light border js-duration" data-seconds="{{ video.duration_seconds }}">{{ video.duration_seconds }}s</span>
+              {% else %}<span class="text-muted small">—</span>{% endif %}
+            </td>
+            <td class="text-center">
+              {% if video.file_size %}
+                <span class="text-muted small">{% widthratio video.file_size 1048576 1 %} MB</span>
+              {% else %}<span class="text-muted small">—</span>{% endif %}
+            </td>
+            <td class="text-muted small">{{ video.uploaded_at|date:"d M Y" }}</td>
+            <td class="vid-actions">
+              <button class="btn btn-play" title="{% translate 'Play' %}"
+                      onclick="vPlay('{{ video.file.url }}', '{{ video.title|escapejs }}')">
+                <i class="fas fa-play"></i>
+              </button>
+              <button class="btn btn-edit" title="{% translate 'Edit' %}"
+                      data-id="{{ video.id }}" data-lang="{{ video.language_id }}"
+                      data-file="{{ video.file_name }}" data-size="{{ video.file_size|default:0 }}"
+                      data-duration="{{ video.duration_seconds|default:0 }}"
+                      onclick="vModal(this)">
+                <i class="fas fa-pen"></i>
+              </button>
+              <form method="post" action="{% url 'induction:video_delete' video.id %}" style="display:inline"
+                    onsubmit="return confirm('{% translate "Delete this video? This cannot be undone." %}');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-del" title="{% translate 'Delete' %}"><i class="fas fa-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page.has_other_pages %}
+    <nav class="mt-3">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if page.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}"><i class="fas fa-chevron-left"></i></a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">{{ page.number }} / {{ page.paginator.num_pages }}</span></li>
+        {% if page.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}{% if q %}&q={{ q }}{% endif %}"><i class="fas fa-chevron-right"></i></a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="vid-empty">
+      <i class="fas fa-video-slash"></i>
+      <h5>{% translate "No videos yet" %}</h5>
+      <p>{% translate "Upload your first induction video to get started." %}</p>
+      <button class="btn btn-primary" onclick="vModal()"><i class="fas fa-upload mr-1"></i> {% translate "Upload Video" %}</button>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ===================== UPLOAD / EDIT MODAL ===================== -->
+<div class="modal fade" id="videoModal" tabindex="-1" role="dialog" aria-hidden="true" aria-labelledby="vModalTitle">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+
+      <div class="uv-head">
+        <div class="ico"><i class="fas fa-cloud-upload-alt" id="vHeadIcon"></i></div>
+        <div>
+          <h5 id="vModalTitle">{% translate "Upload Video" %}</h5>
+          <p id="vModalSub">{% translate "Choose a language, then add its induction video." %}</p>
+        </div>
+        <button type="button" class="close" onclick="closeVModal()" aria-label="{% translate 'Close' %}"><span>&times;</span></button>
+      </div>
+
+      <div class="uv-body">
+        <!-- STEP 1: language -->
+        <div class="uv-step" id="uvStep1">
+          <div class="uv-step-head">
+            <div class="uv-num"><span id="uvNum1">1</span></div>
+            <h6>{% translate "Select language" %}</h6>
+            <span class="hint" id="uvLangHint"></span>
+          </div>
+
+          <div class="uv-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="uvLangSearch" placeholder="{% translate 'Search language...' %}" autocomplete="off"
+                   aria-label="{% translate 'Search language' %}">
+          </div>
+
+          <div class="uv-langs" id="uvLangs" role="listbox" aria-label="{% translate 'Languages' %}">
+            {% for lang in languages %}
+            <button type="button" class="uv-lang" role="option" aria-selected="false"
+                    data-id="{{ lang.id }}" data-name="{{ lang.name }}" data-code="{{ lang.code }}"
+                    data-used="{% if lang.id in used_language_ids %}1{% endif %}">
+              <span class="badge-code">{{ lang.code|slice:":3" }}</span>
+              <span class="nm">{{ lang.name }}</span>
+              <span class="tick"><i class="fas fa-check"></i></span>
+            </button>
+            {% endfor %}
+          </div>
+          <div class="uv-note" id="uvNoMatch"><i class="fas fa-search"></i>{% translate "No language matches your search." %}</div>
+          <div class="uv-note uv-all-done" id="uvAllDone"><i class="fas fa-circle-check"></i>{% translate "Every language already has a video. Edit an existing one from the table." %}</div>
+        </div>
+
+        <!-- STEP 2: file -->
+        <div class="uv-step" id="uvStep2">
+          <div class="uv-step-head">
+            <div class="uv-num"><span id="uvNum2">2</span></div>
+            <h6>{% translate "Add video" %}</h6>
+            <span class="hint">{% translate "MP4 · WebM · MOV · MKV · AVI · max 500 MB" %}</span>
+          </div>
+
+          <div class="uv-zone" id="uvZone" tabindex="0" role="button" aria-label="{% translate 'Choose a video file' %}">
+            <div class="big"><i class="fas fa-film"></i></div>
+            <b>{% translate "Click to browse or drag & drop a video" %}</b>
+            <span>{% translate "The duration is detected automatically." %}</span>
+            <input type="file" id="vFile" accept="video/*">
+          </div>
+
+          <div class="uv-file" id="uvFile">
+            <div class="uv-thumb" id="uvThumb"><i class="fas fa-film"></i></div>
+            <div class="uv-file-info">
+              <div class="fn" id="uvFileName"></div>
+              <div class="meta">
+                <span class="uv-pill"><i class="fas fa-hdd"></i><span id="uvFileSize"></span></span>
+                <span class="uv-pill"><i class="far fa-clock"></i><span id="uvFileDur">…</span></span>
+              </div>
+            </div>
+            <button type="button" class="rm" id="uvRemove" title="{% translate 'Remove file' %}" aria-label="{% translate 'Remove file' %}"><i class="fas fa-trash"></i></button>
+          </div>
+
+          <div class="uv-current" id="vCurrentFile"></div>
+
+          <div class="uv-progress" id="uvProgress">
+            <div class="top"><span id="uvProgLabel">{% translate "Uploading..." %}</span><span id="uvProgPct">0%</span></div>
+            <div class="uv-bar"><b id="uvProgBar"></b></div>
+          </div>
+          <div class="uv-error" id="uvError" role="alert"></div>
+          <input type="hidden" id="vDuration" value="">
+        </div>
+      </div>
+
+      <div class="uv-foot">
+        <span class="status" id="uvStatus"></span>
+        <div class="btns">
+          <button type="button" class="btn btn-outline-secondary" id="vCancelBtn" onclick="closeVModal()">{% translate "Cancel" %}</button>
+          <button type="button" class="btn btn-primary" id="vSaveBtn" onclick="vSave()" disabled>
+            <i class="fas fa-save mr-1"></i> {% translate "Save Video" %}
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PREVIEW MODAL ===================== -->
+<div class="modal fade" id="videoPreviewModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="previewTitle"><i class="fas fa-play-circle mr-2 text-success"></i>{% translate "Preview" %}</h5>
+        <button type="button" class="close" data-dismiss="modal" onclick="closePreview()"><span>&times;</span></button>
+      </div>
+      <div class="modal-body" style="background:#000;">
+        <video id="previewVideo" controls playsinline></video>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const V_CSRF = "{{ csrf_token }}";
+const V_URLS = {
+  create: "{% url 'induction:video_create' %}",
+  edit:   "{% url 'induction:video_edit' 0 %}",
+};
+const V_MAX_MB = 500;
+const V_EXT = ['.mp4', '.webm', '.mov', '.mkv', '.avi'];
+
+const V = { editId: 0, editLang: '', langId: '', file: null, duration: '', uploading: false, xhr: null, thumbUrl: null };
+const $id = id => document.getElementById(id);
+
+function fmtDur(s) { s = parseInt(s, 10); if (isNaN(s) || s <= 0) return '—'; return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+function fmtSize(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+
+/* ---------- format durations in the table ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.js-duration').forEach(el => {
+    const s = parseInt(el.dataset.seconds, 10);
+    if (!isNaN(s)) el.textContent = fmtDur(s);
+  });
+});
+
+/* =====================================================================
+   LANGUAGES: already-used ones are hidden (except the one being edited)
+   ===================================================================== */
+function langButtons() { return Array.from($id('uvLangs').querySelectorAll('.uv-lang')); }
+
+function refreshLanguages() {
+  const q = $id('uvLangSearch').value.toLowerCase().trim();
+  let free = 0, shown = 0;
+
+  langButtons().forEach(b => {
+    const used = b.dataset.used === '1' && b.dataset.id !== V.editLang;   // keep own language when editing
+    const text = (b.dataset.name + ' ' + b.dataset.code).toLowerCase();
+    const match = !q || text.indexOf(q) > -1;
+    if (!used) free++;
+    const visible = !used && match;
+    b.hidden = !visible;
+    if (visible) shown++;
+    const sel = b.dataset.id === V.langId;
+    b.classList.toggle('selected', sel);
+    b.setAttribute('aria-selected', sel ? 'true' : 'false');
+  });
+
+  $id('uvAllDone').classList.toggle('show', free === 0);
+  $id('uvNoMatch').classList.toggle('show', free > 0 && shown === 0);
+  $id('uvLangSearch').parentNode.style.display = free === 0 ? 'none' : '';
+  $id('uvLangHint').textContent = free + ' {% translate "available" %}';
+}
+
+$id('uvLangs').addEventListener('click', e => {
+  const b = e.target.closest('.uv-lang'); if (!b || V.uploading) return;
+  V.langId = b.dataset.id;
+  refreshLanguages(); refreshState();
+});
+$id('uvLangSearch').addEventListener('input', refreshLanguages);
+
+/* =====================================================================
+   OPEN / CLOSE
+   ===================================================================== */
+function vModal(btn) {
+  const editing = btn && btn.dataset && btn.dataset.id;
+  V.editId = editing ? parseInt(btn.dataset.id, 10) : 0;
+  V.editLang = editing ? String(btn.dataset.lang) : '';
+  V.langId = V.editLang;
+  clearFile(true);
+
+  $id('vModalTitle').textContent = editing ? '{% translate "Edit Video" %}' : '{% translate "Upload Video" %}';
+  $id('vModalSub').textContent = editing
+    ? '{% translate "Change the language or replace the video. Leave the file empty to keep the current one." %}'
+    : '{% translate "Choose a language, then add its induction video." %}';
+  $id('vHeadIcon').className = 'fas ' + (editing ? 'fa-pen' : 'fa-cloud-upload-alt');
+
+  const cur = $id('vCurrentFile');
+  if (editing) {
+    cur.innerHTML = '<i class="fas fa-file-video mr-1"></i> {% translate "Current file:" %} <b></b>';
+    cur.querySelector('b').textContent = btn.dataset.file + (parseInt(btn.dataset.size, 10) ? ' · ' + fmtSize(parseInt(btn.dataset.size, 10)) : '');
+    cur.classList.add('show');
+  } else cur.classList.remove('show');
+
+  $id('uvLangSearch').value = '';
+  hideError(); setProgress(null);
+  refreshLanguages(); refreshState();
+  showModal('videoModal');
+  setTimeout(() => { const s = $id('uvLangSearch'); if (s.offsetParent) s.focus(); }, 80);
+}
+
+function closeVModal() {
+  if (V.uploading) {
+    if (!confirm('{% translate "Upload in progress. Cancel it?" %}')) return;
+    if (V.xhr) V.xhr.abort();
+  }
+  hideModal('videoModal');
+}
+
+/* =====================================================================
+   FILE: browse, drop, validate, preview
+   ===================================================================== */
+const zone = $id('uvZone'), input = $id('vFile');
+zone.addEventListener('click', () => input.click());
+zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }));
+['dragenter', 'dragover'].forEach(ev => zone.addEventListener(ev, () => zone.classList.add('dragover')));
+['dragleave', 'drop'].forEach(ev => zone.addEventListener(ev, () => zone.classList.remove('dragover')));
+zone.addEventListener('drop', e => { if (e.dataTransfer.files.length) takeFile(e.dataTransfer.files[0]); });
+input.addEventListener('change', () => { if (input.files.length) takeFile(input.files[0]); });
+$id('uvRemove').addEventListener('click', () => { if (!V.uploading) { clearFile(); refreshState(); } });
+
+function takeFile(f) {
+  hideError();
+  const name = f.name.toLowerCase();
+  if (!f.type.startsWith('video/') && !V_EXT.some(x => name.endsWith(x))) {
+    showError('{% translate "Please select a valid video file (MP4, WebM, MOV, MKV, AVI)." %}'); input.value = ''; return;
+  }
+  if (f.size > V_MAX_MB * 1048576) {
+    showError('{% translate "Video must be smaller than 500 MB." %}'); input.value = ''; return;
+  }
+  V.file = f; V.duration = '';
+  $id('uvFileName').textContent = f.name;
+  $id('uvFileSize').textContent = fmtSize(f.size);
+  $id('uvFileDur').textContent = '…';
+  $id('vDuration').value = '';
+  zone.style.display = 'none';
+  $id('uvFile').classList.add('show');
+
+  if (V.thumbUrl) URL.revokeObjectURL(V.thumbUrl);
+  V.thumbUrl = URL.createObjectURL(f);
+  const thumb = $id('uvThumb'); thumb.innerHTML = '';
+  const v = document.createElement('video');
+  v.muted = true; v.preload = 'metadata'; v.playsInline = true;
+  v.onloadedmetadata = () => {
+    if (isFinite(v.duration)) {
+      V.duration = Math.round(v.duration);
+      $id('vDuration').value = V.duration;
+      $id('uvFileDur').textContent = fmtDur(V.duration);
+    }
+    try { v.currentTime = Math.min(1, v.duration / 2 || 0); } catch (e) {}
+  };
+  v.onerror = () => { thumb.innerHTML = '<i class="fas fa-film"></i>'; $id('uvFileDur').textContent = '—'; };
+  v.src = V.thumbUrl;
+  thumb.appendChild(v);
+  refreshState();
+}
+
+function clearFile(silent) {
+  V.file = null; V.duration = '';
+  input.value = ''; $id('vDuration').value = '';
+  $id('uvFile').classList.remove('show');
+  zone.style.display = '';
+  $id('uvThumb').innerHTML = '<i class="fas fa-film"></i>';
+  if (V.thumbUrl) { URL.revokeObjectURL(V.thumbUrl); V.thumbUrl = null; }
+}
+
+/* =====================================================================
+   STATE: step ticks, Save button, status line
+   ===================================================================== */
+function refreshState() {
+  const hasLang = !!V.langId, hasFile = !!V.file || !!V.editId;
+  $id('uvStep1').classList.toggle('done', hasLang);
+  $id('uvStep2').classList.toggle('done', !!V.file);
+  $id('uvNum1').innerHTML = hasLang ? '<i class="fas fa-check" style="font-size:12px"></i>' : '1';
+  $id('uvNum2').innerHTML = V.file ? '<i class="fas fa-check" style="font-size:12px"></i>' : '2';
+
+  const ok = hasLang && hasFile && !V.uploading;
+  $id('vSaveBtn').disabled = !ok;
+  const st = $id('uvStatus'); st.classList.toggle('ok', hasLang && hasFile);
+  st.textContent = !hasLang ? '{% translate "Pick a language to continue" %}'
+                 : !hasFile ? '{% translate "Now add the video file" %}'
+                 : '{% translate "Ready to save" %}';
+}
+
+/* =====================================================================
+   SAVE (XHR so we can show real upload progress)
+   ===================================================================== */
+function vSave() {
+  if (V.uploading) return;
+  if (!V.langId) { showError('{% translate "Please choose a language." %}'); return; }
+  if (!V.editId && !V.file) { showError('{% translate "Please choose a video file." %}'); return; }
+  hideError();
+
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', V_CSRF);
+  fd.append('language', V.langId);
+  if (V.file) fd.append('file', V.file);
+  if (V.duration) fd.append('duration_seconds', V.duration);
+
+  const url = V.editId ? V_URLS.edit.replace('/0/', '/' + V.editId + '/') : V_URLS.create;
+  const xhr = new XMLHttpRequest(); V.xhr = xhr;
+  xhr.open('POST', url);
+  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+  V.uploading = true; lockUi(true);
+  const btn = $id('vSaveBtn'); const orig = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i>{% translate "Uploading..." %}';
+  setProgress(V.file ? 0 : 100);
+
+  xhr.upload.onprogress = e => { if (e.lengthComputable && V.file) setProgress(Math.round(e.loaded / e.total * 100)); };
+  const fail = msg => { V.uploading = false; lockUi(false); btn.innerHTML = orig; setProgress(null); showError(msg); refreshState(); };
+
+  xhr.onload = () => {
+    let resp = {}; try { resp = JSON.parse(xhr.responseText); } catch (e) {}
+    if (xhr.status >= 200 && xhr.status < 300 && (resp.ok || resp.errors === undefined)) {
+      setProgress(100); $id('uvProgLabel').textContent = '{% translate "Saved" %}';
+      hideModal('videoModal'); location.reload();
+    } else fail(readErrors(resp) || '{% translate "Could not save. Check the fields." %}');
+  };
+  xhr.onerror = () => fail('{% translate "Upload failed. Check your connection and try again." %}');
+  xhr.onabort = () => { V.uploading = false; lockUi(false); btn.innerHTML = orig; setProgress(null); refreshState(); };
+  xhr.send(fd);
+}
+
+function readErrors(resp) {
+  if (!resp || !resp.errors) return '';
+  const out = [];
+  Object.keys(resp.errors).forEach(k => (resp.errors[k] || []).forEach(m => out.push((k === 'language' ? '{% translate "Language" %}: ' : k === 'file' ? '{% translate "File" %}: ' : '') + (m.message || m))));
+  return out.join(' · ');
+}
+
+function lockUi(on) {
+  zone.classList.toggle('locked', on);
+  $id('uvLangs').style.pointerEvents = on ? 'none' : '';
+  $id('uvLangSearch').disabled = on;
+  $id('uvRemove').disabled = on;
+}
+function setProgress(p) {
+  const box = $id('uvProgress');
+  if (p === null) { box.classList.remove('show'); $id('uvProgBar').style.width = '0'; return; }
+  box.classList.add('show');
+  $id('uvProgBar').style.width = p + '%';
+  $id('uvProgPct').textContent = p + '%';
+  $id('uvProgLabel').textContent = p < 100 ? '{% translate "Uploading..." %}' : '{% translate "Processing..." %}';
+}
+function showError(m) { const e = $id('uvError'); e.textContent = m; e.classList.add('show'); }
+function hideError() { $id('uvError').classList.remove('show'); }
+
+/* =====================================================================
+   PREVIEW
+   ===================================================================== */
+function vPlay(url, title) {
+  $id('previewTitle').innerHTML = '<i class="fas fa-play-circle mr-2 text-success"></i>' + (title || '{% translate "Preview" %}');
+  const v = $id('previewVideo'); v.src = url; v.play();
+  showModal('videoPreviewModal');
+}
+function closePreview() {
+  const v = $id('previewVideo'); v.pause(); v.src = '';
+  hideModal('videoPreviewModal');
+}
+
+/* =====================================================================
+   MODAL HELPERS
+   ===================================================================== */
+function showModal(id) {
+  const el = $id(id);
+  el.classList.add('show'); el.style.display = 'block'; el.style.backgroundColor = 'rgba(0,0,0,.5)';
+  el.removeAttribute('aria-hidden');
+}
+function hideModal(id) {
+  const el = $id(id);
+  el.classList.remove('show'); el.style.display = 'none'; el.style.backgroundColor = '';
+  el.setAttribute('aria-hidden', 'true');
+}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($id('videoModal').classList.contains('show')) closeVModal();
+  else if ($id('videoPreviewModal').classList.contains('show')) closePreview();
+});
+$id('videoModal').addEventListener('mousedown', e => { if (e.target === $id('videoModal')) closeVModal(); });
+</script>
+{% endblock %}

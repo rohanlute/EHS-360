@@ -1,0 +1,556 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% translate "Attempt Details" %}{% endblock %}
+{% block page_title %}{% translate "Attempt Details" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">{% translate "Home" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'induction:scorecard_list' %}">{% translate "Scorecard" %}</a></li>
+<li class="breadcrumb-item active">{% translate "Attempt Details" %}</li>
+{% endblock %}
+
+{% block content %}
+<style>
+  :root{
+    --sd-ink:#1f2d3d; --sd-mut:#6c7a8d; --sd-line:#e6ebf2; --sd-bg:#f6f8fc;
+    --sd-blue:#4e73df; --sd-ok:#16a36a; --sd-okbg:#e4f7ee; --sd-bad:#d93636; --sd-badbg:#fdeceb;
+    --sd-shadow:0 10px 26px -18px rgba(31,45,61,.45);
+  }
+
+  /* ---------- profile hero ---------- */
+  .sd-hero{position:relative;overflow:hidden;border-radius:16px;padding:24px 26px;margin-bottom:20px;color:#fff;
+    background:linear-gradient(135deg,#0f2a4d 0%,#1d4ea0 60%,#2aa7b8 140%);
+    background-size:200% 200%;animation:heroShift 14s ease-in-out infinite;
+    box-shadow:0 14px 30px -16px rgba(15,42,77,.7)}
+  @keyframes heroShift{0%,100%{background-position:0% 0%}50%{background-position:100% 100%}}
+  .sd-hero::after{content:"";position:absolute;right:-90px;top:-110px;width:300px;height:300px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.22),transparent 65%);pointer-events:none;
+    animation:heroGlow 8s ease-in-out infinite}
+  @keyframes heroGlow{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+  .sd-hero-row{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;gap:18px}
+  .sd-avatar{width:68px;height:68px;border-radius:20px;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:28px;font-weight:800;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
+    transition:transform .3s ease}
+  .sd-avatar:hover{transform:rotate(-6deg) scale(1.05)}
+  .sd-who{flex:1 1 220px;min-width:0}
+  .sd-who h2{margin:0;font-size:24px;font-weight:800;color:#fff;letter-spacing:-.01em;word-break:break-word}
+  .sd-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .sd-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;font-size:12.5px;font-weight:600;
+    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+    transition:background .2s, transform .2s; cursor:default}
+  .sd-tag:hover{background:rgba(255,255,255,.28);transform:translateY(-1px)}
+  .sd-tag.copyable{cursor:pointer}
+  .sd-tag.copyable:hover::after{content:" · click to copy";font-size:11px;opacity:.8}
+  .sd-back{position:relative;z-index:1;margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;
+    background:#fff;color:#1d4ea0;font-weight:700;font-size:13px;text-decoration:none;transition:transform .15s,box-shadow .15s}
+  .sd-back:hover{color:#1d4ea0;text-decoration:none;transform:translateY(-1px);box-shadow:0 8px 18px -8px rgba(0,0,0,.5)}
+  .sd-back:active{transform:translateY(0)}
+
+  /* ---------- summary tiles ---------- */
+  .sd-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px}
+  .sd-tile{display:flex;align-items:center;gap:14px;padding:16px 18px;background:#fff;border:1px solid var(--sd-line);border-radius:14px;
+    transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;position:relative;overflow:hidden}
+  .sd-tile::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(78,115,223,.04),transparent 60%);
+    opacity:0;transition:opacity .25s;pointer-events:none}
+  .sd-tile:hover{transform:translateY(-3px);box-shadow:var(--sd-shadow);border-color:#d4dce8}
+  .sd-tile:hover::before{opacity:1}
+  .sd-tile i{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex:none;
+    transition:transform .3s ease}
+  .sd-tile:hover i{transform:scale(1.08) rotate(-3deg)}
+  .sd-tile b{display:block;font-size:21px;line-height:1.1;color:var(--sd-ink);font-variant-numeric:tabular-nums}
+  .sd-tile span{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--sd-mut);font-weight:600}
+  .t-blue{background:linear-gradient(135deg,#4e73df,#2e59d9)}
+  .t-teal{background:linear-gradient(135deg,#2bb8c9,#1c8798)}
+  .t-green{background:linear-gradient(135deg,#1cc88a,#12875c)}
+  .t-red{background:linear-gradient(135deg,#ef5b4d,#c2271a)}
+
+  .sd-section{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:6px 2px 14px}
+  .sd-section h5{margin:0;font-weight:800;color:var(--sd-ink)}
+  .sd-section small{color:var(--sd-mut);font-weight:600}
+
+  /* ---------- filter + expand controls ---------- */
+  .sd-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .sd-filter{display:inline-flex;background:#fff;border:1px solid var(--sd-line);border-radius:10px;padding:3px;gap:2px}
+  .sd-filter button{border:0;background:transparent;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--sd-mut);
+    cursor:pointer;transition:background .15s,color .15s}
+  .sd-filter button:hover{color:var(--sd-ink);background:var(--sd-bg)}
+  .sd-filter button.active{background:var(--sd-blue);color:#fff}
+  .sd-expand-all{border:1px solid var(--sd-line);background:#fff;border-radius:10px;padding:6px 12px;font-size:12.5px;font-weight:700;
+    color:var(--sd-mut);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+  .sd-expand-all:hover{color:var(--sd-blue);border-color:#c9d6f5;background:#f4f7ff}
+
+  /* ---------- attempt cards (timeline) ---------- */
+  .sd-timeline{position:relative;padding-left:26px}
+  .sd-timeline::before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:var(--sd-line);border-radius:2px}
+  .att{position:relative;margin-bottom:16px;background:#fff;border:1px solid var(--sd-line);border-radius:16px;overflow:hidden;
+    box-shadow:0 1px 2px rgba(31,45,61,.04);
+    transition:box-shadow .25s ease,transform .25s ease,border-color .25s ease}
+  .att:hover{box-shadow:var(--sd-shadow);border-color:#d4dce8}
+  .att::before{content:"";position:absolute;left:-26px;top:26px;width:18px;height:18px;border-radius:50%;background:#fff;
+    border:4px solid var(--sd-mut);z-index:1;transition:transform .25s ease}
+  .att:hover::before{transform:scale(1.15)}
+  .att.is-pass::before{border-color:var(--sd-ok)} .att.is-fail::before{border-color:var(--sd-bad)}
+  .att.hidden-by-filter{display:none}
+
+  .att-head{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:16px 20px;cursor:pointer;user-select:none;
+    transition:background .15s;position:relative;overflow:hidden}
+  .att-head:hover{background:var(--sd-bg)}
+  .att-head:focus-visible{outline:2px solid var(--sd-blue);outline-offset:-2px;border-radius:14px}
+
+  /* ripple */
+  .att-head .ripple{position:absolute;border-radius:50%;transform:scale(0);pointer-events:none;
+    background:rgba(78,115,223,.18);animation:rippleAnim .6s ease-out}
+  @keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+
+  .ring{--p:0;--c:var(--sd-ok);position:relative;width:64px;height:64px;border-radius:50%;flex:none;
+    background:conic-gradient(var(--c) calc(var(--p) * 1%), #e9eef5 0);
+    transition:transform .25s ease}
+  .att:hover .ring{transform:scale(1.05)}
+  .ring::before{content:"";position:absolute;inset:7px;border-radius:50%;background:#fff}
+  .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;
+    color:var(--sd-ink);font-variant-numeric:tabular-nums}
+  .is-fail .ring{--c:var(--sd-bad)}
+
+  .att-info{flex:1 1 200px;min-width:0}
+  .att-title{font-weight:800;color:var(--sd-ink);font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .att-meta{font-size:12.5px;color:var(--sd-mut);margin-top:2px}
+  .latest-tag{background:var(--sd-blue);color:#fff;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;
+    animation:pulseTag 2s ease-in-out infinite}
+  @keyframes pulseTag{0%,100%{box-shadow:0 0 0 0 rgba(78,115,223,.55)}50%{box-shadow:0 0 0 6px rgba(78,115,223,0)}}
+
+  /* mini progress bar under header */
+  .att-progress{margin-top:8px;height:5px;background:#eef2f8;border-radius:99px;overflow:hidden;max-width:280px}
+  .att-progress > span{display:block;height:100%;border-radius:99px;
+    background:linear-gradient(90deg,#4e73df,#2aa7b8);
+    transform-origin:left;transform:scaleX(0);transition:transform .9s cubic-bezier(.2,.7,.2,1)}
+  .att.is-fail .att-progress > span{background:linear-gradient(90deg,#ef5b4d,#c2271a)}
+  .att.revealed .att-progress > span{transform:scaleX(calc(var(--pv,0) / 100))}
+
+  .att-stats{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .mini{padding:6px 12px;border-radius:10px;background:var(--sd-bg);border:1px solid var(--sd-line);font-size:12.5px;
+    color:var(--sd-mut);font-weight:600;white-space:nowrap;transition:background .2s, transform .2s}
+  .mini:hover{background:#eef2f9;transform:translateY(-1px)}
+  .mini b{color:var(--sd-ink)}
+  .pill{padding:5px 12px;border-radius:99px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;border:1px solid;
+    transition:transform .2s}
+  .pill:hover{transform:translateY(-1px)}
+  .pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.pass{background:var(--sd-okbg);color:#0f7d52;border-color:#bfebd4}
+  .pill.fail{background:var(--sd-badbg);color:#b42318;border-color:#f6c9c6}
+  .chev{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--sd-mut);
+    background:var(--sd-bg);transition:transform .3s ease,background .2s,color .2s}
+  .att:hover .chev{background:#eef2f9;color:var(--sd-ink)}
+  .att.open .chev{transform:rotate(180deg);background:#e9f1ff;color:var(--sd-blue)}
+
+  /* smoother expand/collapse with max-height */
+  .att-body{max-height:0;overflow:hidden;border-top:1px solid transparent;background:var(--sd-bg);
+    transition:max-height .45s cubic-bezier(.2,.7,.2,1), padding .3s ease, border-color .3s ease;padding:0 18px}
+  .att.open .att-body{max-height:20000px;border-top-color:var(--sd-line);padding:16px 18px}
+
+  /* ---------- question cards ---------- */
+  .qa{display:flex;gap:14px;padding:14px 16px;margin-bottom:10px;background:#fff;border:1px solid var(--sd-line);border-radius:12px;
+    border-left:4px solid var(--sd-ok);
+    transition:transform .2s ease, box-shadow .2s ease, border-color .2s}
+  .qa:hover{transform:translateX(2px);box-shadow:0 6px 18px -12px rgba(31,45,61,.35)}
+  .qa.bad{border-left-color:var(--sd-bad)} .qa.skip{border-left-color:#aab4c3}
+  .qa:last-child{margin-bottom:0}
+  .qa-no{width:32px;height:32px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:13px;background:var(--sd-okbg);color:#0f7d52}
+  .qa.bad .qa-no{background:var(--sd-badbg);color:#b42318} .qa.skip .qa-no{background:#eef1f6;color:var(--sd-mut)}
+  .qa-main{flex:1;min-width:0}
+  .qa-q{font-weight:700;color:var(--sd-ink);margin-bottom:10px;line-height:1.4}
+  .qa-opts{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:10px;font-size:13.5px;font-weight:600;
+    line-height:1.35;border:1px solid;transition:transform .15s, box-shadow .15s}
+  .chip:hover{transform:translateY(-1px);box-shadow:0 4px 12px -8px rgba(31,45,61,.4)}
+  .chip small{display:block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;opacity:.75}
+  .chip.given-ok{background:var(--sd-okbg);color:#0f7d52;border-color:#bfebd4}
+  .chip.given-bad{background:var(--sd-badbg);color:#b42318;border-color:#f6c9c6}
+  .chip.given-skip{background:#eef1f6;color:var(--sd-mut);border-color:var(--sd-line)}
+  .chip.right{background:#fff;color:#0f7d52;border:1px dashed #86d5b0}
+  .qa-marks{flex:none;align-self:center;text-align:center;min-width:64px;padding:6px 10px;border-radius:10px;background:var(--sd-bg);
+    border:1px solid var(--sd-line);font-weight:800;color:var(--sd-ink);font-size:14px;font-variant-numeric:tabular-nums}
+  .qa-marks small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--sd-mut);font-weight:700}
+  .sd-empty{padding:26px;text-align:center;color:var(--sd-mut)}
+
+  /* floating back-to-top */
+  .sd-top{position:fixed;right:20px;bottom:20px;width:44px;height:44px;border-radius:50%;background:var(--sd-blue);color:#fff;
+    border:0;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
+    box-shadow:0 8px 20px -8px rgba(78,115,223,.7);opacity:0;pointer-events:none;transform:translateY(10px);
+    transition:opacity .25s, transform .25s}
+  .sd-top.show{opacity:1;pointer-events:auto;transform:translateY(0)}
+  .sd-top:hover{background:#3b63d4}
+
+  @media (max-width:576px){
+    .sd-hero{padding:20px 18px}.sd-back{margin-left:0}
+    .qa{flex-wrap:wrap}.qa-marks{align-self:flex-start}
+    .sd-timeline{padding-left:22px}.att::before{left:-22px}
+    .att-progress{max-width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  @media print{
+    .sd-back,.sd-filter,.sd-expand-all,.sd-top,.chev{display:none!important}
+    .att-body{max-height:none!important;padding:16px 18px!important;border-top:1px solid var(--sd-line)!important}
+    .sd-hero{background:#1d4ea0!important;animation:none!important}
+  }
+</style>
+
+<!-- ===================== PROFILE HERO ===================== -->
+<div class="sd-hero">
+  <div class="sd-hero-row">
+    <div class="sd-avatar">{{ person.participant_name|default:"?"|slice:":1"|upper }}</div>
+    <div class="sd-who">
+      <h2>{{ person.participant_name|default:"—" }}</h2>
+      <div class="sd-tags">
+        {% if person.participant_mobile %}
+          <span class="sd-tag copyable" data-copy="{{ person.participant_mobile }}" title="{% translate 'Click to copy' %}">
+            <i class="fas fa-phone-alt"></i>{{ person.participant_mobile }}
+          </span>
+        {% endif %}
+        {% if person.employee_id or person.contractor_id %}
+          <span class="sd-tag">
+            <i class="fas fa-id-badge"></i>{{ person.employee_id|default:person.contractor_id }}
+          </span>
+        {% endif %}
+        <span class="sd-tag"><i class="fas fa-user-tag"></i>{{ person.user_category.name|default:"—" }}</span>
+        <span class="sd-tag"><i class="fas fa-industry"></i>{{ person.plant.name|default:"—" }}</span>
+      </div>
+    </div>
+    <a href="{% url 'induction:scorecard_list' %}" class="sd-back">
+      <i class="fas fa-arrow-left"></i>{% translate "Back to Scorecard" %}
+    </a>
+  </div>
+</div>
+
+<!-- ===================== SUMMARY TILES ===================== -->
+{% with latest=attempts.0.attempt %}
+<div class="sd-tiles">
+  <div class="sd-tile">
+    <i class="fas fa-redo t-blue"></i>
+    <div><b data-count="{{ attempts|length }}">0</b><span>{% translate "Total Attempts" %}</span></div>
+  </div>
+  <div class="sd-tile">
+    <i class="fas fa-percentage t-teal"></i>
+    <div><b data-count="{{ latest.score_percentage|floatformat:'-2' }}" data-suffix="%">0%</b><span>{% translate "Latest Score" %}</span></div>
+  </div>
+  <div class="sd-tile">
+    {% if latest.result == 'PASS' %}
+      <i class="fas fa-check t-green"></i>
+      <div><b>{% translate "Passed" %}</b><span>{% translate "Latest Result" %}</span></div>
+    {% else %}
+      <i class="fas fa-times t-red"></i>
+      <div><b>{% translate "Failed" %}</b><span>{% translate "Latest Result" %}</span></div>
+    {% endif %}
+  </div>
+  <div class="sd-tile">
+    <i class="fas fa-calendar-check t-blue"></i>
+    <div><b style="font-size:16px">{{ latest.submitted_at|date:"d M Y" }}</b><span>{{ latest.submitted_at|date:"H:i" }} · {% translate "Last Attempt" %}</span></div>
+  </div>
+</div>
+{% endwith %}
+
+<!-- ===================== ATTEMPTS ===================== -->
+<div class="sd-section">
+  <h5><i class="fas fa-clipboard-list mr-2 text-muted"></i>{% translate "All Attempts" %}</h5>
+  <div class="sd-controls">
+    <div class="sd-filter" role="group" aria-label="{% translate 'Filter attempts' %}">
+      <button type="button" class="active" data-filter="all">{% translate "All" %}</button>
+      <button type="button" data-filter="pass">{% translate "Passed" %}</button>
+      <button type="button" data-filter="fail">{% translate "Failed" %}</button>
+    </div>
+    <button type="button" class="sd-expand-all" id="sdExpandAll">
+      <i class="fas fa-expand-alt"></i><span>{% translate "Expand all" %}</span>
+    </button>
+  </div>
+</div>
+
+<div class="sd-timeline" id="sdTimeline">
+  {% for item in attempts %}
+  {% with a=item.attempt %}
+ <div class="att {% if a.result == 'PASS' %}is-pass{% else %}is-fail{% endif %}"
+       data-result="{% if a.result == 'PASS' %}pass{% else %}fail{% endif %}"
+       style="--pv:{{ a.score_percentage|floatformat:'0' }}">
+
+    <div class="att-head" role="button" tabindex="0"
+         aria-expanded="false">
+      <div class="ring" style="--p:{{ a.score_percentage|floatformat:'0' }}"><b>{{ a.score_percentage|floatformat:"0" }}%</b></div>
+
+      <div class="att-info">
+        <div class="att-title">
+          {% translate "Attempt" %} #{{ a.attempt_no }}
+          {% if forloop.first %}<span class="latest-tag">{% translate "Latest" %}</span>{% endif %}
+        </div>
+        <div class="att-meta">
+          <i class="far fa-clock mr-1"></i>{{ a.submitted_at|date:"d M Y, H:i" }}
+          {% if a.language %}&nbsp;·&nbsp;<i class="fas fa-language mr-1"></i>{{ a.language.name }}{% endif %}
+        </div>
+        <div class="att-progress" aria-hidden="true">
+          <span style="--pv:{{ a.score_percentage|floatformat:'0' }}"></span>
+        </div>
+      </div>
+
+      <div class="att-stats">
+        <span class="mini"><b>{{ item.right }}</b> / {{ item.answers|length }} {% translate "correct" %}</span>
+        <span class="mini"><b>{{ a.obtained_marks|floatformat:"-2" }}</b> / {{ a.total_marks|floatformat:"-2" }} {% translate "marks" %}</span>
+        {% if a.result == 'PASS' %}
+          <span class="pill pass">{% translate "Passed" %}</span>
+        {% else %}
+          <span class="pill fail">{% translate "Failed" %}</span>
+        {% endif %}
+      </div>
+
+      <span class="chev"><i class="fas fa-chevron-down"></i></span>
+    </div>
+
+    <div class="att-body">
+      {% for x in item.answers %}
+      <div class="qa {% if not x.selected %}skip{% elif not x.is_ok %}bad{% endif %}">
+        <div class="qa-no">{{ x.no }}</div>
+        <div class="qa-main">
+          <div class="qa-q">{{ x.question }}</div>
+          <div class="qa-opts">
+            {% if x.selected %}
+              <span class="chip {% if x.is_ok %}given-ok{% else %}given-bad{% endif %}">
+                <i class="fas {% if x.is_ok %}fa-check-circle{% else %}fa-times-circle{% endif %} mt-1"></i>
+                <span><small>{% translate "Answer given" %}</small>{{ x.selected }}</span>
+              </span>
+            {% else %}
+              <span class="chip given-skip">
+                <i class="fas fa-minus-circle mt-1"></i>
+                <span><small>{% translate "Answer given" %}</small>{% translate "Not answered" %}</span>
+              </span>
+            {% endif %}
+            {% if not x.is_ok and x.correct %}
+              <span class="chip right">
+                <i class="fas fa-lightbulb mt-1"></i>
+                <span><small>{% translate "Correct answer" %}</small>{{ x.correct }}</span>
+              </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="qa-marks"><small>{% translate "Marks" %}</small>{{ x.marks|floatformat:"-2" }}/{{ x.max|floatformat:"-2" }}</div>
+      </div>
+      {% empty %}
+      <div class="sd-empty"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>{% translate "No answers recorded for this attempt." %}</div>
+      {% endfor %}
+    </div>
+
+  </div>
+  {% endwith %}
+  {% endfor %}
+</div>
+
+<!-- floating scroll-to-top -->
+<button type="button" class="sd-top" id="sdTop" aria-label="{% translate 'Back to top' %}">
+  <i class="fas fa-arrow-up"></i>
+</button>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+     1) COUNT-UP ANIMATION FOR SUMMARY TILES
+     ============================================================ */
+  function animateCount(el) {
+    var target = parseFloat(el.getAttribute('data-count') || '0');
+    if (isNaN(target)) return;
+    var suffix = el.getAttribute('data-suffix') || '';
+    var start = 0;
+    var duration = 900;
+    var startTime = null;
+    var decimals = (String(target).split('.')[1] || '').length;
+
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var p = Math.min((ts - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      var val = start + (target - start) * eased;
+      el.textContent = (decimals ? val.toFixed(decimals) : Math.round(val)) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  document.querySelectorAll('[data-count]').forEach(function (el) {
+    // start at 0 so user sees the count-up
+    el.textContent = '0' + (el.getAttribute('data-suffix') || '');
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries, obs) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            animateCount(el);
+            obs.unobserve(el);
+          }
+        });
+      }, { threshold: 0.4 });
+      io.observe(el);
+    } else {
+      animateCount(el);
+    }
+  });
+
+  /* ============================================================
+     2) REVEAL ATTEMPTS ON SCROLL (for progress bar animation)
+     ============================================================ */
+  var attCards = document.querySelectorAll('.att');
+  if ('IntersectionObserver' in window) {
+    var revealIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('revealed');
+          revealIO.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    attCards.forEach(function (c) { revealIO.observe(c); });
+  } else {
+    attCards.forEach(function (c) { c.classList.add('revealed'); });
+  }
+
+  /* ============================================================
+     3) RIPPLE EFFECT ON ATTEMPT HEADERS
+     ============================================================ */
+  function makeRipple(e) {
+    var head = e.currentTarget;
+    var rect = head.getBoundingClientRect();
+    var size = Math.max(rect.width, rect.height);
+    var x = e.clientX - rect.left - size / 2;
+    var y = e.clientY - rect.top - size / 2;
+    var r = document.createElement('span');
+    r.className = 'ripple';
+    r.style.width = r.style.height = size + 'px';
+    r.style.left = x + 'px';
+    r.style.top = y + 'px';
+    head.appendChild(r);
+    setTimeout(function () { r.remove(); }, 650);
+  }
+
+  /* ============================================================
+     4) EXPAND / COLLAPSE WITH KEYBOARD SUPPORT
+     ============================================================ */
+  function toggleCard(card, head) {
+    var open = card.classList.toggle('open');
+    if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    syncExpandAllLabel();
+  }
+
+  document.querySelectorAll('.att-head').forEach(function (head) {
+    head.addEventListener('click', function (e) {
+      makeRipple(e);
+      toggleCard(head.closest('.att'), head);
+    });
+    head.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCard(head.closest('.att'), head);
+      }
+    });
+  });
+
+  /* ============================================================
+     5) FILTER (ALL / PASS / FAIL)
+     ============================================================ */
+  var filterBtns = document.querySelectorAll('.sd-filter button');
+  function applyFilter(kind) {
+    filterBtns.forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-filter') === kind);
+    });
+    attCards.forEach(function (card) {
+      var res = card.getAttribute('data-result');
+      var show = kind === 'all' || res === kind;
+      card.classList.toggle('hidden-by-filter', !show);
+    });
+    syncExpandAllLabel();
+  }
+  filterBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      applyFilter(b.getAttribute('data-filter'));
+    });
+  });
+
+  /* ============================================================
+     6) EXPAND ALL / COLLAPSE ALL
+     ============================================================ */
+  var expandBtn = document.getElementById('sdExpandAll');
+  function visibleCards() {
+    return Array.prototype.filter.call(attCards, function (c) {
+      return !c.classList.contains('hidden-by-filter');
+    });
+  }
+  function syncExpandAllLabel() {
+    if (!expandBtn) return;
+    var cards = visibleCards();
+    var allOpen = cards.length > 0 && cards.every(function (c) { return c.classList.contains('open'); });
+    expandBtn.querySelector('span').textContent = allOpen
+      ? expandBtn.getAttribute('data-collapse-label')
+      : expandBtn.getAttribute('data-expand-label');
+    expandBtn.querySelector('i').className = allOpen ? 'fas fa-compress-alt' : 'fas fa-expand-alt';
+  }
+  if (expandBtn) {
+    // read translated labels from a hidden data attr, set inline to avoid extra markup
+    expandBtn.setAttribute('data-expand-label', '{% translate "Expand all" %}');
+    expandBtn.setAttribute('data-collapse-label', '{% translate "Collapse all" %}');
+    expandBtn.addEventListener('click', function () {
+      var cards = visibleCards();
+      var allOpen = cards.length > 0 && cards.every(function (c) { return c.classList.contains('open'); });
+      cards.forEach(function (c) {
+        var head = c.querySelector('.att-head');
+        c.classList.toggle('open', !allOpen);
+        if (head) head.setAttribute('aria-expanded', (!allOpen) ? 'true' : 'false');
+      });
+      syncExpandAllLabel();
+    });
+  }
+  syncExpandAllLabel();
+
+  /* ============================================================
+     7) COPY-TO-CLIPBOARD ON MOBILE TAG
+     ============================================================ */
+  document.querySelectorAll('.sd-tag.copyable').forEach(function (tag) {
+    tag.addEventListener('click', function () {
+      var text = tag.getAttribute('data-copy') || '';
+      if (!text) return;
+      var done = function () {
+        var old = tag.querySelector('i');
+        var orig = old.className;
+        old.className = 'fas fa-check';
+        tag.style.background = 'rgba(28,200,138,.35)';
+        setTimeout(function () {
+          old.className = orig;
+          tag.style.background = '';
+        }, 1200);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function(){});
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        ta.remove();
+      }
+    });
+  });
+
+  /* ============================================================
+     8) FLOATING BACK-TO-TOP
+     ============================================================ */
+  var topBtn = document.getElementById('sdTop');
+  if (topBtn) {
+    window.addEventListener('scroll', function () {
+      if (window.scrollY > 400) topBtn.classList.add('show');
+      else topBtn.classList.remove('show');
+    }, { passive: true });
+    topBtn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+})();
+</script>
+{% endblock %}

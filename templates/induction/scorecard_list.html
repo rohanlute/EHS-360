@@ -1,0 +1,613 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% translate "Scorecard" %}{% endblock %}
+{% block page_title %}{% translate "Scorecard" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">{% translate "Home" %}</a></li>
+<li class="breadcrumb-item"><a href="#">{% translate "Induction Management" %}</a></li>
+<li class="breadcrumb-item active">{% translate "Scorecard" %}</li>
+{% endblock %}
+
+{% block content %}
+<style>
+  .ind-stat {
+    border-radius: 10px; padding: 16px 20px;
+    background: #fff; border: 1px solid #e3e6f0;
+    display: flex; align-items: center; gap: 14px;
+    transition: transform .15s ease, box-shadow .15s ease;
+    height: 100%;
+  }
+  .ind-stat:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.06); }
+  .ind-stat-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #fff; flex-shrink: 0;
+  }
+  .ind-stat-body b { display: block; font-size: 22px; line-height: 1.1; color: #2c3e50; }
+  .ind-stat-body span { font-size: 12.5px; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; }
+  .ind-stat-icon.bg-primary  { background: linear-gradient(135deg, #4e73df, #2e59d9); }
+  .ind-stat-icon.bg-success  { background: linear-gradient(135deg, #1cc88a, #13855c); }
+  .ind-stat-icon.bg-danger   { background: linear-gradient(135deg, #e74a3b, #be2617); }
+  .ind-stat-icon.bg-info     { background: linear-gradient(135deg, #36b9cc, #258391); }
+
+  .ind-toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    padding: 14px 16px; background: #f8f9fc;
+    border-radius: 10px; margin-bottom: 12px;
+    border: 1px solid #e3e6f0;
+  }
+  .ind-toolbar .search-wrap { flex: 1 1 220px; position: relative; }
+  .ind-toolbar .search-wrap i {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: #adb5bd; pointer-events: none;
+  }
+  .ind-toolbar .search-wrap input {
+    padding-left: 36px; border-radius: 8px;
+    border: 1px solid #d1d3e2; height: 40px;
+  }
+  .ind-toolbar .search-wrap input:focus {
+    border-color: #4e73df; box-shadow: 0 0 0 .15rem rgba(78,115,223,.2);
+  }
+
+  .ind-pills { display: flex; gap: 4px; background: #fff; padding: 4px; border-radius: 8px; border: 1px solid #d1d3e2; }
+  .ind-pills a {
+    padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    color: #6c757d; text-decoration: none; transition: all .15s;
+  }
+  .ind-pills a:hover { color: #4e73df; background: #f1f3f8; }
+  .ind-pills a.active { background: #4e73df; color: #fff; }
+
+  /* ================== MULTI-SELECT DROPDOWN ================== */
+  .ms {
+    position: relative;
+    display: inline-block;
+    min-width: 190px;
+  }
+  .ms > summary {
+    list-style: none;
+    cursor: pointer;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 8px;
+    border: 1px solid #d1d3e2;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #2c3e50;
+    user-select: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .ms > summary::-webkit-details-marker { display: none; }
+  .ms > summary::after {
+    content: '\f107';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-left: auto;
+    color: #adb5bd;
+    font-size: 12px;
+    transition: transform .2s;
+  }
+  .ms[open] > summary::after { transform: rotate(180deg); }
+  .ms > summary:hover { border-color: #4e73df; }
+  .ms[open] > summary { border-color: #4e73df; box-shadow: 0 0 0 .15rem rgba(78,115,223,.2); }
+
+  .ms > summary .ms-label { color: #6c757d; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-right: 2px; }
+  .ms > summary .ms-value { color: #2c3e50; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+  .ms > summary.has-sel { border-color: #4e73df; background: #eef3ff; }
+
+  .ms-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 20;
+    width: 280px;
+    background: #fff;
+    border: 1px solid #e3e6f0;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px -10px rgba(31,45,61,.25);
+    padding: 8px 0 0;
+    animation: msIn .15s ease-out;
+  }
+  @keyframes msIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+  .ms-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px 6px;
+    border-bottom: 1px solid #eef1f6;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6c757d;
+  }
+  .ms-head .ms-actions { display: flex; gap: 6px; }
+  .ms-head .ms-actions button {
+    border: 0;
+    background: transparent;
+    color: #4e73df;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  .ms-head .ms-actions button:hover { background: #f1f3f8; }
+
+  .ms-body {
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+  .ms-body::-webkit-scrollbar { width: 8px; }
+  .ms-body::-webkit-scrollbar-thumb { background: #d1d3e2; border-radius: 4px; }
+
+  .ms-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: #2c3e50;
+    user-select: none;
+  }
+  .ms-item:hover { background: #f8f9fc; }
+  .ms-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #4e73df;
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .ms-item span {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ms-empty { padding: 14px; text-align: center; color: #adb5bd; font-size: 13px; }
+
+  /* ================== ACTIVE CHIPS ================== */
+  .active-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 14px;
+  }
+  .active-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: #eef3ff;
+    border: 1px solid #c9d6f5;
+    color: #2f4bbf;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .active-chip .cat { color: #6c757d; font-weight: 500; margin-right: 2px; }
+  .active-chip a {
+    color: #2f4bbf;
+    text-decoration: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(78,115,223,.15);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: background .15s;
+  }
+  .active-chip a:hover { background: rgba(78,115,223,.35); color: #fff; }
+
+  /* ================== TABLE ================== */
+  .ind-table thead th {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
+    color: #6c757d; background: #f8f9fc; border-top: none;
+    padding: 12px 16px; font-weight: 600; white-space: nowrap;
+  }
+  .ind-table tbody td { padding: 14px 16px; vertical-align: middle; }
+  .ind-table tbody tr { transition: background .1s; }
+  .ind-table tbody tr:hover { background: #f8f9fc; }
+
+  .ind-empty { padding: 60px 20px; text-align: center; }
+  .ind-empty i { font-size: 54px; color: #d1d3e2; margin-bottom: 16px; display: block; }
+  .ind-empty h5 { color: #5a5c69; margin-bottom: 8px; }
+  .ind-empty p { color: #858796; margin-bottom: 20px; }
+
+  .status-pill {
+    padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px; border: 1px solid;
+  }
+  .status-pill::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  }
+  .status-pill.pass { background: #dcf5e8; color: #13855c; border-color: #b5e3cb; }
+  .status-pill.fail { background: #fdeaea; color: #c62828; border-color: #f3c3c3; }
+
+  .score-badge {
+    background: #f1f3f8; padding: 4px 10px; border-radius: 6px;
+    font-weight: 700; color: #2c3e50;
+  }
+
+  .btn-view {
+    border-radius: 8px; font-weight: 600; font-size: 12.5px; padding: 5px 12px;
+    color: #4e73df; border: 1px solid #4e73df; background: #fff; white-space: nowrap;
+    transition: all .15s;
+  }
+  .btn-view:hover { background: #4e73df; color: #fff; text-decoration: none; }
+</style>
+
+<!-- ===================== STATS ===================== -->
+<div class="row mb-3">
+  <div class="col-6 col-md-3 mb-2">
+    <div class="ind-stat">
+      <div class="ind-stat-icon bg-primary"><i class="fas fa-users"></i></div>
+      <div class="ind-stat-body">
+        <b>{{ stats.total }}</b>
+        <span>{% translate "Total Participants" %}</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3 mb-2">
+    <div class="ind-stat">
+      <div class="ind-stat-icon bg-success"><i class="fas fa-check-circle"></i></div>
+      <div class="ind-stat-body">
+        <b>{{ stats.passed }}</b>
+        <span>{% translate "Passed" %}</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3 mb-2">
+    <div class="ind-stat">
+      <div class="ind-stat-icon bg-danger"><i class="fas fa-times-circle"></i></div>
+      <div class="ind-stat-body">
+        <b>{{ stats.failed }}</b>
+        <span>{% translate "Failed" %}</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3 mb-2">
+    <div class="ind-stat">
+      <div class="ind-stat-icon bg-info"><i class="fas fa-chart-line"></i></div>
+      <div class="ind-stat-body">
+        <b>{{ stats.rate }}%</b>
+        <span>{% translate "Pass Rate" %}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MAIN CARD ===================== -->
+<div class="ehs-card">
+  <div class="card-header">
+    <div class="row align-items-center">
+      <div class="col">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-trophy mr-2"></i>{% translate "Induction Scorecard" %}
+        </h3>
+      </div>
+      <div class="col-auto">
+        <a class="btn btn-primary btn-sm" href="{% url 'induction:scorecard_export' %}?{{ filters.urlencode }}">
+          <i class="fas fa-file-excel mr-1"></i> {% translate "Download Excel" %}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- ============ TOOLBAR ============ -->
+    <form method="GET" class="ind-toolbar" id="filterForm">
+
+      <!-- SEARCH -->
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" name="q" class="form-control"
+               placeholder="{% translate 'Search name / mobile / ID...' %}"
+               value="{{ filters.q|default:'' }}" onchange="this.form.submit()">
+      </div>
+
+      <!-- ============ MULTI-SELECT: PLANTS ============ -->
+      <details class="ms" id="msPlants">
+        <summary class="{% if selected_plants %}has-sel{% endif %}" onclick="toggleOne(event, 'msPlants')">
+          <span class="ms-label">{% translate "Plants" %}</span>
+          <span class="ms-value" id="msPlantsLabel">
+            {% if selected_plants %}
+              {{ selected_plants|length }} {% translate "selected" %}
+            {% else %}
+              {% translate "All" %}
+            {% endif %}
+          </span>
+        </summary>
+        <div class="ms-panel" onclick="event.stopPropagation()">
+          <div class="ms-head">
+            <span>{% translate "Filter by plant" %}</span>
+            <div class="ms-actions">
+              <button type="button" onclick="selectAllIn('msPlants', true)">{% translate "All" %}</button>
+              <button type="button" onclick="selectAllIn('msPlants', false)">{% translate "Clear" %}</button>
+            </div>
+          </div>
+          <div class="ms-body">
+            {% for p in plants %}
+            <label class="ms-item">
+              <input type="checkbox" name="plant" value="{{ p.id }}"
+                     {% if p.id in selected_plants %}checked{% endif %}
+                     onchange="onMsChange('msPlants', '{{ selected_plants|length|default:0 }}')">
+              <span>{{ p.name }}</span>
+            </label>
+            {% empty %}
+            <div class="ms-empty">{% translate "No plants available" %}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </details>
+
+      <!-- ============ MULTI-SELECT: CATEGORIES ============ -->
+      <details class="ms" id="msCats">
+        <summary class="{% if selected_categories %}has-sel{% endif %}" onclick="toggleOne(event, 'msCats')">
+          <span class="ms-label">{% translate "Categories" %}</span>
+          <span class="ms-value" id="msCatsLabel">
+            {% if selected_categories %}
+              {{ selected_categories|length }} {% translate "selected" %}
+            {% else %}
+              {% translate "All" %}
+            {% endif %}
+          </span>
+        </summary>
+        <div class="ms-panel" onclick="event.stopPropagation()">
+          <div class="ms-head">
+            <span>{% translate "Filter by category" %}</span>
+            <div class="ms-actions">
+              <button type="button" onclick="selectAllIn('msCats', true)">{% translate "All" %}</button>
+              <button type="button" onclick="selectAllIn('msCats', false)">{% translate "Clear" %}</button>
+            </div>
+          </div>
+          <div class="ms-body">
+            {% for c in categories %}
+            <label class="ms-item">
+              <input type="checkbox" name="category" value="{{ c.id }}"
+                     {% if c.id in selected_categories %}checked{% endif %}
+                     onchange="onMsChange('msCats', '{{ selected_categories|length|default:0 }}')">
+              <span>{{ c.name }}</span>
+            </label>
+            {% empty %}
+            <div class="ms-empty">{% translate "No categories available" %}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </details>
+
+      <!-- RESULT PILLS -->
+      <div class="ind-pills">
+        <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}"
+           class="{% if not filters.result %}active{% endif %}">{% translate "All" %}</a>
+        <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}result=PASS"
+           class="{% if filters.result == 'PASS' %}active{% endif %}">{% translate "Passed" %}</a>
+        <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}result=FAIL"
+           class="{% if filters.result == 'FAIL' %}active{% endif %}">{% translate "Failed" %}</a>
+      </div>
+
+      <input type="hidden" name="result" value="{{ filters.result|default:'' }}">
+
+      <!-- APPLY button (optional — auto-submit also works on checkbox change) -->
+      <button type="submit" class="btn btn-sm btn-outline-primary" style="height:40px;border-radius:8px;">
+        <i class="fas fa-filter mr-1"></i>{% translate "Apply" %}
+      </button>
+      <a href="{% url 'induction:scorecard_list' %}" class="btn btn-sm btn-outline-secondary" style="height:40px;border-radius:8px;display:inline-flex;align-items:center;">
+        <i class="fas fa-times mr-1"></i>{% translate "Reset" %}
+      </a>
+
+    </form>
+
+    <!-- ============ ACTIVE FILTER CHIPS ============ -->
+    {% if selected_plants or selected_categories or filters.q or filters.result %}
+    <div class="active-chips">
+
+      {% if filters.q %}
+        <span class="active-chip">
+          <span class="cat">{% translate "Search:" %}</span>
+          {{ filters.q }}
+          <a href="?{% if selected_plants %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% endif %}{% if selected_categories %}{% for c in selected_categories %}category={{ c }}&{% endfor %}{% endif %}{% if filters.result %}result={{ filters.result }}{% endif %}"
+             title="{% translate 'Remove' %}"><i class="fas fa-times"></i></a>
+        </span>
+      {% endif %}
+
+      {% for p in selected_plant_objs %}
+        <span class="active-chip">
+          <span class="cat">{% translate "Plant:" %}</span>
+          {{ p.name }}
+          <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for pid in selected_plants %}{% if pid != p.id %}plant={{ pid }}&{% endif %}{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}{% if filters.result %}result={{ filters.result }}{% endif %}"
+             title="{% translate 'Remove' %}"><i class="fas fa-times"></i></a>
+        </span>
+      {% endfor %}
+
+      {% for c in selected_category_objs %}
+        <span class="active-chip">
+          <span class="cat">{% translate "Category:" %}</span>
+          {{ c.name }}
+          <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for pid in selected_plants %}plant={{ pid }}&{% endfor %}{% for cid in selected_categories %}{% if cid != c.id %}category={{ cid }}&{% endif %}{% endfor %}{% if filters.result %}result={{ filters.result }}{% endif %}"
+             title="{% translate 'Remove' %}"><i class="fas fa-times"></i></a>
+        </span>
+      {% endfor %}
+
+      {% if filters.result %}
+        <span class="active-chip">
+          <span class="cat">{% translate "Result:" %}</span>
+          {{ filters.result }}
+          <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}"
+             title="{% translate 'Remove' %}"><i class="fas fa-times"></i></a>
+        </span>
+      {% endif %}
+
+    </div>
+    {% endif %}
+
+    <!-- ============ TABLE ============ -->
+    {% if rows %}
+    <div class="table-responsive">
+      <table class="table ind-table mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>{% translate "Participant" %}</th>
+            <th>{% translate "Mobile" %}</th>
+            <th>{% translate "ID" %}</th>
+            <th>{% translate "Category" %}</th>
+            <th>{% translate "Plant" %}</th>
+            <th class="text-center">{% translate "Score %" %}</th>
+            <th class="text-center">{% translate "Result" %}</th>
+            <th class="text-center">{% translate "Attempt" %}</th>
+            <th>{% translate "Submitted" %}</th>
+            <th class="text-center">{% translate "Action" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td class="text-muted small">{{ forloop.counter }}</td>
+            <td class="font-weight-bold" style="color:#2c3e50;">
+              <i class="fas fa-user text-muted mr-1"></i>{{ r.name }}
+            </td>
+            <td>{{ r.mobile|default:"—" }}</td>
+            <td>
+              {% if r.employee_id %}{{ r.employee_id }}{% endif %}
+              {% if r.contractor_id %}{{ r.contractor_id }}{% endif %}
+              {% if not r.employee_id and not r.contractor_id %}—{% endif %}
+            </td>
+            <td>{{ r.category|default:"—" }}</td>
+            <td>{{ r.plant|default:"—" }}</td>
+            <td class="text-center">
+              {% if r.score is not None %}
+                <span class="score-badge">{{ r.score|floatformat:"-2" }}%</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if r.result == 'PASS' %}
+                <span class="status-pill pass">{% translate "Passed" %}</span>
+              {% else %}
+                <span class="status-pill fail">{% translate "Failed" %}</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <span class="badge badge-light border">#{{ r.attempt_no }}</span>
+              {% if r.attempt_count > 1 %}
+                <div class="text-muted small">{{ r.attempt_count }} {% translate "total" %}</div>
+              {% endif %}
+            </td>
+            <td class="text-muted small">
+              {{ r.submitted_at|date:"d M Y, H:i" }}
+            </td>
+            <td class="text-center">
+              <a href="{% url 'induction:scorecard_detail' r.id %}" class="btn-view"
+                 title="{% translate 'View all attempts with questions and answers' %}">
+                <i class="fas fa-eye mr-1"></i>{% translate "View" %}
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% else %}
+    <div class="ind-empty">
+      <i class="fas fa-clipboard-check"></i>
+      <h5>{% translate "No participants found" %}</h5>
+      <p>{% translate "There are no submitted attempts matching your current filters." %}</p>
+      <a href="{% url 'induction:scorecard_list' %}" class="btn btn-primary">
+        <i class="fas fa-sync mr-1"></i> {% translate "Reset Filters" %}
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ===================== MULTI-SELECT JS ===================== -->
+<script>
+(function () {
+  'use strict';
+
+  // Only one dropdown open at a time; clicking outside closes them all
+  window.toggleOne = function (ev, id) {
+    // Don't preventDefault here — we DO want the <details> to toggle.
+    // We just close all others.
+    var cur = document.getElementById(id);
+    document.querySelectorAll('.ms[open]').forEach(function (d) {
+      if (d !== cur) d.removeAttribute('open');
+    });
+    // Details toggles itself; we don't need to do anything else here.
+  };
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.ms')) {
+      document.querySelectorAll('.ms[open]').forEach(function (d) {
+        d.removeAttribute('open');
+      });
+    }
+  });
+
+  window.selectAllIn = function (id, on) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.checked = on;
+    });
+    updateLabel(id);
+    submitSoon();
+  };
+
+  window.onMsChange = function (id) {
+    updateLabel(id);
+    submitSoon();
+  };
+
+  function updateLabel(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var label = el.querySelector('.ms-value');
+    var summary = el.querySelector('summary');
+    var checked = el.querySelectorAll('input[type="checkbox"]:checked').length;
+    var total = el.querySelectorAll('input[type="checkbox"]').length;
+
+    if (summary) summary.classList.toggle('has-sel', checked > 0);
+
+    if (label) {
+      if (checked === 0) {
+        label.textContent = total > 0 ? '{% translate "All" %}' : '—';
+      } else if (checked === total) {
+        label.textContent = '{% translate "All" %} (' + total + ')';
+      } else {
+        label.textContent = checked + ' {% translate "selected" %}';
+      }
+    }
+  }
+
+  // Debounced auto-submit so rapid checkbox clicking doesn't hammer the server
+  var submitTimer = null;
+  function submitSoon() {
+    clearTimeout(submitTimer);
+    submitTimer = setTimeout(function () {
+      var f = document.getElementById('filterForm');
+      if (f) f.submit();
+    }, 350);
+  }
+
+  // On page load, sync labels from current checkboxes
+  ['msPlants', 'msCats'].forEach(updateLabel);
+})();
+</script>
+
+{% endblock %}
