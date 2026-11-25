@@ -19,13 +19,20 @@ User = get_user_model()
 # ---------------------------------------------------------------------
 class UserCategory(models.Model):
     """
-    Category of the person scanning the QR: Employee, Contractor, Visitor.
-    Per-language names live in UserCategoryTranslation.
-    slug is nullable initially so existing rows can be backfilled by a
-    data migration before the unique constraint is tightened.
+    Fixed category of the person scanning the QR: employee, contractor, visitor.
+    Per-language display names live in UserCategoryTranslation.
     """
-    name = models.CharField(max_length=50, unique=True)
-    slug = models.SlugField(max_length=50, unique=True, null=True, blank=True)
+    class Slug(models.TextChoices):
+        EMPLOYEE   = 'employee',   'On-roll Employee'
+        CONTRACTOR = 'contractor', 'Contractor'
+        VISITOR    = 'visitor',    'Visitor'
+
+    slug = models.CharField(
+        max_length=20,
+        choices=Slug.choices,
+        unique=True,
+        default=Slug.EMPLOYEE,
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -33,9 +40,14 @@ class UserCategory(models.Model):
         verbose_name_plural = "User Categories"
         ordering = ['id']
 
+    @property
+    def name(self):
+        """Display name, derived from the slug — never free text."""
+        return self.get_slug_display()
+
     def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
+        if self.slug:
+            self.slug = self.slug.lower()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -318,7 +330,7 @@ class InductionAttemptQuerySet(models.QuerySet):
     def scorecard(self):
         return (
             self.filter(status='SUBMITTED')
-                .values('user_category_id', 'user_category__name',
+                .values('user_category_id', 'user_category__slug',
                         'plant_id', 'plant__name')
                 .annotate(
                     best_marks=Max('obtained_marks'),
@@ -335,7 +347,7 @@ class InductionAttemptQuerySet(models.QuerySet):
                         output_field=CharField(max_length=10),
                     )
                 )
-                .order_by('user_category__name', 'plant__name')
+                .order_by('user_category__slug', 'plant__name')
         )
 
 
