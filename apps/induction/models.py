@@ -164,7 +164,7 @@ def video_upload_path(instance, filename):
 
 class InductionVideo(models.Model):
     language = models.ForeignKey(Language, on_delete=models.PROTECT, related_name='videos')
-    file = models.FileField(upload_to=video_upload_path)
+    file = models.FileField(upload_to=video_upload_path, max_length=255)
     file_name = models.CharField(max_length=255, blank=True)
     file_size = models.BigIntegerField(null=True, blank=True)
     duration_seconds = models.PositiveIntegerField(null=True, blank=True)

@@ -1,0 +1,704 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% translate "Induction Dashboard" %}{% endblock %}
+{% block page_title %}{% translate "Induction Dashboard" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">{% translate "Home" %}</a></li>
+<li class="breadcrumb-item"><a href="#">{% translate "Induction Management" %}</a></li>
+<li class="breadcrumb-item active">{% translate "Dashboard" %}</li>
+{% endblock %}
+
+{% block content %}
+{% url 'induction:scorecard_list' as scorecard_url %}
+{% url 'induction:question_list' as question_url %}
+{% url 'induction:video_list' as video_url %}
+{% url 'induction:assign_list' as assign_url %}
+
+<style>
+.dg{--ink:#0B1B33;--mut:#64748B;--line:#E6ECF4;--bg:#F4F7FB;--card:#fff;
+  --teal:#0E8A94;--teal2:#19C6D1;--navy:#0D2547;--gold:#C9A24B;
+  --ok:#16A34A;--okbg:#E7F7EE;--bad:#DC2626;--badbg:#FDECEC;--warn:#D97706;--warnbg:#FFF4E0;--blue:#2563EB;--bluebg:#E8F0FE;
+  color:var(--ink);font-feature-settings:"tnum"}
+.dg *{box-sizing:border-box}.dg a{text-decoration:none}
+
+/* hero */
+.dg-hero{position:relative;overflow:hidden;border-radius:22px;padding:26px 28px;color:#fff;margin-bottom:18px;
+  background:radial-gradient(420px 220px at 100% -10%,rgba(25,198,209,.55),transparent 70%),radial-gradient(360px 200px at 0% 120%,rgba(201,162,75,.32),transparent 70%),linear-gradient(135deg,#091a35 0%,#0D2547 55%,#124a73 130%);
+  box-shadow:0 24px 40px -28px rgba(9,26,53,.9)}
+.dg-hero::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 18px)}
+.dg-hero>*{position:relative}
+.dg-hero-top{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-start}
+.dg-hello{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#EBD18B;font-weight:700}
+.dg-title{margin:6px 0 4px;font-size:27px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.dg-sub{margin:0;color:#B9CCE3;font-size:14px}
+.dg-tools{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.dg-pills{display:inline-flex;padding:4px;border-radius:14px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18)}
+.dg-pill{padding:7px 14px;border-radius:10px;font-size:13px;font-weight:700;color:#CFE0F2;transition:.15s}
+.dg-pill:hover{color:#fff;background:rgba(255,255,255,.12)}
+.dg-pill.on{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#fff}
+.dg-live{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer}
+.dg-live i{width:8px;height:8px;border-radius:50%;background:#8795AA;display:inline-block}
+.dg-live.on i{background:#34D17F;animation:dgp 1.8s infinite}
+@keyframes dgp{0%{box-shadow:0 0 0 0 rgba(52,209,127,.7)}70%{box-shadow:0 0 0 8px rgba(52,209,127,0)}100%{box-shadow:0 0 0 0 rgba(52,209,127,0)}}
+.dg-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.dg-act{display:inline-flex;align-items:center;gap:9px;padding:10px 15px;border-radius:13px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13.5px;font-weight:700;transition:.15s;cursor:pointer}
+.dg-act:hover{background:rgba(255,255,255,.2);color:#fff}
+.dg-act.primary{background:linear-gradient(135deg,var(--teal),var(--teal2));border-color:transparent}
+
+/* card toolbar (hidden in downloaded image) */
+.dg-tb{display:inline-flex;gap:4px}
+.dg-ib{width:30px;height:30px;border:0;border-radius:9px;background:#EEF2F7;color:var(--mut);font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:.15s}
+.dg-ib:hover{background:#DDF3F5;color:var(--teal)}
+.dg-ib.on{background:var(--teal);color:#fff}
+.dg-seg{display:inline-flex;background:#EEF2F7;border-radius:9px;padding:2px;margin-right:4px}
+.dg-seg button{border:0;background:transparent;border-radius:7px;padding:4px 9px;font-size:11.5px;font-weight:800;color:var(--mut);cursor:pointer}
+.dg-seg button.on{background:#fff;color:var(--teal);box-shadow:0 1px 3px rgba(11,27,51,.15)}
+.dg-desc{display:none;margin:0 20px 16px;padding:11px 14px;border-radius:12px;background:#F1F8F9;border-left:3px solid var(--teal);font-size:12.5px;line-height:1.55;color:#34465F;font-weight:600}
+.show-desc>.dg-desc,.dg-kpi.show-desc .dg-desc{display:block}
+
+/* KPI */
+.dg-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:18px}
+.dg-kpi{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 16px 14px;box-shadow:0 14px 28px -22px rgba(11,27,51,.35);transition:.18s;cursor:pointer}
+.dg-kpi:hover{transform:translateY(-2px)}
+.dg-kpi::after{content:"";position:absolute;right:-26px;top:-26px;width:90px;height:90px;border-radius:50%;background:var(--tone,#E8F0FE);opacity:.7}
+.dg-kpi .dg-tb{position:absolute;right:8px;bottom:8px;z-index:2;opacity:0;transition:.15s}
+.dg-kpi:hover .dg-tb,.dg-kpi:focus-within .dg-tb{opacity:1}
+.dg-kpi .dg-desc{margin:10px 0 0;font-size:11.5px;position:relative;z-index:1}
+.dg-ic{position:relative;z-index:1;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;background:var(--tone-d,#2563EB)}
+.dg-kv{position:relative;z-index:1;font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.05;margin-top:12px}
+.dg-kv small{font-size:15px;font-weight:700;color:var(--mut);margin-left:2px}
+.dg-kl{position:relative;z-index:1;font-size:11.5px;font-weight:700;color:var(--mut);letter-spacing:.07em;text-transform:uppercase;margin-top:4px}
+.dg-delta{position:relative;z-index:1;display:inline-flex;align-items:center;gap:4px;margin-top:9px;padding:3px 8px;border-radius:99px;font-size:11.5px;font-weight:800}
+.dg-delta.up{background:var(--okbg);color:var(--ok)}.dg-delta.down{background:var(--badbg);color:var(--bad)}.dg-delta.flat,.dg-delta.note{background:#EEF2F7;color:var(--mut)}
+.t-blue{--tone:#E8F0FE;--tone-d:#2563EB}.t-green{--tone:#E7F7EE;--tone-d:#16A34A}.t-teal{--tone:#E2F6F8;--tone-d:#0E8A94}
+.t-amber{--tone:#FFF4E0;--tone-d:#D97706}.t-red{--tone:#FDECEC;--tone-d:#DC2626}.t-navy{--tone:#E6ECF6;--tone-d:#0D2547}
+
+/* layout + cards */
+.dg-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:18px;align-items:start}
+.dg-col{display:grid;gap:18px;min-width:0}
+.dg-two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.dg-card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 16px 30px -24px rgba(11,27,51,.4);overflow:hidden;min-width:0}
+.dg-ch{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.dg-ct{margin:0;font-size:15.5px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+.dg-ct i{color:var(--teal)}
+.dg-badge{font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:99px;background:#EEF2F7;color:var(--mut)}
+.dg-body{padding:6px 20px 18px}
+.dg-link{font-size:12.5px;font-weight:800;color:var(--teal)}
+.dg-cv{position:relative;height:270px;margin:14px 18px 10px}
+.dg-cv.sm{height:230px}.dg-cv.tall{height:330px}
+.dg-empty{padding:34px 10px;text-align:center;color:var(--mut);font-size:14px}
+
+/* full-screen card */
+.dg-back{position:fixed;inset:0;background:rgba(9,26,53,.6);z-index:1040;backdrop-filter:blur(3px)}
+.dg-card.full,.dg-kpi.full{position:fixed!important;inset:5vh 5vw;z-index:1050;overflow:auto;transform:none!important;cursor:default}
+.dg-card.full .dg-cv{height:58vh}
+
+/* feed / attention */
+.dg-feed{list-style:none;margin:0;padding:6px 20px 14px}
+.dg-fi{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line);align-items:center}
+.dg-fi:first-child{border-top:0}
+.dg-av{width:40px;height:40px;border-radius:13px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px;background:linear-gradient(135deg,var(--navy),#1d4f86)}
+.dg-fi.pass .dg-av{background:linear-gradient(135deg,#15803D,#34D17F)}.dg-fi.fail .dg-av{background:linear-gradient(135deg,#B91C1C,#F97316)}
+.dg-fm{flex:1;min-width:0}
+.dg-fn{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dg-fs{font-size:12px;color:var(--mut);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dg-fr{text-align:right;flex:none}
+.dg-sc{font-weight:800;font-size:15px}.dg-sc.p{color:var(--ok)}.dg-sc.f{color:var(--bad)}
+.dg-ago{font-size:11.5px;color:var(--mut);font-weight:600}
+.dg-att{padding:6px 20px 14px;display:grid;gap:10px}
+.dg-ai{display:flex;gap:12px;padding:12px 14px;border-radius:14px;background:var(--warnbg);border:1px solid #F6E0B5}
+.dg-ai.red{background:var(--badbg);border-color:#F6C9C9}.dg-ai.blue{background:var(--bluebg);border-color:#C9D9F7}
+.dg-ai .ic{width:34px;height:34px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;color:var(--warn)}
+.dg-ai.red .ic{color:var(--bad)}.dg-ai.blue .ic{color:var(--blue)}
+.dg-ai b{display:block;font-size:13.5px}.dg-ai span{font-size:12.5px;color:#4B5B72;font-weight:600}
+.dg-clear{padding:26px 10px;text-align:center;color:var(--ok);font-weight:800}
+.dg-clear i{display:block;font-size:30px;margin-bottom:6px}
+
+/* heat strip + health */
+.dg-heat{display:grid;grid-template-columns:repeat(14,1fr);gap:6px;padding:14px 20px 4px}
+.dg-hc{aspect-ratio:1;border-radius:9px;background:#EDF2F8}
+.dg-hc.l1{background:#BFEFF2}.dg-hc.l2{background:#7FDDE4}.dg-hc.l3{background:#2CBFCB}.dg-hc.l4{background:#0E8A94}
+.dg-hl{display:grid;grid-template-columns:repeat(14,1fr);gap:6px;padding:0 20px 16px;font-size:10.5px;color:var(--mut);font-weight:700;text-align:center}
+.dg-health{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 20px 18px}
+.dg-hb{border:1px solid var(--line);border-radius:14px;padding:12px;background:linear-gradient(180deg,#fff,#F8FAFD)}
+.dg-hb b{font-size:21px;letter-spacing:-.02em;display:block;line-height:1.1}.dg-hb b small{font-size:13px;color:var(--mut)}
+.dg-hb span{font-size:11.5px;color:var(--mut);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.dg-stamp{text-align:center;color:var(--mut);font-size:12px;font-weight:600;margin:20px 0 4px}
+
+/* gap-free flow: every row stretches its cards to equal height */
+.dg-rows{display:grid;gap:18px}
+.dg-row{display:grid;gap:18px;align-items:stretch}
+.dg-row.r21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.dg-row.r3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dg-stack{display:grid;gap:18px;grid-template-rows:auto 1fr;min-width:0}
+.dg-card{display:flex;flex-direction:column}
+.dg-card>.dg-cv{flex:1 1 250px;min-height:250px;height:auto}
+.dg-card>.dg-cv.tall{min-height:330px}
+.dg-card>.dg-att,.dg-card>.dg-feed,.dg-card>.dg-health,.dg-card>.dg-clear{flex:1}
+.dg-card>.dg-health{align-content:center}
+.dg-card>.dg-heat+.dg-heat{flex:0}
+.dg-card.full>.dg-cv{flex:1 1 58vh}
+/* latest people */
+.dg-feed{display:flex;flex-direction:column;justify-content:space-around}
+.dg-fi{display:block;cursor:pointer;border-radius:14px;padding:12px 10px;transition:background .15s}
+.dg-fi:hover,.dg-fi:focus-visible{background:#F4F9FA;outline:0}
+.dg-fmain{display:flex;gap:12px;align-items:center}
+.dg-more{display:none;margin:12px 0 0 52px;grid-template-columns:1fr 1fr;gap:8px 14px}
+.dg-fi.open .dg-more{display:grid}
+.dg-more div{min-width:0}.dg-more dt{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:800}
+.dg-more dd{margin:1px 0 0;font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis}
+.dg-more .dg-link{grid-column:1/-1}
+
+/* plant filter */
+.dg-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:-4px 0 18px;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 28px -24px rgba(11,27,51,.35)}
+.dg-flabel{font-size:12px;font-weight:800;color:var(--mut);letter-spacing:.06em;text-transform:uppercase}
+.dg-fdrop{position:relative}
+.dg-fbtn{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line);background:#F8FAFD;border-radius:12px;padding:8px 13px;font-size:13px;font-weight:800;color:var(--ink);cursor:pointer}
+.dg-fbtn:hover,.dg-fbtn[aria-expanded="true"]{border-color:var(--teal);background:#fff}
+.dg-fbtn .fa-industry{color:var(--teal)}
+.dg-fpanel{position:absolute;left:0;top:calc(100% + 8px);z-index:1030;width:300px;max-width:88vw;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 24px 44px -16px rgba(11,27,51,.45)}
+.dg-fpanel[hidden]{display:none}
+.dg-fquick{display:flex;gap:8px;margin:8px 0}
+.dg-fquick button{border:0;background:#EEF2F7;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:800;color:var(--teal);cursor:pointer}
+.dg-flist{max-height:240px;overflow:auto;display:grid;gap:2px;margin:0 -4px}
+.dg-fopt{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer}
+.dg-fopt:hover{background:#F1F8F9}
+.dg-fopt input{width:17px;height:17px;accent-color:var(--teal);margin:0}
+.dg-ffoot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;font-weight:700;color:var(--mut)}
+.dg-apply{border:0;border-radius:10px;padding:8px 18px;font-weight:800;font-size:13px;color:#fff;background:linear-gradient(135deg,var(--teal),var(--teal2));cursor:pointer}
+.dg-selchips{display:flex;flex-wrap:wrap;gap:6px}
+.dg-sel{display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;border-radius:99px;padding:5px 6px 5px 12px;font-size:12px;font-weight:800}
+.dg-sel button{border:0;background:rgba(255,255,255,.2);color:#fff;width:18px;height:18px;border-radius:50%;line-height:1;font-size:11px;cursor:pointer;padding:0}
+.dg-sel button:hover{background:rgba(255,255,255,.4)}
+.dg-fclear{font-size:12.5px;font-weight:800;color:var(--bad)}
+
+/* downloaded-image extras */
+.dg-dlwrap{position:fixed;left:-10000px;top:0;background:#fff;padding:0}
+.dg-dlwrap .dg-card,.dg-dlwrap .dg-kpi{box-shadow:none;border-radius:0;border:0;transform:none}
+.dg-dlhead{padding:14px 20px;background:var(--navy);color:#fff;font-weight:800;font-size:13px;display:flex;justify-content:space-between;gap:16px}
+.dg-dlfoot{padding:14px 20px 16px;background:#F1F8F9;border-top:3px solid var(--teal)}
+.dg-dlfoot b{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--teal)}
+.dg-dlfoot p{margin:5px 0 0;font-size:14px;line-height:1.55;color:#22344C;font-weight:600}
+.dg-dlfoot small{display:block;margin-top:8px;color:var(--mut);font-size:11.5px;font-weight:600}
+.dg-toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:700;z-index:2000;box-shadow:0 12px 30px rgba(0,0,0,.3)}
+
+@media (max-width:1200px){.dg-kpis{grid-template-columns:repeat(3,1fr)}.dg-row.r3{grid-template-columns:1fr 1fr}}
+@media (max-width:991px){.dg-row.r21,.dg-row.r3{grid-template-columns:1fr}.dg-tools{align-items:flex-start}}
+@media (max-width:560px){.dg-kpis{grid-template-columns:repeat(2,1fr)}.dg-hero{padding:20px}.dg-title{font-size:22px}.dg-health{grid-template-columns:1fr}.dg-kv{font-size:25px}}
+@media (prefers-reduced-motion:reduce){.dg *{animation:none!important;transition:none!important}}
+</style>
+
+<div class="dg" id="dg" data-range="{{ range_label }}">
+
+  <!-- ============ HERO ============ -->
+  <section class="dg-hero">
+    <div class="dg-hero-top">
+      <div>
+        <div class="dg-hello">
+          {% if now.hour < 12 %}{% translate "Good morning" %}{% elif now.hour < 17 %}{% translate "Good afternoon" %}{% else %}{% translate "Good evening" %}{% endif %},
+          {{ request.user.get_short_name|default:request.user.username }}
+        </div>
+        <h2 class="dg-title">{% translate "Safety Induction Command Center" %}</h2>
+        <p class="dg-sub">{{ now|date:"l, d F Y" }} · {% translate "Live status of every plant, QR code and induction." %}</p>
+      </div>
+      <div class="dg-tools">
+        <div class="dg-pills">
+          {% for key, label in ranges %}<a class="dg-pill {% if key == range %}on{% endif %}" href="?range={{ key }}{{ plant_qs }}">{{ label }}</a>{% endfor %}
+        </div>
+        <button type="button" class="dg-live" id="dgLive" aria-pressed="false"><i></i><span id="dgLiveTxt">{% translate "Auto refresh off" %}</span></button>
+      </div>
+    </div>
+    <div class="dg-actions">
+      {% if assign_url %}<a class="dg-act primary" href="{{ assign_url }}"><i class="fas fa-qrcode"></i> {% translate "Plant QR & assignments" %}</a>{% endif %}
+      {% if scorecard_url %}<a class="dg-act" href="{{ scorecard_url }}"><i class="fas fa-table"></i> {% translate "Scorecard" %}</a>{% endif %}
+      {% if question_url %}<a class="dg-act" href="{{ question_url }}"><i class="fas fa-question-circle"></i> {% translate "Questions" %}</a>{% endif %}
+      {% if video_url %}<a class="dg-act" href="{{ video_url }}"><i class="fas fa-video"></i> {% translate "Videos" %}</a>{% endif %}
+      <button type="button" class="dg-act" id="dgAllDesc"><i class="fas fa-circle-info"></i> {% translate "Show all descriptions" %}</button>
+      <button type="button" class="dg-act" id="dgAllDl"><i class="fas fa-download"></i> {% translate "Download all cards" %}</button>
+    </div>
+  </section>
+
+  <!-- ============ PLANT FILTER ============ -->
+  <form class="dg-filter" method="get" id="dgFilter">
+    <input type="hidden" name="range" value="{{ range }}">
+    <span class="dg-flabel">{% translate "Plants" %}</span>
+    <div class="dg-fdrop">
+      <button type="button" class="dg-fbtn" id="dgFBtn" aria-expanded="false" aria-haspopup="true">
+        <i class="fas fa-industry"></i><span id="dgFTxt">{% translate "All plants" %}</span><i class="fas fa-chevron-down" style="font-size:11px"></i>
+      </button>
+      <div class="dg-fpanel" id="dgFPanel" hidden>
+        <input type="search" class="dg-search" id="dgFSearch" style="width:100%" placeholder="{% translate 'Search plant…' %}">
+        <div class="dg-fquick"><button type="button" id="dgFAll">{% translate "Select all" %}</button><button type="button" id="dgFNone">{% translate "Clear" %}</button></div>
+        <div class="dg-flist">
+          {% for pl in all_plants %}
+          <label class="dg-fopt" data-n="{{ pl.name|lower }}"><input type="checkbox" name="plant" value="{{ pl.id }}" data-name="{{ pl.name }}" {% if pl.id in sel_ids %}checked{% endif %}><span>{{ pl.name }}</span></label>
+          {% endfor %}
+        </div>
+        <div class="dg-ffoot"><span id="dgFCount"></span><button type="submit" class="dg-apply">{% translate "Apply" %}</button></div>
+      </div>
+    </div>
+    <div class="dg-selchips" id="dgSelChips"></div>
+    {% if sel_ids %}<a class="dg-fclear" href="?range={{ range }}">{% translate "Show all plants" %}</a>{% endif %}
+  </form>
+
+  <!-- ============ KPI TILES (click a tile to read what it means) ============ -->
+  <section class="dg-kpis">
+    <div class="dg-kpi t-blue" data-dl="kpi-completed" data-title="{% translate 'Inductions completed' %}">
+      <div class="dg-ic"><i class="fas fa-user-check"></i></div>
+      <div class="dg-kv"><span data-count="{{ kpi.completed }}">{{ kpi.completed }}</span></div>
+      <div class="dg-kl">{% translate "Inductions completed" %}</div>
+      {% if kpi.completed_delta is not None %}
+        <span class="dg-delta {% if kpi.completed_delta > 0 %}up{% elif kpi.completed_delta < 0 %}down{% else %}flat{% endif %}">{% if kpi.completed_delta > 0 %}▲{% elif kpi.completed_delta < 0 %}▼{% else %}●{% endif %} {{ kpi.completed_delta }}% {% translate "vs previous" %}</span>
+      {% else %}<span class="dg-delta note">{% translate "No earlier data" %}</span>{% endif %}
+      <div class="dg-desc">{{ desc.k_completed }}</div>
+      <span class="dg-tb dg-nodl"><button class="dg-ib" data-act="dl" title="{% translate 'Download image' %}"><i class="fas fa-download"></i></button></span>
+    </div>
+
+    <div class="dg-kpi t-green" data-dl="kpi-pass-rate" data-title="{% translate 'Pass rate' %}">
+      <div class="dg-ic"><i class="fas fa-circle-check"></i></div>
+      <div class="dg-kv"><span data-count="{{ kpi.rate }}">{{ kpi.rate }}</span><small>%</small></div>
+      <div class="dg-kl">{% translate "Pass rate" %}</div>
+      {% if kpi.rate_delta is not None %}
+        <span class="dg-delta {% if kpi.rate_delta > 0 %}up{% elif kpi.rate_delta < 0 %}down{% else %}flat{% endif %}">{% if kpi.rate_delta > 0 %}▲{% elif kpi.rate_delta < 0 %}▼{% else %}●{% endif %} {{ kpi.rate_delta }} {% translate "pts" %}</span>
+      {% else %}<span class="dg-delta note">{% translate "No earlier data" %}</span>{% endif %}
+      <div class="dg-desc">{{ desc.k_rate }}</div>
+      <span class="dg-tb dg-nodl"><button class="dg-ib" data-act="dl" title="{% translate 'Download image' %}"><i class="fas fa-download"></i></button></span>
+    </div>
+
+    <div class="dg-kpi t-teal" data-dl="kpi-average-score" data-title="{% translate 'Average score' %}">
+      <div class="dg-ic"><i class="fas fa-bullseye"></i></div>
+      <div class="dg-kv"><span data-count="{{ kpi.avg }}">{{ kpi.avg }}</span><small>%</small></div>
+      <div class="dg-kl">{% translate "Average score" %}</div>
+      {% if kpi.avg_delta is not None %}
+        <span class="dg-delta {% if kpi.avg_delta > 0 %}up{% elif kpi.avg_delta < 0 %}down{% else %}flat{% endif %}">{% if kpi.avg_delta > 0 %}▲{% elif kpi.avg_delta < 0 %}▼{% else %}●{% endif %} {{ kpi.avg_delta }} {% translate "pts" %}</span>
+      {% else %}<span class="dg-delta note">{% translate "No earlier data" %}</span>{% endif %}
+      <div class="dg-desc">{{ desc.k_avg }}</div>
+      <span class="dg-tb dg-nodl"><button class="dg-ib" data-act="dl" title="{% translate 'Download image' %}"><i class="fas fa-download"></i></button></span>
+    </div>
+
+    <div class="dg-kpi t-red" data-dl="kpi-failed" data-title="{% translate 'Failed attempts' %}">
+      <div class="dg-ic"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="dg-kv"><span data-count="{{ kpi.failed }}">{{ kpi.failed }}</span></div>
+      <div class="dg-kl">{% translate "Failed attempts" %}</div>
+      <span class="dg-delta note">{% translate "Need a retake" %}</span>
+      <div class="dg-desc">{{ desc.k_failed }}</div>
+      <span class="dg-tb dg-nodl"><button class="dg-ib" data-act="dl" title="{% translate 'Download image' %}"><i class="fas fa-download"></i></button></span>
+    </div>
+
+    <div class="dg-kpi t-amber" data-dl="kpi-in-progress" data-title="{% translate 'In progress' %}">
+      <div class="dg-ic"><i class="fas fa-hourglass-half"></i></div>
+      <div class="dg-kv"><span data-count="{{ kpi.in_progress }}">{{ kpi.in_progress }}</span></div>
+      <div class="dg-kl">{% translate "In progress" %}</div>
+      <span class="dg-delta note">{% translate "Started, not submitted" %}</span>
+      <div class="dg-desc">{{ desc.k_progress }}</div>
+      <span class="dg-tb dg-nodl"><button class="dg-ib" data-act="dl" title="{% translate 'Download image' %}"><i class="fas fa-download"></i></button></span>
+    </div>
+
+    <div class="dg-kpi t-navy" data-dl="kpi-plants-live" data-title="{% translate 'Plants live' %}">
+      <div class="dg-ic"><i class="fas fa-industry"></i></div>
+      <div class="dg-kv"><span data-count="{{ kpi.plants_live }}">{{ kpi.plants_live }}</span><small>/ {{ kpi.plants_total }}</small></div>
+      <div class="dg-kl">{% translate "Plants live" %}</div>
+      <span class="dg-delta note">{% translate "With inductions in range" %}</span>
+      <div class="dg-desc">{{ desc.k_plants }}</div>
+      <span class="dg-tb dg-nodl"><button class="dg-ib" data-act="dl" title="{% translate 'Download image' %}"><i class="fas fa-download"></i></button></span>
+    </div>
+  </section>
+
+  <div class="dg-rows">
+    <div class="dg-row r21">
+      <section class="dg-card" data-dl="trend" data-title="{% translate 'Inductions over time' %}">
+        <div class="dg-ch">
+          <h3 class="dg-ct"><i class="fas fa-chart-column"></i> {% translate "Inductions over time" %}</h3>
+          <div class="dg-tb dg-nodl">
+            <span class="dg-seg" data-seg="trend"><button class="on" data-type="bar">{% translate "Bars" %}</button><button data-type="line">{% translate "Line" %}</button></span>
+            {% include 'induction/_dg_tools.html' %}
+          </div>
+        </div>
+        <div class="dg-cv"><canvas id="cTrend"></canvas></div>
+        <div class="dg-desc">{{ desc.trend }}</div>
+      </section>
+      <section class="dg-card" data-dl="pass-fail" data-title="{% translate 'Pass vs fail' %}">
+        <div class="dg-ch"><h3 class="dg-ct"><i class="fas fa-circle-half-stroke"></i> {% translate "Pass vs fail" %}</h3>
+          <div class="dg-tb dg-nodl">{% include 'induction/_dg_tools.html' %}</div></div>
+        <div class="dg-cv sm"><canvas id="cResult"></canvas></div>
+        <div class="dg-desc">{{ desc.result }}</div>
+      </section>
+    </div>
+    <div class="dg-row r21">
+      <section class="dg-card" data-dl="plants-chart" data-title="{% translate 'Inductions by plant' %}">
+        <div class="dg-ch">
+          <h3 class="dg-ct"><i class="fas fa-chart-bar"></i> {% translate "Inductions by plant" %}</h3>
+          <div class="dg-tb dg-nodl">{% include 'induction/_dg_tools.html' %}</div>
+        </div>
+        <div class="dg-cv tall"><canvas id="cPlants"></canvas></div>
+        <div class="dg-desc">{{ desc.plants }}</div>
+      </section>
+      <section class="dg-card" data-dl="categories" data-title="{% translate 'Who is completing' %}">
+        <div class="dg-ch"><h3 class="dg-ct"><i class="fas fa-users"></i> {% translate "Who is completing" %}</h3>
+          <div class="dg-tb dg-nodl">{% include 'induction/_dg_tools.html' %}</div></div>
+        <div class="dg-cv sm"><canvas id="cCats"></canvas></div>
+        <div class="dg-desc">{{ desc.categories }}</div>
+      </section>
+    </div>
+
+    <div class="dg-row r3">
+      <section class="dg-card" data-dl="scores" data-title="{% translate 'Score distribution' %}">
+          <div class="dg-ch"><h3 class="dg-ct"><i class="fas fa-ranking-star"></i> {% translate "Score distribution" %}</h3>
+            <div class="dg-tb dg-nodl">{% include 'induction/_dg_tools.html' %}</div></div>
+          <div class="dg-cv sm"><canvas id="cScores"></canvas></div>
+          <div class="dg-desc">{{ desc.scores }}</div>
+        </section>
+      <section class="dg-card" data-dl="hours" data-title="{% translate 'Busiest hours' %}">
+          <div class="dg-ch"><h3 class="dg-ct"><i class="fas fa-clock"></i> {% translate "Busiest hours" %}</h3>
+            <div class="dg-tb dg-nodl">{% include 'induction/_dg_tools.html' %}</div></div>
+          <div class="dg-cv sm"><canvas id="cHours"></canvas></div>
+          <div class="dg-desc">{{ desc.hours }}</div>
+        </section>
+      <section class="dg-card" data-dl="languages" data-title="{% translate 'Languages used' %}">
+        <div class="dg-ch"><h3 class="dg-ct"><i class="fas fa-language"></i> {% translate "Languages used" %}</h3>
+          <div class="dg-tb dg-nodl">{% include 'induction/_dg_tools.html' %}</div></div>
+        <div class="dg-cv sm"><canvas id="cLangs"></canvas></div>
+        <div class="dg-desc">{{ desc.languages }}</div>
+      </section>
+    </div>
+    <div class="dg-row r3">
+      <section class="dg-card" data-dl="latest-inductions" data-title="{% translate 'Latest inductions' %}">
+        <div class="dg-ch"><h3 class="dg-ct"><i class="fas fa-bolt"></i> {% translate "Latest inductions" %}</h3>
+          <div class="dg-tb dg-nodl"><span class="dg-badge" style="align-self:center;margin-right:4px">{% translate "Last attempt · latest 3 people" %}</span>{% include 'induction/_dg_tools.html' %}</div></div>
+        {% if activity %}
+        <ul class="dg-feed">
+          {% for a in activity %}
+          <li class="dg-fi {% if a.result == 'PASS' %}pass{% else %}fail{% endif %}" tabindex="0" role="button" aria-expanded="false">
+            <div class="dg-fmain">
+              <div class="dg-av">{{ a.participant_name|default:"?"|slice:":1"|upper }}</div>
+              <div class="dg-fm"><div class="dg-fn">{{ a.participant_name|default:"—" }}</div>
+                <div class="dg-fs">{{ a.user_category.name|default:"" }}{% if a.plant %} · {{ a.plant.name }}{% endif %}</div></div>
+              <div class="dg-fr"><div class="dg-sc {% if a.result == 'PASS' %}p{% else %}f{% endif %}">{{ a.score_percentage|floatformat:"-0" }}%</div>
+                <div class="dg-ago">{{ a.submitted_at|timesince }} {% translate "ago" %}</div></div>
+            </div>
+            <dl class="dg-more">
+              <div><dt>{% translate "Result" %}</dt><dd>{% if a.result == 'PASS' %}{% translate "Passed" %}{% else %}{% translate "Failed" %}{% endif %}</dd></div>
+              <div><dt>{% translate "Attempt" %}</dt><dd>#{{ a.attempt_no }}</dd></div>
+              <div><dt>{% translate "Language" %}</dt><dd>{{ a.language.name|default:"—" }}</dd></div>
+              <div><dt>{% translate "Submitted" %}</dt><dd>{{ a.submitted_at|date:"d M, H:i" }}</dd></div>
+              {% if a.employee_id %}<div><dt>{% translate "Employee ID" %}</dt><dd>{{ a.employee_id }}</dd></div>{% endif %}
+              {% if a.participant_mobile %}<div><dt>{% translate "Mobile" %}</dt><dd>{{ a.participant_mobile }}</dd></div>{% endif %}
+              {% url 'induction:scorecard_detail' a.pk as detail_url %}
+              {% if detail_url %}<a class="dg-link dg-nodl" href="{{ detail_url }}">{% translate "Full scorecard" %} →</a>{% endif %}
+            </dl>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}<div class="dg-empty">{% translate "No inductions submitted yet." %}</div>{% endif %}
+        <div class="dg-desc">{% translate "The most recent submitted attempt of each of the latest three people. Click a person to see more details." %}</div>
+      </section>
+      <section class="dg-card" data-dl="needs-attention" data-title="{% translate 'Needs attention' %}">
+        <div class="dg-ch"><h3 class="dg-ct"><i class="fas fa-bell"></i> {% translate "Needs attention" %}</h3>
+          <div class="dg-tb dg-nodl"><span class="dg-badge" style="align-self:center;margin-right:4px">{{ attention_total }}</span>{% include 'induction/_dg_tools.html' %}</div></div>
+        {% if attention_total or attention.failed %}
+        <div class="dg-att">
+          {% if attention.no_questionnaire_n %}<div class="dg-ai red"><div class="ic"><i class="fas fa-clipboard-question"></i></div><div><b>{{ attention.no_questionnaire_n }} {% translate "plant(s) without a questionnaire" %}</b><span>{{ attention.no_questionnaire|join:", " }}{% if attention.no_questionnaire_n > 6 %} …{% endif %}</span></div></div>{% endif %}
+          {% if attention.no_qr_n %}<div class="dg-ai"><div class="ic"><i class="fas fa-qrcode"></i></div><div><b>{{ attention.no_qr_n }} {% translate "plant(s) without a QR code" %}</b><span>{{ attention.no_qr|join:", " }}{% if attention.no_qr_n > 6 %} …{% endif %}</span></div></div>{% endif %}
+          {% if attention.missing_video_n %}<div class="dg-ai blue"><div class="ic"><i class="fas fa-film"></i></div><div><b>{{ attention.missing_video_n }} {% translate "language(s) have no video" %}</b><span>{{ attention.missing_video|join:", " }}{% if attention.missing_video_n > 6 %} …{% endif %}</span></div></div>{% endif %}
+          {% if attention.failed %}<div class="dg-ai red"><div class="ic"><i class="fas fa-user-xmark"></i></div><div><b>{{ attention.failed }} {% translate "failed attempt(s) in this range" %}</b><span>{% translate "These people must retake the assessment." %}</span></div></div>{% endif %}
+        </div>
+        {% else %}<div class="dg-clear"><i class="fas fa-shield-heart"></i>{% translate "All clear — everything is set up." %}</div>{% endif %}
+        <div class="dg-desc">{{ desc.attention }}</div>
+      </section>
+      <div class="dg-stack">
+        <section class="dg-card" data-dl="last-14-days" data-title="{% translate 'Last 14 days' %}">
+        <div class="dg-ch"><h3 class="dg-ct"><i class="fas fa-calendar-days"></i> {% translate "Last 14 days" %}</h3>
+          <div class="dg-tb dg-nodl">{% include 'induction/_dg_tools.html' %}</div></div>
+        <div class="dg-heat">{% for h in heat %}<div class="dg-hc l{{ h.level }}" title="{{ h.label }}: {{ h.n }}"></div>{% endfor %}</div>
+        <div class="dg-heat" style="padding-top:8px;padding-bottom:0">{% for h in heat %}<div style="text-align:center;font-weight:800;font-size:12px">{% if h.n %}{{ h.n }}{% endif %}</div>{% endfor %}</div>
+        <div class="dg-hl" style="padding-top:2px">{% for h in heat %}<div>{{ h.dow }}</div>{% endfor %}</div>
+        <div class="dg-desc">{{ desc.heat }}</div>
+      </section>
+        <section class="dg-card" data-dl="content-health" data-title="{% translate 'Content health' %}">
+        <div class="dg-ch"><h3 class="dg-ct"><i class="fas fa-layer-group"></i> {% translate "Content health" %}</h3></div>
+        <div class="dg-health">
+          <div class="dg-hb"><b>{{ content.questions_active }}<small>/{{ content.questions }}</small></b><span>{% translate "Active questions" %}</span></div>
+          <div class="dg-hb"><b>{{ content.questionnaires_active }}<small>/{{ content.questionnaires }}</small></b><span>{% translate "Questionnaires" %}</span></div>
+          <div class="dg-hb"><b>{{ content.languages_covered }}<small>/{{ content.languages_total }}</small></b><span>{% translate "Video languages" %}</span></div>
+        </div>
+      </section>
+      </div>
+    </div>
+  </div>
+
+  <p class="dg-stamp">{% translate "Last updated" %} <span id="dgClock">{{ now|time:"H:i:s" }}</span></p>
+</div>
+
+{{ charts|json_script:"dgCharts" }}
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+(function () {
+  var root = document.getElementById('dg');
+  var D = JSON.parse(document.getElementById('dgCharts').textContent);
+  var C = {teal:'#0E8A94', teal2:'#19C6D1', navy:'#0D2547', gold:'#C9A24B', ok:'#16A34A', bad:'#DC2626', blue:'#2563EB', amber:'#F59E0B'};
+  var PAL = [C.teal, C.navy, C.gold, C.blue, C.teal2, '#7C3AED', C.amber, '#64748B'];
+  var charts = {};
+
+  /* ---------- Chart.js defaults ---------- */
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  Chart.defaults.font.weight = 600;
+  Chart.defaults.color = '#64748B';
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.boxWidth = 8;
+  Chart.defaults.plugins.tooltip.backgroundColor = '#0D2547';
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 10;
+  Chart.defaults.maintainAspectRatio = false;
+
+  var centerText = {id:'centerText', afterDraw:function (ch) {
+    var o = ch.options.plugins.centerText; if (!o) return;
+    var a = ch.chartArea, x = (a.left + a.right) / 2, y = (a.top + a.bottom) / 2, c = ch.ctx;
+    c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#0B1B33'; c.font = '800 30px ' + Chart.defaults.font.family; c.fillText(o.text, x, y - 6);
+    c.fillStyle = '#64748B'; c.font = '700 11px ' + Chart.defaults.font.family; c.fillText(o.sub, x, y + 18);
+    c.restore();
+  }};
+
+  function empty(id) {
+    var cv = document.getElementById(id); if (!cv) return;
+    var d = document.createElement('div'); d.className = 'dg-empty'; d.textContent = '{% translate "No data in this range." %}';
+    cv.parentNode.replaceChild(d, cv);
+  }
+  function any(a) { return a.some(function (v) { return v > 0; }); }
+  function make(id, cfg) { charts[id] = new Chart(document.getElementById(id), cfg); return charts[id]; }
+  var grid = {color:'#EEF2F7'};
+
+  /* ---------- 1. trend ---------- */
+  if (any(D.trend.ok) || any(D.trend.fail)) {
+    make('cTrend', {type:'bar', data:{labels:D.trend.labels, datasets:[
+      {label:'{% translate "Passed" %}', data:D.trend.ok,   backgroundColor:C.teal, borderColor:C.teal, borderRadius:6, fill:true, tension:.35, pointRadius:3},
+      {label:'{% translate "Failed" %}', data:D.trend.fail, backgroundColor:C.bad,  borderColor:C.bad,  borderRadius:6, fill:true, tension:.35, pointRadius:3}]},
+      options:{interaction:{mode:'index', intersect:false}, scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, beginAtZero:true, ticks:{precision:0}, grid:grid}}, plugins:{legend:{position:'bottom'}}}});
+  } else empty('cTrend');
+
+  /* ---------- 2. plants (non-interactive now that board is removed) ---------- */
+  if (D.plants.labels.length) {
+    make('cPlants', {type:'bar', data:{labels:D.plants.labels, datasets:[
+      {label:'{% translate "Passed" %}', data:D.plants.ok,   backgroundColor:C.teal, borderRadius:5},
+      {label:'{% translate "Failed" %}', data:D.plants.fail, backgroundColor:C.bad,  borderRadius:5}]},
+      options:{indexAxis:'y', scales:{x:{stacked:true, beginAtZero:true, ticks:{precision:0}, grid:grid}, y:{stacked:true, grid:{display:false}}},
+        plugins:{legend:{position:'bottom'}}}});
+  } else empty('cPlants');
+
+  /* ---------- 3. pass / fail donut ---------- */
+  if (any(D.result)) {
+    make('cResult', {type:'doughnut', plugins:[centerText], data:{labels:['{% translate "Passed" %}','{% translate "Failed" %}'], datasets:[{data:D.result, backgroundColor:[C.ok, C.bad], borderWidth:3, borderColor:'#fff', hoverOffset:8}]},
+      options:{cutout:'70%', plugins:{legend:{position:'bottom'}, centerText:{text:D.rate + '%', sub:'{% translate "pass rate" %}'}}}});
+  } else empty('cResult');
+
+  /* ---------- 4. categories ---------- */
+  if (D.categories.data.length) {
+    make('cCats', {type:'doughnut', data:{labels:D.categories.labels, datasets:[{data:D.categories.data, backgroundColor:PAL, borderWidth:3, borderColor:'#fff', hoverOffset:8}]},
+      options:{cutout:'58%', plugins:{legend:{position:'right'}}}});
+  } else empty('cCats');
+
+  /* ---------- 5. languages ---------- */
+  if (D.languages.data.length) {
+    make('cLangs', {type:'bar', data:{labels:D.languages.labels, datasets:[{data:D.languages.data, backgroundColor:C.navy, borderRadius:6}]},
+      options:{indexAxis:'y', scales:{x:{beginAtZero:true, ticks:{precision:0}, grid:grid}, y:{grid:{display:false}}}, plugins:{legend:{display:false}}}});
+  } else empty('cLangs');
+
+  /* ---------- 6. scores ---------- */
+  if (any(D.scores.data)) {
+    make('cScores', {type:'bar', data:{labels:D.scores.labels, datasets:[{label:'{% translate "People" %}', data:D.scores.data,
+      backgroundColor:[C.bad,'#F97316',C.amber,C.teal2,C.ok], borderColor:C.teal, borderRadius:6, tension:.35, fill:false}]},
+      options:{scales:{x:{grid:{display:false}}, y:{beginAtZero:true, ticks:{precision:0}, grid:grid}}, plugins:{legend:{display:false}}}});
+  } else empty('cScores');
+
+  /* ---------- 7. hours ---------- */
+  if (any(D.hours.data)) {
+    make('cHours', {type:'line', data:{labels:D.hours.labels, datasets:[{label:'{% translate "Submissions" %}', data:D.hours.data, borderColor:C.teal, backgroundColor:'rgba(14,138,148,.18)', fill:true, tension:.4, pointRadius:0, pointHoverRadius:5}]},
+      options:{interaction:{mode:'index', intersect:false}, scales:{x:{grid:{display:false}, ticks:{maxTicksLimit:8}}, y:{beginAtZero:true, ticks:{precision:0}, grid:grid}}, plugins:{legend:{display:false}}}});
+  } else empty('cHours');
+
+  /* ---------- bars <-> line toggle ---------- */
+  document.querySelectorAll('[data-seg] button').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var seg = b.parentNode, ch = charts[{trend:'cTrend'}[seg.dataset.seg]]; if (!ch) return;
+      seg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      var line = b.dataset.type === 'line';
+      ch.config.type = b.dataset.type;
+      ch.options.scales.x.stacked = ch.options.scales.y.stacked = !line;
+      ch.data.datasets.forEach(function (ds, i) { ds.backgroundColor = line ? (i ? 'rgba(220,38,38,.15)' : 'rgba(14,138,148,.18)') : (i ? C.bad : C.teal); });
+      ch.update();
+    });
+  });
+
+  /* ---------- KPI count-up ---------- */
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('[data-count]').forEach(function (el) {
+      var to = parseInt(el.dataset.count, 10) || 0, t0 = null; if (!to) return;
+      (function step(t) { t0 = t0 || t; var p = Math.min(1, (t - t0) / 700);
+        el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); })(performance.now());
+    });
+  }
+
+  /* ---------- plant filter (multi-select checkboxes) ---------- */
+  (function () {
+    var f = document.getElementById('dgFilter'), btn = document.getElementById('dgFBtn'), panel = document.getElementById('dgFPanel');
+    var boxes = Array.prototype.slice.call(f.querySelectorAll('input[name=plant]')), chips = document.getElementById('dgSelChips');
+    var txt = document.getElementById('dgFTxt'), cnt = document.getElementById('dgFCount');
+    function sync() {
+      var on = boxes.filter(function (b) { return b.checked; });
+      txt.textContent = !on.length ? '{% translate "All plants" %}' : on.length === 1 ? on[0].dataset.name : on.length + ' {% translate "plants selected" %}';
+      cnt.textContent = on.length ? on.length + ' / ' + boxes.length + ' {% translate "selected" %}' : '{% translate "No selection = all plants" %}';
+      chips.innerHTML = '';
+      on.forEach(function (b) {
+        var s = document.createElement('span'); s.className = 'dg-sel'; s.textContent = b.dataset.name + ' ';
+        var x = document.createElement('button'); x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label', '{% translate "Remove" %} ' + b.dataset.name);
+        x.addEventListener('click', function () { b.checked = false; f.submit(); });
+        s.appendChild(x); chips.appendChild(s);
+      });
+    }
+    function open(o) { panel.hidden = !o; btn.setAttribute('aria-expanded', o ? 'true' : 'false'); if (o) document.getElementById('dgFSearch').focus(); }
+    btn.addEventListener('click', function (e) { e.stopPropagation(); open(panel.hidden); });
+    panel.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.addEventListener('click', function () { open(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') open(false); });
+    boxes.forEach(function (b) { b.addEventListener('change', sync); });
+    document.getElementById('dgFAll').addEventListener('click', function () {
+      boxes.forEach(function (b) { if (b.closest('.dg-fopt').style.display !== 'none') b.checked = true; }); sync(); });
+    document.getElementById('dgFNone').addEventListener('click', function () { boxes.forEach(function (b) { b.checked = false; }); sync(); });
+    document.getElementById('dgFSearch').addEventListener('input', function () {
+      var q = this.value.trim().toLowerCase();
+      f.querySelectorAll('.dg-fopt').forEach(function (l) { l.style.display = !q || l.dataset.n.indexOf(q) > -1 ? '' : 'none'; });
+    });
+    /* all boxes ticked = same as no filter, keep the URL clean */
+    f.addEventListener('submit', function () { if (boxes.every(function (b) { return b.checked; })) boxes.forEach(function (b) { b.checked = false; }); });
+    sync();
+  })();
+
+  /* ---------- latest people: click to expand ---------- */
+  document.querySelectorAll('.dg-fi').forEach(function (li, i) {
+    function tog(e) { if (e.target.closest('a')) return; var o = li.classList.toggle('open'); li.setAttribute('aria-expanded', o); }
+    li.addEventListener('click', tog);
+    li.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog(e); } });
+    if (i === 0) { li.classList.add('open'); li.setAttribute('aria-expanded', 'true'); }
+  });
+
+  /* ---------- toast ---------- */
+  function toast(msg) {
+    var t = document.createElement('div'); t.className = 'dg-toast'; t.textContent = msg;
+    document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2200);
+  }
+
+  /* ---------- download a card as an image WITH its description ---------- */
+  function stamp() { return new Date().toLocaleString(); }
+  function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+
+  function render(card) {
+    var title = card.dataset.title || 'Card';
+    var descEl = card.querySelector('.dg-desc'), desc = descEl ? descEl.textContent.trim() : '';
+    var clone = card.cloneNode(true);
+    clone.classList.remove('full', 'show-desc');
+    /* canvases do not clone their pixels: swap each for an <img> snapshot */
+    var src = card.querySelectorAll('canvas'), dst = clone.querySelectorAll('canvas');
+    src.forEach(function (c, i) {
+      var img = new Image(); img.src = c.toDataURL('image/png');
+      img.style.cssText = 'display:block;width:' + c.clientWidth + 'px;height:' + c.clientHeight + 'px';
+      dst[i].parentNode.replaceChild(img, dst[i]);
+    });
+    clone.querySelectorAll('.dg-nodl, .dg-desc').forEach(function (e) { e.remove(); });
+
+    var wrap = document.createElement('div'); wrap.className = 'dg dg-dlwrap';
+    wrap.style.width = Math.max(card.offsetWidth, 420) + 'px';
+    wrap.innerHTML = '<div class="dg-dlhead"><span>{% translate "Safety Induction Command Center" %}</span><span>' + root.dataset.range + '</span></div>';
+    clone.style.margin = '0'; wrap.appendChild(clone);
+    var foot = document.createElement('div'); foot.className = 'dg-dlfoot';
+    foot.innerHTML = '<b></b><p></p><small></small>';
+    foot.querySelector('b').textContent = title;
+    foot.querySelector('p').textContent = desc;
+    foot.querySelector('small').textContent = '{% translate "Range" %}: ' + root.dataset.range + '  ·  {% translate "Generated" %}: ' + stamp();
+    wrap.appendChild(foot);
+    document.body.appendChild(wrap);
+    return html2canvas(wrap, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false}).then(function (cv) {
+      wrap.remove(); return cv;
+    }, function (err) { wrap.remove(); throw err; });
+  }
+
+  function save(cv, name) {
+    return new Promise(function (res) {
+      cv.toBlob(function (blob) {
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = name + '-' + new Date().toISOString().slice(0, 10) + '.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); res(); }, 400);
+      }, 'image/png');
+    });
+  }
+
+  function download(card) {
+    toast('{% translate "Preparing image…" %}');
+    return render(card).then(function (cv) { return save(cv, card.dataset.dl || slug(card.dataset.title)); })
+      .catch(function () { toast('{% translate "Could not create the image." %}'); });
+  }
+
+  document.getElementById('dgAllDl').addEventListener('click', function () {
+    var cards = Array.prototype.slice.call(document.querySelectorAll('[data-dl]')), i = 0;
+    toast('{% translate "Downloading all cards… allow multiple downloads if asked." %}');
+    (function next() { if (i >= cards.length) return; render(cards[i]).then(function (cv) { return save(cv, cards[i++].dataset.dl); }).then(next); })();
+  });
+
+  /* ---------- toolbar + KPI interactions ---------- */
+  var back = null;
+  function toggleFull(card, on) {
+    card.classList.toggle('full', on);
+    if (on) { back = document.createElement('div'); back.className = 'dg-back'; back.addEventListener('click', function () { toggleFull(card, false); }); document.body.appendChild(back); card.classList.add('show-desc'); }
+    else if (back) { back.remove(); back = null; }
+    Object.keys(charts).forEach(function (k) { charts[k].resize(); });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { var f = document.querySelector('.full'); if (f) toggleFull(f, false); }
+  });
+
+  root.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-act]');
+    var card = e.target.closest('[data-dl]');
+    if (btn && card) {
+      e.stopPropagation();
+      var act = btn.dataset.act;
+      if (act === 'dl') download(card);
+      else if (act === 'info') { var on = card.classList.toggle('show-desc'); btn.classList.toggle('on', on); }
+      else if (act === 'full') toggleFull(card, !card.classList.contains('full'));
+      return;
+    }
+    if (card && card.classList.contains('dg-kpi') && !e.target.closest('a,button')) card.classList.toggle('show-desc');
+  });
+
+  var allOn = false;
+  document.getElementById('dgAllDesc').addEventListener('click', function () {
+    allOn = !allOn;
+    document.querySelectorAll('[data-dl]').forEach(function (c) { c.classList.toggle('show-desc', allOn); });
+    document.querySelectorAll('[data-act="info"]').forEach(function (b) { b.classList.toggle('on', allOn); });
+    this.lastChild.textContent = ' ' + (allOn ? '{% translate "Hide descriptions" %}' : '{% translate "Show all descriptions" %}');
+  });
+
+  /* ---------- auto refresh (every 60 s, remembered in this browser) ---------- */
+  var btn = document.getElementById('dgLive'), txt = document.getElementById('dgLiveTxt');
+  var timer = null, left = 60, KEY = 'dgLive', on = false;
+  try { on = localStorage.getItem(KEY) === '1'; } catch (e) {}
+  function paint() {
+    btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    txt.textContent = on ? ('{% translate "Live · refresh in" %} ' + left + 's') : '{% translate "Auto refresh off" %}';
+  }
+  function start() { left = 60; paint(); timer = setInterval(function () { if (document.hidden) return; left -= 1; paint(); if (left <= 0) location.reload(); }, 1000); }
+  function stop() { clearInterval(timer); timer = null; paint(); }
+  btn.addEventListener('click', function () { on = !on; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {} on ? start() : stop(); });
+  on ? start() : paint();
+})();
+</script>
+{% endblock %}

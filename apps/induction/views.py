@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import logging
 import mimetypes
 import os
 import tempfile
@@ -9,6 +10,7 @@ from datetime import timedelta
 from urllib.parse import urlencode
 
 import qrcode
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -16,7 +18,7 @@ from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Avg, Count, Max, ProtectedError, Q, Sum
 from django.db.models.functions import ExtractHour, TruncDate
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import get_template
 from django.urls import reverse, reverse_lazy
@@ -46,6 +48,8 @@ from .models import (
     InductionQuestionOption, InductionVideo, Language, PlantQRCode,
     Questionnaire, QuestionnaireQuestion, UserCategory,
 )
+
+_log = logging.getLogger(__name__)
 
 
 # =====================================================================
@@ -454,23 +458,30 @@ class QuestionListView(InductionLoginMixin, ListView):
     template_name = 'induction/question_list.html'
     paginate_by = 10
 
-    # ---- read ?q= ?status= ----
+    # ---- read ?q= ?status= ?plant=1&plant=2 ----
     def _read_filters(self):
         g = self.request.GET
         self.q = g.get('q', '').strip()
         self.status = g.get('status', '')
         if self.status not in ('active', 'inactive', 'used'):
             self.status = ''
+        self.plant_ids = [int(i) for i in g.getlist('plant') if i.isdigit()]
 
     def _used_ids(self):
         """Question ids that sit inside at least one questionnaire."""
         return QuestionnaireQuestion.objects.values('question_id')
 
     def _base(self):
-        """Search only (NO status filter) -> used for the stat tiles too."""
+        """Search + plant filter (NO status filter) -> also used for the stat tiles."""
         qs = InductionQuestion.objects.all()
         if self.q:
             qs = qs.filter(question_text__icontains=self.q)
+        if self.plant_ids:
+            # questions that belong to a questionnaire assigned to any chosen plant
+            in_plants = (QuestionnaireQuestion.objects
+                         .filter(questionnaire__plant_links__plant_id__in=self.plant_ids)
+                         .values('question_id'))
+            qs = qs.filter(id__in=in_plants)
         return qs
 
     def get_queryset(self):
@@ -489,30 +500,28 @@ class QuestionListView(InductionLoginMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         page = ctx['page_obj']
 
-        used = dict(QuestionnaireQuestion.objects
-                    .order_by()
-                    .values_list('question_id')
-                    .annotate(c=Count('id')))
+        used = dict(QuestionnaireQuestion.objects.order_by()
+                    .values_list('question_id').annotate(c=Count('id')))
         for obj in page:
             obj.used_in = used.get(obj.id, 0)
             obj.correct = next((o for o in obj.options.all() if o.is_correct), None)
 
-        # ---- stat tiles: single aggregate, always consistent ----
-        agg = self.base.aggregate(
-            total=Count('id'),
-            active=Count('id', filter=Q(is_active=True)),
-            inactive=Count('id', filter=Q(is_active=False)),
-            used=Count('id', filter=Q(id__in=self._used_ids())),
-        )
+        # ---- stat tiles: follow search + plant filter, ignore the status pill ----
+        agg = self.base.aggregate(total=Count('id'), active=Count('id', filter=Q(is_active=True)))
+        total, active = agg['total'] or 0, agg['active'] or 0
+        used_count = self.base.filter(id__in=self._used_ids()).count()
 
+        # querystring (without status / page) reused by pills, tiles and pagination
         params = [('q', self.q)] if self.q else []
+        params += [('plant', i) for i in self.plant_ids]
 
+        plants = list(Plant.objects.all().order_by('name'))
         ctx.update(
             page=page, q=self.q, status=self.status,
-            total_count=agg['total'] or 0,
-            active_count=agg['active'] or 0,
-            inactive_count=agg['inactive'] or 0,
-            used_count=agg['used'] or 0,
+            total_count=total, active_count=active,
+            inactive_count=total - active, used_count=used_count,
+            plants=plants, selected_plants=self.plant_ids,
+            scope_names=[p.name for p in plants if p.id in self.plant_ids],
             base_qs=urlencode(params),
             form=QuestionForm(), bulk_formset=QuestionFormSet(),
         )
@@ -984,10 +993,19 @@ class QRPosterZipView(InductionLoginMixin, View):
 #    List = ONE row per participant (their latest submitted attempt).
 # =====================================================================
 def _person_key(a):
-    """Same person = same plant + category + mobile / employee id / contractor id / name."""
-    ident = (a.participant_mobile or a.employee_id or a.contractor_id
-             or (a.participant_name or '').strip().lower())
-    return (a.plant_id, a.user_category_id, ident)
+    """
+    Stable identity for a participant across attempts.
+    Prefers the strongest identifier but *also* uses weaker ones as a fallback
+    so the same person with the same inputs always maps to the same key.
+    """
+    ident = (
+        a.participant_mobile
+        or a.employee_id
+        or a.contractor_id
+        or (a.participant_name or '').strip().lower()
+    )
+    company = (a.visitor_company or a.contractor_company or '').strip().lower()
+    return (a.plant_id, a.user_category_id, ident, company)
 
 
 def _same_person_q(a):
@@ -1065,6 +1083,7 @@ class ScorecardRowsMixin:
                 'contractor_id': a.contractor_id or '',
                 'company':       a.visitor_company or a.contractor_company or '',
                 'category':      a.user_category.name if a.user_category_id else '',
+                'language':      a.language.name if a.language_id else '',
                 'plant':         a.plant.name if a.plant_id else '',
                 'score':         a.score_percentage,
                 'result':        a.result,
@@ -1123,16 +1142,20 @@ class ScorecardDetailView(InductionLoginMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         latest = get_object_or_404(
-            InductionAttempt.objects.select_related('plant', 'user_category'),
+            InductionAttempt.objects.select_related('plant', 'user_category', 'language'),
             pk=self.kwargs['pk'], status='SUBMITTED')
 
+        # Oldest attempt first (Attempt #1 on top, then #2 ...).  ?order=desc flips it.
+        newest_first = self.request.GET.get('order') == 'desc'
         attempts = list(
             InductionAttempt.objects
             .filter(status='SUBMITTED', plant_id=latest.plant_id,
                     user_category_id=latest.user_category_id)
             .filter(_same_person_q(latest))
             .select_related('language')
-            .order_by('-submitted_at'))
+            .order_by(*(('-submitted_at', '-id') if newest_first else ('submitted_at', 'id'))))
+        # the newest attempt, whatever the display order is
+        latest_attempt = max(attempts, key=lambda a: (a.submitted_at, a.pk)) if attempts else latest
 
         answers = (InductionAttemptAnswer.objects
                    .filter(attempt__in=attempts)
@@ -1156,6 +1179,8 @@ class ScorecardDetailView(InductionLoginMixin, TemplateView):
 
         ctx.update(
             person=latest,
+            latest_attempt=latest_attempt,
+            order='desc' if newest_first else 'asc',
             attempts=[{
                 'attempt': a,
                 'answers': by_attempt.get(a.id, []),
@@ -1174,7 +1199,7 @@ class ScorecardExportView(InductionLoginMixin, ScorecardRowsMixin, View):
         ws.title = 'Participants'
 
         headers = ['Participant', 'Mobile', 'Employee ID', 'Contractor ID',
-                   'Company', 'Category', 'Plant', 'Score %', 'Result',
+                   'Company', 'Category', 'Language', 'Plant', 'Score %', 'Result',
                    'Attempt', 'Submitted']
         ws.append(headers)
         for col in range(1, len(headers) + 1):
@@ -1187,14 +1212,14 @@ class ScorecardExportView(InductionLoginMixin, ScorecardRowsMixin, View):
             last = r['submitted_at']
             ws.append([
                 r['name'], r['mobile'], r['employee_id'], r['contractor_id'],
-                r['company'], r['category'], r['plant'],
+                r['company'], r['category'], r['language'], r['plant'],
                 f"{r['score']}%" if r['score'] is not None else '',
                 'Passed' if r['result'] == 'PASS' else 'Failed',
                 r['attempt_no'],
                 timezone.localtime(last).strftime('%d %b %Y %H:%M') if last else '',
             ])
 
-        for i, width in enumerate([22, 15, 15, 15, 22, 16, 22, 10, 10, 10, 20], start=1):
+        for i, width in enumerate([22, 15, 15, 15, 22, 16, 16, 22, 10, 10, 10, 20], start=1):
             ws.column_dimensions[get_column_letter(i)].width = width
 
         response = HttpResponse(
@@ -1208,22 +1233,92 @@ class ScorecardExportView(InductionLoginMixin, ScorecardRowsMixin, View):
 # 6. PUBLIC QR PORTAL  (no login - opened after scanning the QR)
 #    flow: portal -> content(lang) -> start -> submit
 # =====================================================================
+# The portal uses short codes (mr, hi, kok ...) but your Language table may store
+# 3-letter codes (mar, hin), region codes (mr-IN) or Google's codes (gom, mni-Mtei).
+# An exact match would miss them and the attempt would silently be saved as English.
+# So we try: aliases -> region variants -> the language NAME (Marathi / मराठी ...).
+PORTAL_LANG_CODES = ['en', 'as', 'bn', 'brx', 'doi', 'gu', 'hi', 'kn', 'ks', 'kok', 'mai', 'ml',
+                     'mni', 'mr', 'ne', 'or', 'pa', 'sa', 'sat', 'sd', 'ta', 'te', 'ur']
+
+_LANG_ALIASES = {
+    'en': ['en', 'eng'], 'as': ['as', 'asm'], 'bn': ['bn', 'ben'], 'brx': ['brx'], 'doi': ['doi'],
+    'gu': ['gu', 'guj'], 'hi': ['hi', 'hin'], 'kn': ['kn', 'kan'], 'ks': ['ks', 'kas'],
+    'kok': ['kok', 'gom'], 'gom': ['gom', 'kok'], 'mai': ['mai'], 'ml': ['ml', 'mal'],
+    'mni': ['mni', 'mni-mtei', 'mni_mtei'], 'mni-mtei': ['mni-mtei', 'mni'],
+    'mr': ['mr', 'mar'], 'ne': ['ne', 'nep'], 'or': ['or', 'ori', 'ory', 'od', 'odi'],
+    'pa': ['pa', 'pan'], 'sa': ['sa', 'san'], 'sat': ['sat'], 'sd': ['sd', 'snd'],
+    'ta': ['ta', 'tam'], 'te': ['te', 'tel'], 'ur': ['ur', 'urd'],
+}
+_LANG_NAMES = {
+    'en': ['english'], 'as': ['assamese', 'অসমীয়া'], 'bn': ['bengali', 'bangla', 'বাংলা'], 'brx': ['bodo', 'बड़ो'],
+    'doi': ['dogri', 'डोगरी'], 'gu': ['gujarati', 'ગુજરાતી'], 'hi': ['hindi', 'हिन्दी', 'हिंदी'],
+    'kn': ['kannada', 'ಕನ್ನಡ'], 'ks': ['kashmiri'], 'kok': ['konkani', 'कोंकणी'], 'mai': ['maithili', 'मैथिली'],
+    'ml': ['malayalam', 'മലയാളം'], 'mni': ['manipuri', 'meitei', 'মণিপুরী'], 'mr': ['marathi', 'मराठी'],
+    'ne': ['nepali', 'नेपाली'], 'or': ['odia', 'oriya', 'ଓଡ଼ିଆ'], 'pa': ['punjabi', 'ਪੰਜਾਬੀ'],
+    'sa': ['sanskrit', 'संस्कृत'], 'sat': ['santali', 'santhali', 'ᱥᱟᱱᱛᱟᱲᱤ'], 'sd': ['sindhi', 'سنڌي'],
+    'ta': ['tamil', 'தமிழ்'], 'te': ['telugu', 'తెలుగు'], 'ur': ['urdu', 'اردو'],
+}
+
+
+def _resolve_language(code, active_only=True):
+    """Language row for a portal code (alias, region and name aware). None if not found."""
+    code = (code or '').strip().lower()
+    if not code:
+        return None
+    qs = Language.objects.all()
+    if active_only:
+        qs = qs.filter(is_active=True)
+    for c in _LANG_ALIASES.get(code, [code]):
+        obj = (qs.filter(code__iexact=c).first()
+               or qs.filter(code__istartswith=c + '-').first()
+               or qs.filter(code__istartswith=c + '_').first())
+        if obj:
+            return obj
+    for n in _LANG_NAMES.get(code, []):
+        obj = qs.filter(name__icontains=n).first()
+        if obj:
+            return obj
+    return None
+
+
 def _get_language(code):
     langs = Language.objects.filter(is_active=True)
-    return ((langs.filter(code=code).first() if code else None)
+    return (_resolve_language(code)
             or langs.filter(code__istartswith='en').first()
             or langs.first())
 
 
+def _portal_language_choices():
+    """
+    The portal dropdown list as [{id, code, name}] where
+      code = the portal's own code (mr, hi ...)   id = the REAL Language row id.
+    The portal JavaScript picks the id from this list when it starts an attempt,
+    so the right Language is stored even if the DB uses different codes.
+    """
+    out = []
+    for code in PORTAL_LANG_CODES:
+        lang = _resolve_language(code)
+        if lang:
+            out.append({'id': lang.id, 'code': code, 'name': lang.name})
+    return out
+
+
 def _pick_video(language):
-    """
-    Chosen language first, then English fallback.
-    Returns None if neither exists - the portal already handles that.
-    Deliberately NOT an arbitrary video (would show the wrong language).
-    """
-    base = InductionVideo.objects.select_related('language')
-    return (base.filter(language=language).first()
-            or base.filter(language__code='en').first())
+    """Video for the requested language, falling back to any available video."""
+    if not language:
+        return InductionVideo.objects.select_related('language')\
+            .order_by('language_id').first()
+
+    video = (InductionVideo.objects.select_related('language')
+             .filter(language=language).first())
+    if video:
+        return video
+
+    # English, then anything else
+    return (InductionVideo.objects.select_related('language')
+            .filter(language__code__iexact='en').first()
+            or InductionVideo.objects.select_related('language')
+            .order_by('language_id').first())
 
 
 def _translate(obj, language, field):
@@ -1269,7 +1364,7 @@ class PortalView(PortalTokenMixin, TemplateView):
             'token': self.kwargs['token'],
             'language': language,                       # the single selected language
             'categories': _categories(language),
-            'languages': portal_languages(),            # the dropdown list
+            'languages': _portal_language_choices(),     # dropdown list, ids resolved server-side
             'ready': _plant_questionnaire(qr.plant) is not None,
 
             # Google Translate configuration
@@ -1296,10 +1391,10 @@ class PortalContentView(PortalTokenMixin, View):
 
         # ONLY languages that really have a video stored (this feeds the dropdown)
         video_languages = [
-            {'code': r['language__code'], 'name': r['language__name']}
+            {'id': r['language__id'], 'code': r['language__code'], 'name': r['language__name']}
             for r in (InductionVideo.objects
                       .filter(language__is_active=True)
-                      .values('language__code', 'language__name')
+                      .values('language__id', 'language__code', 'language__name')
                       .distinct()
                       .order_by('language__name'))
         ]
@@ -1345,7 +1440,11 @@ class PortalContentView(PortalTokenMixin, View):
 
 
 class PortalStartView(PortalTokenMixin, View):
-    """User chose category + language and filled the details of that category."""
+    """
+    User chose category + language and filled the details of that category.
+    Saves the language the user REALLY used (sent as a code, not a guessed id)
+    and the video they REALLY watched (video dropdown), not just the page language.
+    """
     http_method_names = ['post']
 
     def post(self, request, token):
@@ -1355,19 +1454,27 @@ class PortalStartView(PortalTokenMixin, View):
             return JsonResponse(
                 {'ok': False, 'error': 'No questionnaire is assigned to this plant.'}, status=400)
 
-        form = InductionStartForm(_payload(request))
+        data = _payload(request)
+        form = InductionStartForm(data)
         if not form.is_valid():
             return JsonResponse({'ok': False, 'errors': form.errors.get_json_data()}, status=400)
 
         d = form.cleaned_data
+        # real language from the code the page sends; the form's id is only the fallback
+        language = _resolve_language(data.get('language_code')) or d['language']
+        # the video that was actually on screen (may differ from the page language)
+        video_lang = _resolve_language(data.get('video_language'), active_only=False)
+        video = _pick_video(video_lang or language)
+
         attempt = InductionAttempt.objects.create(
             plant=qr.plant, qr_code=qr, questionnaire=questionnaire,
-            user_category=d['user_category'], language=d['language'],
-            video=_pick_video(d['language']),
+            user_category=d['user_category'], language=language,
+            video=video,
             **form.participant_data(),
         )
         return JsonResponse({'ok': True, 'attempt_uuid': str(attempt.attempt_uuid),
-                             'attempt_no': attempt.attempt_no})
+                             'attempt_no': attempt.attempt_no,
+                             'language': language.code})
 
 
 class PortalSubmitView(PortalTokenMixin, View):
@@ -1433,6 +1540,12 @@ class PortalSubmitView(PortalTokenMixin, View):
                     max_marks=item.marks
                 )
 
+            # the language the user was actually using when answering
+            used = _resolve_language(data.get('language_code'))
+            if used and attempt.language_id != used.id:
+                attempt.language = used
+                attempt.save(update_fields=['language'])
+
             attempt.video_completed = bool(data.get('video_completed'))
             attempt.finalize()
 
@@ -1454,9 +1567,9 @@ def portal_employee_lookup(request, token):
     for auto-fill on the induction portal.
 
     Auth: same QR token that unlocks the portal.
-    Returns name, email, mobile, department.
+    Defensive: only touches User fields that actually exist, so a different
+    field name can never crash the portal with a 500.
     """
-    # Validate the QR token (same pattern as PortalTokenMixin)
     qr = get_object_or_404(
         PlantQRCode.objects.select_related('plant'),
         token=token,
@@ -1468,30 +1581,62 @@ def portal_employee_lookup(request, token):
         return JsonResponse({'ok': False, 'error': 'employee_id is required'}, status=400)
 
     User = get_user_model()
+    names = {f.name for f in User._meta.get_fields()}
+    try:
+        base = User.objects.filter(employee_id__iexact=emp_id)
+        if 'is_active_employee' in names:
+            base = base.filter(is_active_employee=True)
+        elif 'is_active' in names:
+            base = base.filter(is_active=True)
+        if 'department' in names and User._meta.get_field('department').is_relation:
+            base = base.select_related('department')
 
-    base = User.objects.select_related('department').filter(
-        employee_id__iexact=emp_id,
-        is_active_employee=True,
-    )
-
-    # Prefer users tied to this QR's plant (primary or assigned);
-    # fall back to a global match if none found for the plant.
-    user = (
-        base.filter(Q(plant=qr.plant) | Q(assigned_plants=qr.plant)).distinct().first()
-        or base.first()
-    )
+        # Prefer users tied to this QR's plant (primary or assigned);
+        # fall back to a global match if none found for the plant.
+        scope = Q()
+        if 'plant' in names:
+            scope |= Q(plant=qr.plant)
+        if 'assigned_plants' in names:
+            scope |= Q(assigned_plants=qr.plant)
+        user = (base.filter(scope).distinct().first() if scope else None) or base.first()
+    except Exception:                     # wrong field name etc. -> log it, don't 500 the portal
+        _log.exception('portal_employee_lookup failed')
+        return JsonResponse({'ok': True, 'found': False})
 
     if not user:
         return JsonResponse({'ok': True, 'found': False})
 
+    dep = getattr(user, 'department', None)
+    phone = next((str(getattr(user, f)) for f in ('phone', 'mobile', 'phone_number', 'mobile_number')
+                  if getattr(user, f, None)), '')
     return JsonResponse({
         'ok': True,
         'found': True,
         'data': {
-            'participant_name':   user.get_full_name(),
+            'participant_name':   user.get_full_name() or getattr(user, 'username', ''),
             'participant_email':  user.email or '',
-            'participant_mobile': user.phone or '',
-            'department':         user.department.name if user.department else '',
+            'participant_mobile': phone,
+            'department':         getattr(dep, 'name', dep) or '',
             'employee_id':        user.employee_id,
         },
+    })
+
+
+@require_GET
+def debug_portal_videos(request, token):
+    """Debug only: disabled (404) unless settings.DEBUG is True."""
+    if not settings.DEBUG:
+        raise Http404()
+    qr = get_object_or_404(PlantQRCode, token=token, is_active=True)
+    return JsonResponse({
+        'plant': qr.plant.name,
+        'requested_lang': request.GET.get('lang'),
+        'requested_video_lang': request.GET.get('video_lang'),
+        'languages_in_db': list(Language.objects.values('id', 'code', 'name', 'is_active')),
+        'videos_in_db': [
+            {'id': v.id, 'language_id': v.language_id,
+             'language_code': v.language.code, 'file': v.file.name}
+            for v in InductionVideo.objects.select_related('language')
+        ],
+        'portal_languages': list(portal_languages().values('id', 'code', 'name')),
     })

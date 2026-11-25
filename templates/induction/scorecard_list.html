@@ -156,6 +156,7 @@
     font-size: 13.5px;
     color: #2c3e50;
     user-select: none;
+    margin: 0;
   }
   .ms-item:hover { background: #f8f9fc; }
   .ms-item input[type="checkbox"] {
@@ -307,21 +308,23 @@
   <div class="card-body">
 
     <!-- ============ TOOLBAR ============ -->
-    <form method="GET" class="ind-toolbar" id="filterForm">
+    <form method="GET" class="ind-toolbar" id="filterForm"
+          data-all="{% translate 'All' %}"
+          data-selected="{% translate 'selected' %}">
 
       <!-- SEARCH -->
       <div class="search-wrap">
         <i class="fas fa-search"></i>
         <input type="text" name="q" class="form-control"
                placeholder="{% translate 'Search name / mobile / ID...' %}"
-               value="{{ filters.q|default:'' }}" onchange="this.form.submit()">
+               value="{{ filters.q|default:'' }}">
       </div>
 
       <!-- ============ MULTI-SELECT: PLANTS ============ -->
       <details class="ms" id="msPlants">
-        <summary class="{% if selected_plants %}has-sel{% endif %}" onclick="toggleOne(event, 'msPlants')">
+        <summary class="{% if selected_plants %}has-sel{% endif %}">
           <span class="ms-label">{% translate "Plants" %}</span>
-          <span class="ms-value" id="msPlantsLabel">
+          <span class="ms-value">
             {% if selected_plants %}
               {{ selected_plants|length }} {% translate "selected" %}
             {% else %}
@@ -329,20 +332,19 @@
             {% endif %}
           </span>
         </summary>
-        <div class="ms-panel" onclick="event.stopPropagation()">
+        <div class="ms-panel">
           <div class="ms-head">
             <span>{% translate "Filter by plant" %}</span>
             <div class="ms-actions">
-              <button type="button" onclick="selectAllIn('msPlants', true)">{% translate "All" %}</button>
-              <button type="button" onclick="selectAllIn('msPlants', false)">{% translate "Clear" %}</button>
+              <button type="button" data-ms-target="msPlants" data-ms-all="1">{% translate "All" %}</button>
+              <button type="button" data-ms-target="msPlants" data-ms-all="0">{% translate "Clear" %}</button>
             </div>
           </div>
           <div class="ms-body">
             {% for p in plants %}
             <label class="ms-item">
               <input type="checkbox" name="plant" value="{{ p.id }}"
-                     {% if p.id in selected_plants %}checked{% endif %}
-                     onchange="onMsChange('msPlants', '{{ selected_plants|length|default:0 }}')">
+                     {% if p.id in selected_plants %}checked{% endif %}>
               <span>{{ p.name }}</span>
             </label>
             {% empty %}
@@ -354,9 +356,9 @@
 
       <!-- ============ MULTI-SELECT: CATEGORIES ============ -->
       <details class="ms" id="msCats">
-        <summary class="{% if selected_categories %}has-sel{% endif %}" onclick="toggleOne(event, 'msCats')">
+        <summary class="{% if selected_categories %}has-sel{% endif %}">
           <span class="ms-label">{% translate "Categories" %}</span>
-          <span class="ms-value" id="msCatsLabel">
+          <span class="ms-value">
             {% if selected_categories %}
               {{ selected_categories|length }} {% translate "selected" %}
             {% else %}
@@ -364,20 +366,19 @@
             {% endif %}
           </span>
         </summary>
-        <div class="ms-panel" onclick="event.stopPropagation()">
+        <div class="ms-panel">
           <div class="ms-head">
             <span>{% translate "Filter by category" %}</span>
             <div class="ms-actions">
-              <button type="button" onclick="selectAllIn('msCats', true)">{% translate "All" %}</button>
-              <button type="button" onclick="selectAllIn('msCats', false)">{% translate "Clear" %}</button>
+              <button type="button" data-ms-target="msCats" data-ms-all="1">{% translate "All" %}</button>
+              <button type="button" data-ms-target="msCats" data-ms-all="0">{% translate "Clear" %}</button>
             </div>
           </div>
           <div class="ms-body">
             {% for c in categories %}
             <label class="ms-item">
               <input type="checkbox" name="category" value="{{ c.id }}"
-                     {% if c.id in selected_categories %}checked{% endif %}
-                     onchange="onMsChange('msCats', '{{ selected_categories|length|default:0 }}')">
+                     {% if c.id in selected_categories %}checked{% endif %}>
               <span>{{ c.name }}</span>
             </label>
             {% empty %}
@@ -389,17 +390,16 @@
 
       <!-- RESULT PILLS -->
       <div class="ind-pills">
-        <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}"
+        <a href="?{% if filters.q %}q={{ filters.q|urlencode }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}"
            class="{% if not filters.result %}active{% endif %}">{% translate "All" %}</a>
-        <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}result=PASS"
+        <a href="?{% if filters.q %}q={{ filters.q|urlencode }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}result=PASS"
            class="{% if filters.result == 'PASS' %}active{% endif %}">{% translate "Passed" %}</a>
-        <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}result=FAIL"
+        <a href="?{% if filters.q %}q={{ filters.q|urlencode }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}result=FAIL"
            class="{% if filters.result == 'FAIL' %}active{% endif %}">{% translate "Failed" %}</a>
       </div>
 
       <input type="hidden" name="result" value="{{ filters.result|default:'' }}">
 
-      <!-- APPLY button (optional — auto-submit also works on checkbox change) -->
       <button type="submit" class="btn btn-sm btn-outline-primary" style="height:40px;border-radius:8px;">
         <i class="fas fa-filter mr-1"></i>{% translate "Apply" %}
       </button>
@@ -417,7 +417,7 @@
         <span class="active-chip">
           <span class="cat">{% translate "Search:" %}</span>
           {{ filters.q }}
-          <a href="?{% if selected_plants %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% endif %}{% if selected_categories %}{% for c in selected_categories %}category={{ c }}&{% endfor %}{% endif %}{% if filters.result %}result={{ filters.result }}{% endif %}"
+          <a href="?{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}{% if filters.result %}result={{ filters.result }}{% endif %}"
              title="{% translate 'Remove' %}"><i class="fas fa-times"></i></a>
         </span>
       {% endif %}
@@ -426,7 +426,7 @@
         <span class="active-chip">
           <span class="cat">{% translate "Plant:" %}</span>
           {{ p.name }}
-          <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for pid in selected_plants %}{% if pid != p.id %}plant={{ pid }}&{% endif %}{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}{% if filters.result %}result={{ filters.result }}{% endif %}"
+          <a href="?{% if filters.q %}q={{ filters.q|urlencode }}&{% endif %}{% for pid in selected_plants %}{% if pid != p.id %}plant={{ pid }}&{% endif %}{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}{% if filters.result %}result={{ filters.result }}{% endif %}"
              title="{% translate 'Remove' %}"><i class="fas fa-times"></i></a>
         </span>
       {% endfor %}
@@ -435,7 +435,7 @@
         <span class="active-chip">
           <span class="cat">{% translate "Category:" %}</span>
           {{ c.name }}
-          <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for pid in selected_plants %}plant={{ pid }}&{% endfor %}{% for cid in selected_categories %}{% if cid != c.id %}category={{ cid }}&{% endif %}{% endfor %}{% if filters.result %}result={{ filters.result }}{% endif %}"
+          <a href="?{% if filters.q %}q={{ filters.q|urlencode }}&{% endif %}{% for pid in selected_plants %}plant={{ pid }}&{% endfor %}{% for cid in selected_categories %}{% if cid != c.id %}category={{ cid }}&{% endif %}{% endfor %}{% if filters.result %}result={{ filters.result }}{% endif %}"
              title="{% translate 'Remove' %}"><i class="fas fa-times"></i></a>
         </span>
       {% endfor %}
@@ -444,7 +444,7 @@
         <span class="active-chip">
           <span class="cat">{% translate "Result:" %}</span>
           {{ filters.result }}
-          <a href="?{% if filters.q %}q={{ filters.q }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}"
+          <a href="?{% if filters.q %}q={{ filters.q|urlencode }}&{% endif %}{% for p in selected_plants %}plant={{ p }}&{% endfor %}{% for c in selected_categories %}category={{ c }}&{% endfor %}"
              title="{% translate 'Remove' %}"><i class="fas fa-times"></i></a>
         </span>
       {% endif %}
@@ -540,73 +540,79 @@
 (function () {
   'use strict';
 
-  // Only one dropdown open at a time; clicking outside closes them all
-  window.toggleOne = function (ev, id) {
-    // Don't preventDefault here — we DO want the <details> to toggle.
-    // We just close all others.
-    var cur = document.getElementById(id);
-    document.querySelectorAll('.ms[open]').forEach(function (d) {
-      if (d !== cur) d.removeAttribute('open');
-    });
-    // Details toggles itself; we don't need to do anything else here.
-  };
+  function init() {
+    var form = document.getElementById('filterForm');
+    if (!form) return;
 
-  document.addEventListener('click', function (e) {
-    if (!e.target.closest('.ms')) {
-      document.querySelectorAll('.ms[open]').forEach(function (d) {
-        d.removeAttribute('open');
-      });
-    }
-  });
+    var TXT_ALL = form.getAttribute('data-all') || 'All';
+    var TXT_SEL = form.getAttribute('data-selected') || 'selected';
 
-  window.selectAllIn = function (id, on) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
-      cb.checked = on;
-    });
-    updateLabel(id);
-    submitSoon();
-  };
+    function updateLabel(el) {
+      var label = el.querySelector('.ms-value');
+      var summary = el.querySelector('summary');
+      var boxes = el.querySelectorAll('input[type="checkbox"]');
+      var checked = el.querySelectorAll('input[type="checkbox"]:checked').length;
 
-  window.onMsChange = function (id) {
-    updateLabel(id);
-    submitSoon();
-  };
+      if (summary) summary.classList.toggle('has-sel', checked > 0);
+      if (!label) return;
 
-  function updateLabel(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var label = el.querySelector('.ms-value');
-    var summary = el.querySelector('summary');
-    var checked = el.querySelectorAll('input[type="checkbox"]:checked').length;
-    var total = el.querySelectorAll('input[type="checkbox"]').length;
-
-    if (summary) summary.classList.toggle('has-sel', checked > 0);
-
-    if (label) {
       if (checked === 0) {
-        label.textContent = total > 0 ? '{% translate "All" %}' : '—';
-      } else if (checked === total) {
-        label.textContent = '{% translate "All" %} (' + total + ')';
+        label.textContent = boxes.length ? TXT_ALL : '—';
+      } else if (checked === boxes.length) {
+        label.textContent = TXT_ALL + ' (' + boxes.length + ')';
       } else {
-        label.textContent = checked + ' {% translate "selected" %}';
+        label.textContent = checked + ' ' + TXT_SEL;
       }
     }
+
+    // Checkbox change -> only update the label. Filtering happens on Apply.
+    form.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t.matches('.ms input[type="checkbox"]')) {
+        updateLabel(t.closest('.ms'));
+      }
+    });
+
+    // "All" / "Clear" buttons
+    form.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-ms-target]');
+      if (!btn) return;
+      var ms = document.getElementById(btn.getAttribute('data-ms-target'));
+      if (!ms) return;
+      var on = btn.getAttribute('data-ms-all') === '1';
+      ms.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = on; });
+      updateLabel(ms);
+    });
+
+    // Only one dropdown open at a time
+    document.querySelectorAll('.ms').forEach(function (d) {
+      d.addEventListener('toggle', function () {
+        if (d.open) {
+          document.querySelectorAll('.ms[open]').forEach(function (o) {
+            if (o !== d) o.removeAttribute('open');
+          });
+        }
+      });
+    });
+
+    // Click outside closes dropdowns
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.ms')) {
+        document.querySelectorAll('.ms[open]').forEach(function (d) {
+          d.removeAttribute('open');
+        });
+      }
+    });
+
+    // Sync labels on load
+    document.querySelectorAll('.ms').forEach(updateLabel);
   }
 
-  // Debounced auto-submit so rapid checkbox clicking doesn't hammer the server
-  var submitTimer = null;
-  function submitSoon() {
-    clearTimeout(submitTimer);
-    submitTimer = setTimeout(function () {
-      var f = document.getElementById('filterForm');
-      if (f) f.submit();
-    }, 350);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
-
-  // On page load, sync labels from current checkboxes
-  ['msPlants', 'msCats'].forEach(updateLabel);
 })();
 </script>
 
