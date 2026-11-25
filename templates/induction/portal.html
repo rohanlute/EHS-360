@@ -96,12 +96,10 @@ html.noscroll,html.noscroll body{overflow:hidden}
 h1{font-size:24px;line-height:1.28;font-weight:800;letter-spacing:-.022em;margin:0 0 12px;color:var(--ink)}
 .muted{color:var(--mut);margin:8px 0 14px;font-size:15px}
 
-/* success badge */
 .ok{position:relative;width:82px;height:82px;border-radius:50%;background:linear-gradient(145deg,#1E9E5A,#3BD184);display:flex;align-items:center;justify-content:center;margin:4px auto 18px;animation:pop .5s ease both;
   box-shadow:0 14px 28px -8px rgba(30,158,90,.65),inset 0 2px 0 rgba(255,255,255,.4)}
 .ok::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #3BD184;animation:pulse 2.2s ease-out infinite}
 
-/* plant banner */
 .plantbox{position:relative;overflow:hidden;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:4px;margin:12px 0;color:#fff;
   background:radial-gradient(240px 140px at 100% 0,rgba(25,198,209,.4),transparent 70%),linear-gradient(135deg,#091a35,#143866);
   box-shadow:0 18px 30px -16px rgba(9,26,53,.75)}
@@ -109,7 +107,6 @@ h1{font-size:24px;line-height:1.28;font-weight:800;letter-spacing:-.022em;margin
 .plantbox span{font-size:11px;color:var(--gold2);font-weight:700;letter-spacing:.2em;text-transform:uppercase}
 .plantbox b{font-size:25px;font-weight:800;letter-spacing:-.015em}
 
-/* checklist */
 .todo{list-style:none;margin:18px 0 0;padding:0;text-align:start;display:grid;gap:10px}
 .todo li{display:flex;align-items:center;gap:14px;padding:13px 15px;font-weight:600;font-size:15px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#fff,#F8FAFD);box-shadow:var(--shadow-sm)}
 .todo i{width:32px;height:32px;border-radius:11px;background:linear-gradient(145deg,var(--teal),var(--teal2));color:#fff;font-style:normal;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none;box-shadow:0 6px 12px -6px rgba(14,138,148,.8)}
@@ -118,7 +115,6 @@ h1{font-size:24px;line-height:1.28;font-weight:800;letter-spacing:-.022em;margin
 .row:last-of-type{border-bottom:0}
 .row span{color:var(--mut)}.g{color:#157347}.r{color:var(--bad)}
 
-/* =====================  BUTTONS  ===================== */
 .nav{display:flex;gap:12px;margin-top:26px}
 .btn{position:relative;overflow:hidden;flex:1;min-height:54px;border-radius:17px;border:0;color:#fff;font:inherit;font-size:16px;font-weight:700;letter-spacing:.005em;cursor:pointer;padding:0 18px;
   background:linear-gradient(135deg,#0B7C86 0%,#14B2BE 100%);
@@ -133,7 +129,6 @@ h1{font-size:24px;line-height:1.28;font-weight:800;letter-spacing:-.022em;margin
 .btn:disabled{opacity:.42;cursor:not-allowed;box-shadow:none;transform:none;filter:grayscale(.2)}
 .btn:disabled::after{display:none}
 
-/* =====================  OPTIONS / FORM  ===================== */
 .opt{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;text-align:start;border:1.5px solid var(--line);background:#fff;border-radius:18px;padding:13px 16px;margin-bottom:12px;font:inherit;font-size:16px;color:var(--ink);cursor:pointer;
   box-shadow:var(--shadow-sm);transition:transform .15s,border-color .2s,background .2s,box-shadow .25s}
 .opt:hover{border-color:#9ED9DE;transform:translateY(-1px);box-shadow:0 12px 22px -14px rgba(11,27,51,.35)}.opt:active{transform:scale(.985)}
@@ -156,7 +151,6 @@ h1{font-size:24px;line-height:1.28;font-weight:800;letter-spacing:-.022em;margin
 .warn{background:linear-gradient(135deg,#FFF8EA,#FFF3DC);color:#7A4A00;border:1px solid #F2DDB0;border-radius:16px;padding:13px 15px;margin:14px 0;font-size:14px;text-align:start}
 .m{margin:14px 16px}
 
-/* video language dropdown */
 .vsel{display:block;margin:0 0 14px}
 .vsel>span{display:block;font-weight:700;font-size:12.5px;color:var(--mut);letter-spacing:.02em}
 .vsel-box{position:relative;margin-top:7px}
@@ -167,7 +161,6 @@ h1{font-size:24px;line-height:1.28;font-weight:800;letter-spacing:-.022em;margin
 .vsel select:hover{border-color:#9ED9DE;background:#fff}
 .vsel select:focus{outline:0;background:#fff;border-color:var(--teal);box-shadow:0 0 0 4px rgba(25,198,209,.16)}
 
-/* =====================  VIDEO PLAYER  ===================== */
 .vwrap{position:relative;aspect-ratio:16/9;border-radius:20px;background:linear-gradient(135deg,#091a35,#143866);box-shadow:0 20px 34px -18px rgba(9,26,53,.8)}
 .vph{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:16px;color:#B9CCE3;font-size:14px;font-weight:600}
 .vwrap.mini-on .vph{display:flex}
@@ -211,14 +204,12 @@ h1{font-size:24px;line-height:1.28;font-weight:800;letter-spacing:-.022em;margin
 .pfill{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal2));width:0;border-radius:6px;transition:width .35s;box-shadow:0 0 12px rgba(25,198,209,.6)}
 .vwrap+.pbar{margin-top:14px}
 
-/* question navigator */
 .qn{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 4px}
 .qn button{width:40px;height:40px;border-radius:13px;border:1.5px solid var(--line);background:#fff;color:var(--mut);font:inherit;font-weight:800;font-size:13px;cursor:pointer;transition:.15s}
 .qn button:hover{border-color:#9ED9DE}
 .qn button.ans{background:var(--tint);border-color:#9ED9DE;color:var(--teal)}
 .qn button.cur{background:linear-gradient(145deg,var(--teal),var(--teal2));border-color:transparent;color:#fff;box-shadow:0 8px 16px -8px rgba(14,138,148,.85)}
 
-/* result ring */
 .ring{position:relative;width:168px;height:168px;margin:10px auto 18px;filter:drop-shadow(0 14px 22px rgba(11,27,51,.14))}
 .ring svg{transform:rotate(-90deg)}
 .ring .bg{stroke:#E8EEF6}.ring .arc{stroke-dasharray:326.7;stroke-dashoffset:326.7;stroke-linecap:round;animation:arc 1.3s .2s cubic-bezier(.3,.7,.2,1) forwards}
@@ -231,12 +222,10 @@ h1{font-size:24px;line-height:1.28;font-weight:800;letter-spacing:-.022em;margin
 .dlg{background:#fff;border-radius:28px;padding:28px;max-width:380px;width:100%;box-shadow:0 40px 70px -24px rgba(0,0,0,.6)}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--teal2);outline-offset:2px}
 
-/* footer */
 .foot{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 16px 0;color:#8A98AE;font-size:12px;font-weight:600;letter-spacing:.04em}
 .foot::before,.foot::after{content:"";height:1px;width:28px;background:linear-gradient(90deg,transparent,#C9D3E1)}
 .foot::after{transform:scaleX(-1)}
 
-/* =====================  EXIT / WELCOME PAGE  ===================== */
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 .card.hero{overflow:hidden;padding:0}
 .hero-top{position:relative;overflow:hidden;padding:40px 22px 34px;text-align:center;color:#fff;
@@ -267,7 +256,6 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}.ring .arc{stroke-dashoffset:var(--off)}}
 
-/* ---- Google Translate: hide ALL of its own UI (banner, widget, tooltip) ---- */
 #google_translate_element{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden}
 iframe.skiptranslate:not(.goog-te-menu-frame),
 .goog-te-banner-frame,
@@ -299,9 +287,9 @@ const CFG = {
   }
 };
 
+const SETUP_ERROR = "{{ setup_error|default:''|escapejs }}";
+
 function googleTranslateElementInit() {
-  /* 'en' is listed on purpose: picking it in the hidden widget restores the original text
-     WITHOUT reloading the page (that is what the English button uses). */
   new google.translate.TranslateElement({
     pageLanguage: 'en',
     includedLanguages: 'en,as,bn,brx,doi,gu,hi,kn,ks,gom,mai,ml,mni-Mtei,mr,ne,or,pa,sa,sat,sd,ta,te,ur',
@@ -314,11 +302,11 @@ function googleTranslateElementInit() {
 {% verbatim %}
 <script>
 (() => {
+/* ---------- immutable config ----------------------------------------- */
 const STEPS = ['welcome','category','details','video','assessment','submitted'];
 const STEP_LABELS = ['QR Verification','User Category','Personal Details','Safety Video','Assessment','Submission'];
 const FKEY = {participant_name:'Full Name',participant_mobile:'Mobile Number',participant_email:'Email Address',employee_id:'Employee ID',department:'Department',
   contractor_company:'Contractor Company Name',contractor_id:'Contractor ID',visitor_company:'Company Name',visitor_purpose:'Purpose of Visit',visitor_person_to_meet:'Person to Meet'};
-
 const NATIVE = {
   en:'English', as:'অসমীয়া (Assamese)', bn:'বাংলা (Bengali)', brx:'बड़ो (Bodo)', doi:'डोगरी (Dogri)', gu:'ગુજરાતી (Gujarati)',
   hi:'हिन्दी (Hindi)', kn:'ಕನ್ನಡ (Kannada)', ks:'کٲشُر (Kashmiri)', kok:'कोंकणी (Konkani)', mai:'मैथिली (Maithili)',
@@ -335,32 +323,38 @@ const RTL = ['sd', 'ks', 'ur'];
 
 const AUTO_KEYS = ['participant_name','participant_email','participant_mobile','department'];
 const KEY = 'ehs_induction_' + CFG.token;
-/* vlang = language chosen in the VIDEO dropdown (null = follow the page language) */
 const INIT = {step:'welcome', lang:'en', vlang:null, cat:null, form:{}, auto:false, qi:0, ans:{}, videoDone:false, attemptUuid:null, result:null};
-
-/* A normal load / reload / back starts completely fresh.
-   The ONLY exception: if the page had to reload itself to finish a language switch,
-   it leaves a one-shot copy of the user's progress here so nothing is lost. */
 const HANDOFF = 'ehs_handoff_' + CFG.token;
-let S = {...INIT};
+
+/* ---------- mutable state -------------------------------------------- */
+let S = Object.assign({}, INIT);
 try { localStorage.removeItem(KEY); } catch (e) {}
 try {
   const h = sessionStorage.getItem(HANDOFF);
-  if (h) { S = {...INIT, ...JSON.parse(h)}; sessionStorage.removeItem(HANDOFF); }
+  if (h) { Object.assign(S, JSON.parse(h)); sessionStorage.removeItem(HANDOFF); }
 } catch (e) {}
-let C = null, errors = {}, banner = '', confirmOpen = false, busy = false;
+
+let C = null;
+let errors = {};
+let banner = '';
+let confirmOpen = false;
+let busy = false;
+let empLookupTimer = null;
+let empLookupSeq = 0;
+const empLookupCache = new Map();
+
 const $app = document.getElementById('app');
 const $ = id => document.getElementById(id);
 
-const save = () => {};                      // state lives in memory only
+const save = () => {};
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num = x => String(parseFloat(x));
-const cat = () => C && C.categories.find(c => c.id === S.cat);
+const catList = () => Array.isArray(C && C.categories) ? C.categories.filter(c => c && c.id != null && c.slug && c.name) : [];
+const cat = () => catList().find(c => c.id === S.cat) || null;
 const enId = () => (CFG.langs.find(l => /^en/i.test(l.code)) || {}).id;
 const langId = () => (LANGS.find(l => l.code === S.lang) || {}).id || enId();
 const gt = v => (v && typeof v === 'object') ? (v.en || Object.values(v)[0] || '') : (v ?? '');
 
-/* m:ss  or  h:mm:ss */
 const fmtT = x => {
   x = Number(x);
   if (!isFinite(x) || x < 0) return '0:00';
@@ -376,6 +370,7 @@ const FS = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2
 const GLOBE = '<svg class="globe" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0E8A94" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>';
 const CHEV = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#5E6E85" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 
+/* ---------- Google Translate banner scrub ---------------------------- */
 const BANNER = 'iframe.skiptranslate:not(.goog-te-menu-frame), .goog-te-banner-frame, .VIpgJd-ZVi9od-ORHb-OEVmcd';
 const killBanner = () => {
   document.querySelectorAll(BANNER).forEach(f => {
@@ -395,16 +390,13 @@ const clearGT = () => {
   ['', `;domain=${h}`, `;domain=.${h}`].forEach(d => document.cookie = `googtrans=;path=/;${past}${d}`);
 };
 
-/* Reload the page but keep the user exactly where they are (used only as a last resort). */
 function reloadKeepState() {
   try { sessionStorage.setItem(HANDOFF, JSON.stringify(S)); } catch (e) {}
   location.reload();
 }
 
-/* Google adds translated-ltr / translated-rtl to <html> while a translation is active */
 const isTranslated = () => /\btranslated-(ltr|rtl)\b/.test(document.documentElement.className);
 
-/* Ask the hidden widget to put the original (English) text back - no reload. */
 function restoreOriginal() {
   clearGT();
   const combo = document.querySelector('.goog-te-combo');
@@ -413,7 +405,6 @@ function restoreOriginal() {
     combo.value = hasEn ? 'en' : '';
     combo.dispatchEvent(new Event('change'));
   }
-  // older/newer widget versions also expose a hidden "Show original" button
   try {
     document.querySelectorAll('iframe.skiptranslate').forEach(f => {
       const d = f.contentDocument || (f.contentWindow && f.contentWindow.document);
@@ -423,21 +414,21 @@ function restoreOriginal() {
   } catch (e) {}
 }
 
-/* English: restore the original text in place, then redraw. Reload only if the widget refuses. */
+let noMT = false;
+
 function switchToEnglish() {
   noMT = false;
-  if (!isTranslated() && !/googtrans=/.test(document.cookie)) { loadContent(); return; }   // nothing to undo
+  if (!isTranslated() && !/googtrans=/.test(document.cookie)) { loadContent(); return; }
   restoreOriginal();
   let tries = 0;
   const t = setInterval(() => {
     tries++;
     if (!isTranslated()) { clearInterval(t); clearGT(); loadContent(); }
-    else if (tries === 6) restoreOriginal();                    // one more nudge after ~1.5 s
-    else if (tries > 16) { clearInterval(t); clearGT(); reloadKeepState(); }   // ~4 s: give up, but keep progress
+    else if (tries === 6) restoreOriginal();
+    else if (tries > 16) { clearInterval(t); clearGT(); reloadKeepState(); }
   }, 250);
 }
 
-let noMT = false;
 function applyGoogle(tries = 0) {
   if (S.lang === 'en') return;
   const combo = document.querySelector('.goog-te-combo');
@@ -469,8 +460,8 @@ function retranslate() {
 }
 
 function setLang(code) {
-  S.lang = code; S.vlang = null; save(); noMT = false;      // video language follows the page language again
-  if (code === 'en') { switchToEnglish(); return; }          // translate back in place - no reload
+  S.lang = code; S.vlang = null; save(); noMT = false;
+  if (code === 'en') { switchToEnglish(); return; }
   applyGoogle();
   loadContent();
 }
@@ -480,27 +471,37 @@ const post = async (url, body) => {
   let j = {}; try { j = await r.json(); } catch (e) {}
   return {ok: r.ok, j};
 };
+
 async function loadContent() {
   try {
     let q = '?lang=' + encodeURIComponent(S.lang);
     if (S.vlang) q += '&video_lang=' + encodeURIComponent(S.vlang);
     const r = await fetch(CFG.url.content + q);
-    if (!r.ok) throw new Error();
-    C = await r.json(); banner = '';
-  } catch (e) { banner = 'Something went wrong. Please try again.'; }
+    if (!r.ok) throw new Error('content_http_' + r.status);
+    const j = await r.json();
+    if (!Array.isArray(j.categories)) j.categories = [];
+    if (!Array.isArray(j.questions))  j.questions  = [];
+    if (j.error === 'no_language') {
+      banner = j.detail || 'Translation is not set up yet. Text is shown in English.';
+    } else {
+      banner = '';
+    }
+    C = j;
+  } catch (e) {
+    banner = 'Something went wrong loading the induction. Please try again.';
+    C = {categories: [], questions: [], video: null, video_languages: [], departments: []};
+  }
   render();
 }
 
-/* name shown for a video language: native script first, server name as fallback */
 const vName = l => NATIVE[l.code] || l.name || l.code;
 
-/* Department is a dropdown (real departments from the system) for the Contractor category.
-   Every other field stays a normal text box. */
 const fieldInput = (c, f) => {
-  const deps = C.departments || [];
+  const deps = Array.isArray(C && C.departments) ? C.departments : [];
+  if (!f || !f.name) return '';
   if (f.name === 'department' && c.slug === 'contractor' && deps.length) {
     const cur = S.form.department || '';
-    const list = cur && !deps.includes(cur) ? [cur, ...deps] : deps;      // keep a value that is no longer in the list
+    const list = cur && !deps.includes(cur) ? [cur, ...deps] : deps;
     return `<select class="in in-sel notranslate ${cur ? '' : 'empty'}" translate="no" name="department">
       <option value="" ${cur ? '' : 'selected'}>Select department</option>
       ${list.map(d => `<option value="${esc(d)}" ${d === cur ? 'selected' : ''}>${esc(d)}</option>`).join('')}
@@ -510,34 +511,20 @@ const fieldInput = (c, f) => {
   return `<input class="in notranslate" translate="no" name="${n}" type="${n.includes('email') ? 'email' : n.includes('mobile') ? 'tel' : 'text'}" inputmode="${n.includes('mobile') ? 'numeric' : 'text'}" value="${esc(S.form[n] || '')}" autocomplete="off">`;
 };
 
-/* ============================================================
-   EMPLOYEE LOOKUP (replaces the old hard-coded demo data)
-   ============================================================ */
-let empLookupTimer = null;
-let empLookupSeq = 0;
-const empLookupCache = new Map();   // employee_id (lowercased) -> data | null
-
 function lookupEmployee(rawId) {
   const empId = String(rawId || '').trim();
   if (!empId) return;
-
   const cacheKey = empId.toLowerCase();
-
-  // Already looked up this session? Apply immediately.
   if (empLookupCache.has(cacheKey)) {
     applyEmployeeData(empId, empLookupCache.get(cacheKey));
     return;
   }
-
   const seq = ++empLookupSeq;
-
-  fetch(
-    CFG.url.lookup + '?employee_id=' + encodeURIComponent(empId),
-    { headers: { 'X-Requested-With': 'XMLHttpRequest' } }
-  )
+  fetch(CFG.url.lookup + '?employee_id=' + encodeURIComponent(empId),
+        { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
     .then(r => r.json().catch(() => ({})))
     .then(j => {
-      if (seq !== empLookupSeq) return;             // a newer keystroke superseded this
+      if (seq !== empLookupSeq) return;
       const data = (j && j.ok && j.found && j.data) ? j.data : null;
       empLookupCache.set(cacheKey, data);
       applyEmployeeData(empId, data);
@@ -550,65 +537,75 @@ function lookupEmployee(rawId) {
 }
 
 function applyEmployeeData(empId, data) {
-  // Only apply if the input still contains this id (user may have typed on)
   const el = document.querySelector('[name=employee_id]');
   if (!el || el.value.trim().toLowerCase() !== empId.toLowerCase()) return;
-
   if (data) {
-    Object.assign(S.form, {
-      participant_name:   data.participant_name   || '',
-      participant_email:  data.participant_email  || '',
-      participant_mobile: data.participant_mobile || '',
-      department:         data.department         || '',
-    });
+    S.form.participant_name   = data.participant_name   || '';
+    S.form.participant_email  = data.participant_email  || '';
+    S.form.participant_mobile = data.participant_mobile || '';
+    S.form.department         = data.department         || '';
     S.auto = true;
-  } else {
-    if (S.auto) {
-      AUTO_KEYS.forEach(k => { S.form[k] = ''; });
-      S.auto = false;
-    }
+  } else if (S.auto) {
+    AUTO_KEYS.forEach(k => { S.form[k] = ''; });
+    S.auto = false;
   }
-
   save();
   render();
-
-  // restore focus + caret after the re-render
   const el2 = document.querySelector('[name=employee_id]');
-  if (el2) {
-    el2.focus();
-    el2.setSelectionRange(el2.value.length, el2.value.length);
-  }
+  if (el2) { el2.focus(); el2.setSelectionRange(el2.value.length, el2.value.length); }
 }
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const ICON = {employee:'👷', contractor:'🛠️', visitor:'🧑‍💼'};
+
 const views = {
-  welcome: () => `<section class="card ctr"><div class="ok">${CHECK}</div><h1>QR Code Scanned Successfully!</h1>
+  welcome: () => {
+    const qs = (C && Array.isArray(C.questions)) ? C.questions : [];
+    const passing = C && C.passing_percentage;
+    const setupWarn = (typeof SETUP_ERROR === 'string' && SETUP_ERROR)
+      ? `<div class="warn" role="alert">${esc(SETUP_ERROR)}</div>`
+      : '';
+    const catWarn = (!catList().length)
+      ? `<div class="warn" role="alert">No participant categories are configured. Please contact the plant administrator.</div>`
+      : '';
+    return `<section class="card ctr"><div class="ok">${CHECK}</div><h1>QR Code Scanned Successfully!</h1>
     <div class="plantbox"><span>Plant</span><b class="notranslate" translate="no">${esc(CFG.plant)}</b></div>
+    ${setupWarn}
+    ${catWarn}
     ${CFG.ready ? '' : `<div class="warn">No questionnaire is assigned to this plant yet.</div>`}
     <p class="muted">Welcome! Please complete the induction process to proceed.</p>
     <ul class="todo"><li><i>1</i>Choose your category</li><li><i>2</i>Watch the safety video</li>
-    <li><i>3</i>Answer ${C.questions.length} questions${C.passing_percentage ? ' (pass mark ' + num(C.passing_percentage) + '%)' : ''}</li></ul>
-    <div class="nav"><button class="btn" data-a="toCat" ${CFG.ready ? '' : 'disabled'}>Get Started</button></div></section>`,
+    <li><i>3</i>Answer ${qs.length} questions${passing ? ' (pass mark ' + num(passing) + '%)' : ''}</li></ul>
+    <div class="nav"><button class="btn" data-a="toCat" ${CFG.ready && catList().length ? '' : 'disabled'}>Get Started</button></div></section>`;
+  },
 
-  category: () => `<section class="card"><h1>Who's checking in?</h1><p class="muted">Select the category that applies to you.</p>
-    ${C.categories.map(c => `<button class="opt ${S.cat === c.id ? 'sel' : ''}" data-a="cat" data-id="${c.id}"><span class="ico">${ICON[c.slug] || '👤'}</span><span style="flex:1"><b>${esc(gt(c.name))}</b></span><span class="dot"></span></button>`).join('')}
-    <div class="nav"><button class="btn gh" data-a="toWelcome">Previous</button><button class="btn" data-a="toDetails" ${S.cat ? '' : 'disabled'}>Next</button></div></section>`,
+  category: () => {
+    const list = catList();
+    const noCats = `<div class="warn" role="alert">No participant categories are configured. Please contact the plant administrator.</div>`;
+    return `<section class="card"><h1>Who's checking in?</h1><p class="muted">Select the category that applies to you.</p>
+    ${list.length ? list.map(c => `<button class="opt ${S.cat === c.id ? 'sel' : ''}" data-a="cat" data-id="${c.id}"><span class="ico">${ICON[c.slug] || '👤'}</span><span style="flex:1"><b>${esc(gt(c.name))}</b></span><span class="dot"></span></button>`).join('') : noCats}
+    <div class="nav"><button class="btn gh" data-a="toWelcome">Previous</button><button class="btn" data-a="toDetails" ${S.cat && list.length ? '' : 'disabled'}>Next</button></div></section>`;
+  },
 
-  details: () => { const c = cat(); if (!c) { S.step = 'category'; return views.category(); }
+  details: () => {
+    const c = cat();
+    if (!c) { S.step = 'category'; return views.category(); }
+    const fields = Array.isArray(c.fields) ? c.fields : [];
     return `<section class="card"><h1>${esc(gt(c.name))}</h1>
     ${S.auto ? `<div class="note">✓ Details filled from employee records</div>` : ''}
-    ${c.fields.map(f => `<label class="lbl">${esc(FKEY[f.name] || f.label)}${f.required ? ' *' : ' (optional)'}
+    ${fields.length ? fields.map(f => `<label class="lbl">${esc(FKEY[f.name] || f.label)}${f.required ? ' *' : ' (optional)'}
       ${fieldInput(c, f)}
-      <span class="err">${errors[f.name] ? esc(errors[f.name]) : ''}</span></label>`).join('')}
-    <div class="nav"><button class="btn gh" data-a="toCat">Previous</button><button class="btn" data-a="toVideo">Next</button></div></section>`; },
+      <span class="err">${errors[f.name] ? esc(errors[f.name]) : ''}</span></label>`).join('') : `<div class="warn">This category has no additional fields configured.</div>`}
+    <div class="nav"><button class="btn gh" data-a="toCat">Previous</button><button class="btn" data-a="toVideo">Next</button></div></section>`;
+  },
 
   video: () => {
-    const v = C.video, ok = S.videoDone || !v;
-    const vls = C.video_languages || [];
+    const v = C && C.video;
+    const ok = S.videoDone || !v;
+    const vls = (C && Array.isArray(C.video_languages)) ? C.video_languages : [];
     const cur = v ? v.language : '';
     const curLang = vls.find(l => l.code === cur);
-    const fb = v && !S.vlang && v.language !== S.lang;      // page language has no video -> we fell back
+    const fb = v && !S.vlang && v.language !== S.lang;
     return `<section class="card"><h1>${esc(v ? v.title : 'Safety Induction Video')}</h1>
     ${vls.length ? `<label class="vsel notranslate" translate="no"><span>Select language</span>
       <div class="vsel-box">${GLOBE}
@@ -620,9 +617,7 @@ const views = {
       <div class="vph">Video is playing in the mini player. Tap the restore button on it to bring it back.</div>
       <div class="vp paused" id="vp">
         <video id="v" src="${esc(v.url)}" playsinline webkit-playsinline preload="metadata" data-a="play"></video>
-
         <button type="button" class="pbtn" data-a="play" aria-label="Play / Pause">${PLAY}${PAUSE}</button>
-
         <div class="v-ctrl notranslate" translate="no">
           <div class="spd-menu" id="spdMenu" hidden>${SPEEDS.map(r => `<button type="button" data-a="setSpeed" data-r="${r}">${r}x</button>`).join('')}</div>
           <button type="button" data-a="play" id="ctrlPlay" aria-label="Play / Pause">${PLAY}</button>
@@ -633,22 +628,28 @@ const views = {
       </div></div>
       <div class="pbar"><div class="pfill" id="pf" style="width:${S.videoDone ? 100 : 0}%"></div></div>
       <div class="warn" id="vm" ${S.videoDone ? 'hidden' : ''}>🎬 Watch the full video to continue. Skipping ahead is not allowed.</div>` : `<div class="warn">No induction video is configured. You can continue to the assessment.</div>`}
-    <div class="nav"><button class="btn gh" data-a="toDetails">Previous</button><button class="btn" id="startBtn" data-a="start" ${ok && !busy ? '' : 'disabled'}>Start Assessment</button></div></section>`; },
+    <div class="nav"><button class="btn gh" data-a="toDetails">Previous</button><button class="btn" id="startBtn" data-a="start" ${ok && !busy ? '' : 'disabled'}>Start Assessment</button></div></section>`;
+  },
 
-  assessment: () => { const qs = C.questions, q = qs[S.qi];
+  assessment: () => {
+    const qs = (C && Array.isArray(C.questions)) ? C.questions : [];
+    const q = qs[S.qi];
     if (!q) return `<section class="card"><div class="warn">No questionnaire is assigned to this plant yet.</div></section>`;
     const a = S.ans[q.id], last = S.qi === qs.length - 1, done = qs.filter(x => S.ans[x.id]).length, left = qs.length - done;
+    const opts = Array.isArray(q.options) ? q.options : [];
     return `<section class="card"><div class="plab" style="margin-top:0">Question ${S.qi + 1} / ${qs.length} · ${done} answered</div>
     <div class="pbar"><div class="pfill" style="width:${done / qs.length * 100}%"></div></div>
     <h1 style="margin-top:18px">${esc(gt(q.text))}</h1>
-    ${q.options.map((o, k) => `<button class="opt ${a === o.id ? 'sel' : ''}" data-a="ans" data-q="${q.id}" data-o="${o.id}"><span class="let">${'ABCD'[k] || k + 1}</span><span style="flex:1">${esc(gt(o.text))}</span></button>`).join('')}
+    ${opts.map((o, k) => `<button class="opt ${a === o.id ? 'sel' : ''}" data-a="ans" data-q="${q.id}" data-o="${o.id}"><span class="let">${'ABCD'[k] || k + 1}</span><span style="flex:1">${esc(gt(o.text))}</span></button>`).join('')}
     ${a ? '' : `<span class="err">Select an answer to continue</span>`}
     ${last && left ? `<div class="warn">${left} question(s) still unanswered. Tap a number below to go back.</div>` : ''}
     <div class="qn notranslate" translate="no">${qs.map((x, k) => `<button data-a="goQ" data-i="${k}" class="${k === S.qi ? 'cur' : S.ans[x.id] ? 'ans' : ''}">${k + 1}</button>`).join('')}</div>
     <div class="nav"><button class="btn gh" data-a="prevQ" ${S.qi ? '' : 'disabled'}>Previous</button>
-    <button class="btn" data-a="${last ? 'ask' : 'nextQ'}" ${a && (!last || !left) ? '' : 'disabled'}>${last ? 'Submit Assessment' : 'Next'}</button></div></section>`; },
+    <button class="btn" data-a="${last ? 'ask' : 'nextQ'}" ${a && (!last || !left) ? '' : 'disabled'}>${last ? 'Submit Assessment' : 'Next'}</button></div></section>`;
+  },
 
-  submitted: () => { const r = S.result || {}, pass = r.result === 'PASS', pct = parseFloat(r.percentage) || 0;
+  submitted: () => {
+    const r = S.result || {}, pass = r.result === 'PASS', pct = parseFloat(r.percentage) || 0;
     return `<section class="card ctr"><div class="emoji">${pass ? '🎉' : '📘'}</div><h1>${pass ? 'Assessment Submitted Successfully!' : 'Unfortunately, you haven\'t passed this test.'}</h1>
     ${pass ? `<p class="muted" style="margin-top:0">Thank you for completing the safety induction.</p>` : ''}
     <div class="ring"><svg viewBox="0 0 120 120" width="168" height="168"><defs><linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${pass ? '#19C6D1' : '#E4572E'}"/><stop offset="1" stop-color="${pass ? '#1E9E5A' : '#B42318'}"/></linearGradient></defs><circle class="bg" cx="60" cy="60" r="52" fill="none" stroke-width="10"/><circle class="arc" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke="url(#gr)" style="--off:${(326.7 * (1 - pct / 100)).toFixed(1)}"/></svg><b id="pct" class="notranslate ${pass ? 'g' : 'r'}" translate="no" data-to="${pct}">0%</b></div>
@@ -656,9 +657,9 @@ const views = {
     <div class="row"><span>Pass mark</span><b>${num(r.passing_percentage)}%</b></div>
     <div class="row"><span>Result</span><b class="${pass ? 'g' : 'r'}">${pass ? 'PASS' : 'FAIL'}</b></div>
     ${pass ? `<div class="nav"><button class="btn" data-a="exit">Exit</button></div>`
-      : `<div class="nav"><button class="btn" data-a="retakeVideo">Rewatch Video</button><button class="btn gh" data-a="retake">Retake Assessment</button></div>`}</section>`; },
+      : `<div class="nav"><button class="btn" data-a="retakeVideo">Rewatch Video</button><button class="btn gh" data-a="retake">Retake Assessment</button></div>`}</section>`;
+  },
 
-  /* shown after the user taps "Exit" */
   exit: () => `<section class="card hero">
     <div class="hero-top">
       <div class="hero-logo">${SHIELD}</div>
@@ -679,6 +680,7 @@ const views = {
     </div></section>`
 };
 
+/* ---------- language sheet ------------------------------------------- */
 let langOpen = false, langQ = '';
 const parts = c => { const m = (NATIVE[c] || c).match(/^(.*?) \((.*)\)$/); return m ? [m[1], m[2]] : [NATIVE[c] || c, '']; };
 const langMatches = () => { const q = langQ.trim().toLowerCase();
@@ -692,6 +694,8 @@ const langSheet = () => `<div class="sheet-bg notranslate" translate="no"><div c
   <div class="sbox"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#5E6E85" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
   <input id="lq" type="search" placeholder="Search language…" autocomplete="off" value="${esc(langQ)}"></div>
   <div class="ll" id="ll">${langListHTML()}</div></div></div>`;
+
+/* ---------- render --------------------------------------------------- */
 let lastStep = null;
 function countUp() {
   const el = document.getElementById('pct'); if (!el) return;
@@ -699,6 +703,7 @@ function countUp() {
   const tick = ts => { t0 = t0 || ts; const p = Math.min(1, (ts - t0) / 1100); el.textContent = Math.round(to * p) + '%'; if (p < 1) requestAnimationFrame(tick); };
   requestAnimationFrame(tick);
 }
+
 function render() {
   const isExit = S.step === 'exit';
   const i = isExit ? STEPS.length : Math.max(0, STEPS.indexOf(S.step));
@@ -723,9 +728,7 @@ function render() {
   retranslate();
 }
 
-/* ============================================================
-   VIDEO PLAYER
-   ============================================================ */
+/* ---------- video player --------------------------------------------- */
 let spd = 1, miniOn = false, pfsOn = false;
 
 const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
@@ -767,7 +770,7 @@ async function enterFS() {
         try { await screen.orientation.lock('landscape'); } catch (e) {}
       }
       return;
-    } catch (e) { /* fall through to the CSS version */ }
+    } catch (e) {}
   }
   pseudoFS(true);
 }
@@ -814,7 +817,7 @@ function bindVideo() {
   v.addEventListener('ended', () => {
     S.videoDone = true; save();
     w.classList.remove('playing'); w.classList.add('paused'); cp.innerHTML = PLAY;
-    pf.style.width = '100%'; tc.textContent = fmtT(dur(v)) ;
+    pf.style.width = '100%'; tc.textContent = fmtT(dur(v));
     const sb = $('startBtn'), vm = $('vm'); if (sb) sb.disabled = false; if (vm) vm.hidden = true;
     if (miniOn) setMini(false);
     if (pfsOn || fsEl()) exitFS();
@@ -824,7 +827,10 @@ function bindVideo() {
 
 function validate() {
   errors = {};
-  cat().fields.forEach(f => {
+  const c = cat();
+  if (!c) return false;
+  const fields = Array.isArray(c.fields) ? c.fields : [];
+  fields.forEach(f => {
     const v = (S.form[f.name] || '').trim();
     if (f.required && !v) errors[f.name] = 'This field is required';
     else if (v && f.name === 'participant_email' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) errors[f.name] = 'Enter a valid email address';
@@ -834,94 +840,80 @@ function validate() {
 }
 
 async function startAttempt() {
-    if (busy) return;
-
-    busy = true;
-    banner = '';
-    render();
-
-    const body = {
-        user_category: S.cat,
-        language: langId()
-    };
-
-    cat().fields.forEach(f => {
-        body[f.name] = (S.form[f.name] || '').trim();
-    });
-
-    try {
-        const {ok, j} = await post(CFG.url.start, body);
-
-        if (ok && j.attempt_uuid) {
-            S.attemptUuid = j.attempt_uuid;
-            S.ans = {};
-            S.qi = 0;
-            S.result = null;
-            S.step = 'assessment';
-        } else if (j.errors) {
-            errors = {};
-            for (const k in j.errors) {
-                const m = [].concat(j.errors[k])[0];
-                errors[k] = /required/i.test(m.message || '')
-                    ? 'This field is required'
-                    : (m.message || 'Error');
-            }
-            S.step = 'details';
-        } else {
-            banner = j.error || 'Unable to start assessment.';
-        }
-    } catch (e) {
-        banner = 'Something went wrong. Please try again.';
+  if (busy) return;
+  busy = true;
+  banner = '';
+  render();
+  const body = { user_category: S.cat, language: langId() };
+  const c = cat();
+  if (c && Array.isArray(c.fields)) {
+    c.fields.forEach(f => { body[f.name] = (S.form[f.name] || '').trim(); });
+  }
+  try {
+    const {ok, j} = await post(CFG.url.start, body);
+    if (ok && j.attempt_uuid) {
+      S.attemptUuid = j.attempt_uuid;
+      S.ans = {}; S.qi = 0; S.result = null; S.step = 'assessment';
+    } else if (j.errors) {
+      errors = {};
+      for (const k in j.errors) {
+        const m = [].concat(j.errors[k])[0];
+        errors[k] = /required/i.test(m.message || '') ? 'This field is required' : (m.message || 'Error');
+      }
+      S.step = 'details';
+    } else {
+      banner = j.error || 'Unable to start assessment.';
     }
-
-    busy = false;
-    save();
-    render();
+  } catch (e) {
+    banner = 'Something went wrong. Please try again.';
+  }
+  busy = false;
+  save();
+  render();
 }
 
-/* ---- submit: POSTs answers, shows result screen ---- */
 async function submitAttempt() {
-    if (busy) return;
-
-    busy = true;
-    confirmOpen = false;
-    render();
-
-    try {
-        const { ok, j } = await post(CFG.url.submit, {
-            attempt_uuid: S.attemptUuid,
-            video_completed: S.videoDone,
-            answers: S.ans
-        });
-
-        if (ok && j.ok) {
-            S.result = j;
-            S.step = 'submitted';
-        } else {
-            banner = j.error || 'Something went wrong. Please try again.';
-        }
-    } catch (e) {
-        banner = 'Something went wrong. Please try again.';
-    }
-
-    busy = false;
-    save();
-    render();
+  if (busy) return;
+  busy = true;
+  confirmOpen = false;
+  render();
+  try {
+    const { ok, j } = await post(CFG.url.submit, {
+      attempt_uuid: S.attemptUuid,
+      video_completed: S.videoDone,
+      answers: S.ans
+    });
+    if (ok && j.ok) { S.result = j; S.step = 'submitted'; }
+    else { banner = j.error || 'Something went wrong. Please try again.'; }
+  } catch (e) {
+    banner = 'Something went wrong. Please try again.';
+  }
+  busy = false;
+  save();
+  render();
 }
 
 const go = step => { S.step = step; banner = ''; save(); render(); };
+
+/* ---------- actions -------------------------------------------------- */
 const actions = {
   toWelcome: () => go('welcome'),
   toCat: () => go('category'),
   cat: d => {
     const id = Number(d.id);
-    if (S.cat !== id) { S.form = {}; S.auto = false; errors = {}; }   // different category = empty form
+    if (S.cat !== id) {
+      S.form = {};
+      S.auto = false;
+      errors = {};
+      empLookupCache.clear();
+      empLookupSeq = 0;
+      clearTimeout(empLookupTimer);
+    }
     S.cat = id; save(); render();
   },
   toDetails: () => go('details'),
   toVideo: () => (validate() ? go('video') : render()),
 
-  /* ---- video ---- */
   play: () => { const v = $('v'); if (v) { v.paused ? v.play().catch(() => {}) : v.pause(); } },
   speedMenu: () => { const m = $('spdMenu'); if (m) m.hidden = !m.hidden; },
   setSpeed: d => { spd = Number(d.r) || 1; const v = $('v'); if (v) { v.defaultPlaybackRate = spd; v.playbackRate = spd; } paintSpeed(); closeSpd(); },
@@ -934,24 +926,24 @@ const actions = {
   pickLang: d => { langOpen = false; langQ = ''; if (d.c !== S.lang) setLang(d.c); else render(); },
   goQ: d => { S.qi = Number(d.i); save(); render(); },
   prevQ: () => { S.qi = Math.max(0, S.qi - 1); save(); render(); },
-  nextQ: () => { S.qi = Math.min(C.questions.length - 1, S.qi + 1); save(); render(); },
+  nextQ: () => { S.qi = Math.min((C && C.questions ? C.questions.length : 1) - 1, S.qi + 1); save(); render(); },
   ask: () => { confirmOpen = true; render(); },
   cancel: () => { confirmOpen = false; render(); },
   doSubmit: () => { submitAttempt(); },
   retake: () => {
-      S.attemptUuid = null;
-      S.ans = {};
-      S.qi = 0;
-      S.videoDone = true;
-      S.result = null;
-      confirmOpen = false;
-      startAttempt();
+    S.attemptUuid = null; S.ans = {}; S.qi = 0; S.videoDone = true; S.result = null; confirmOpen = false;
+    startAttempt();
   },
   retakeVideo: () => {
     S.attemptUuid = null; S.ans = {}; S.qi = 0; S.videoDone = false; S.result = null;
     go('video');
   },
-  exit: () => { S = {...INIT, lang: S.lang, step: 'exit'}; errors = {}; go('exit'); }
+  /* FIX: never re-assign S; mutate it so a `const S` build can't throw */
+  exit: () => {
+    Object.assign(S, INIT, { lang: S.lang, step: 'exit' });
+    errors = {};
+    go('exit');
+  }
 };
 
 $app.addEventListener('click', e => {
@@ -962,7 +954,6 @@ $app.addEventListener('click', e => {
 });
 $app.addEventListener('change', e => {
   if (e.target.id === 'lang') setLang(e.target.value);
-  /* video language dropdown: load that language's video; it must be watched again */
   if (e.target.id === 'vsel') {
     S.vlang = e.target.value;
     S.videoDone = false;
@@ -976,10 +967,7 @@ $app.addEventListener('input', e => {
   if (e.target.tagName === 'SELECT') e.target.classList.toggle('empty', !e.target.value);
   if (e.target.nextElementSibling) e.target.nextElementSibling.textContent = '';
   if (n === 'employee_id') {
-    // Reset auto-fill flag while the user is typing
     if (S.auto) S.auto = false;
-
-    // Debounce: only hit the server once the user pauses typing
     clearTimeout(empLookupTimer);
     const value = e.target.value;
     empLookupTimer = setTimeout(() => lookupEmployee(value), 450);
@@ -1000,13 +988,12 @@ render();
 loadContent();
 if (S.lang !== 'en') applyGoogle();
 else if (/googtrans=/.test(document.cookie)) {
-  // leftover translation from a previous visit: clear it once, then reload in English
   if (!sessionStorage.getItem('gt_reset')) {
     try { sessionStorage.setItem('gt_reset', '1'); } catch (e) {}
     clearGT(); location.reload();
   }
 } else {
-  try { sessionStorage.removeItem('gt_reset'); } catch (e) {}   // cookie is gone, re-arm for next time
+  try { sessionStorage.removeItem('gt_reset'); } catch (e) {}
 }
 })();
 </script>

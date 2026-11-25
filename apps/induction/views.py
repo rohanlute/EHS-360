@@ -1145,8 +1145,9 @@ class ScorecardDetailView(InductionLoginMixin, TemplateView):
             InductionAttempt.objects.select_related('plant', 'user_category', 'language'),
             pk=self.kwargs['pk'], status='SUBMITTED')
 
-        # Oldest attempt first (Attempt #1 on top, then #2 ...).  ?order=desc flips it.
-        newest_first = self.request.GET.get('order') == 'desc'
+        # --- CHANGED: Default to newest_first (True) ---
+        newest_first = self.request.GET.get('order', 'desc') != 'asc'
+        
         attempts = list(
             InductionAttempt.objects
             .filter(status='SUBMITTED', plant_id=latest.plant_id,
@@ -1154,9 +1155,8 @@ class ScorecardDetailView(InductionLoginMixin, TemplateView):
             .filter(_same_person_q(latest))
             .select_related('language')
             .order_by(*(('-submitted_at', '-id') if newest_first else ('submitted_at', 'id'))))
-        # the newest attempt, whatever the display order is
+            
         latest_attempt = max(attempts, key=lambda a: (a.submitted_at, a.pk)) if attempts else latest
-
         answers = (InductionAttemptAnswer.objects
                    .filter(attempt__in=attempts)
                    .select_related('question', 'selected_option')
@@ -1282,10 +1282,24 @@ def _resolve_language(code, active_only=True):
 
 
 def _get_language(code):
-    langs = Language.objects.filter(is_active=True)
+    """
+    Resolve a portal code to a Language row.
+
+    Order:
+      1. exact code / alias / region variant / language name
+      2. any active English row
+      3. any active row
+      4. any row at all (even inactive)
+
+    May return None ONLY if the Language table is completely empty;
+    callers (PortalView, PortalContentView) guard that case explicitly.
+    """
+    active = Language.objects.filter(is_active=True)
     return (_resolve_language(code)
-            or langs.filter(code__istartswith='en').first()
-            or langs.first())
+            or active.filter(code__istartswith='en').first()
+            or active.first()
+            or Language.objects.filter(code__istartswith='en').first()
+            or Language.objects.first())
 
 
 def _portal_language_choices():
@@ -1322,22 +1336,82 @@ def _pick_video(language):
 
 
 def _translate(obj, language, field):
-    t = next((x for x in obj.translations.all() if x.language_id == language.id), None)
-    return getattr(t, field) if t else getattr(obj, field)
+    """
+    Return the translated value for `field` if a translation row exists
+    for the given language; otherwise return the object's own field.
+
+    Hard guarantees:
+      * never raises
+      * never returns None when the base field has a value
+      * works whether or not `translations` was prefetched
+    """
+    default = getattr(obj, field, '') or ''
+    if language is None:
+        return default
+
+    # .all() reads from the prefetch cache when the view prefetched it,
+    # otherwise it is one extra query — acceptable and always correct.
+    for t in obj.translations.all():
+        if t.language_id == language.id:
+            return getattr(t, field, default) or default
+    return default
 
 
 def _categories(language):
-    """Categories with translated names + the detail fields each one must fill"""
+    """
+    Participant categories for the QR portal, with translated names and
+    the detail fields each one must collect.
+
+    Language affects only the *display name*. The list itself is driven
+    purely by UserCategory.is_active, so a bad/missing language can never
+    make the categories disappear.
+
+    Emits one log line so operators can see exactly what the portal served,
+    and an error line if the list is unexpectedly empty.
+    """
+    qs = (UserCategory.objects
+          .filter(is_active=True)
+          .prefetch_related('translations')
+          .order_by('id'))
+
     out = []
-    for c in UserCategory.objects.filter(is_active=True).prefetch_related('translations'):
-        slug = c.slug or slugify(c.name)
+    for c in qs:
+        slug = (c.slug or '').lower().strip()
+        if not slug:
+            _log.warning('UserCategory pk=%s has empty slug; skipped', c.pk)
+            continue
+
+        fields = PARTICIPANT_FIELDS.get(slug)
+        if fields is None:
+            _log.warning(
+                'No PARTICIPANT_FIELDS entry for slug=%r (UserCategory pk=%s). '
+                'Known keys: %s',
+                slug, c.pk, list(PARTICIPANT_FIELDS),
+            )
+            fields = []
+
+        name = _translate(c, language, 'name') if language else c.name
         out.append({
-            'id': c.id,
-            'slug': slug,
-            'name': _translate(c, language, 'name'),
-            'fields': [{'name': n, 'label': label, 'required': required}
-                       for n, label, required in PARTICIPANT_FIELDS.get(slug, [])],
+            'id':     c.id,
+            'slug':   slug,
+            'name':   name or c.name,       # last-ditch: never blank
+            'fields': [{'name': n, 'label': lbl, 'required': req}
+                       for n, lbl, req in fields],
         })
+
+    if not out:
+        _log.error(
+            'Portal served ZERO categories. UserCategory total=%s, active=%s. '
+            'Run: python manage.py seed_categories',
+            UserCategory.objects.count(),
+            UserCategory.objects.filter(is_active=True).count(),
+        )
+    else:
+        _log.info(
+            'Portal categories served (language=%s): %s',
+            getattr(language, 'code', None),
+            [(c['slug'], c['name'], len(c['fields'])) for c in out],
+        )
     return out
 
 
@@ -1359,6 +1433,28 @@ class PortalView(PortalTokenMixin, TemplateView):
 
         language = _get_language(self.request.GET.get('lang'))
 
+        # --- one explicit guard for the "Language table is empty" case ---
+        if language is None:
+            ctx.update({
+                'plant':      qr.plant,
+                'token':      self.kwargs['token'],
+                'language':   None,
+                'categories': _categories(None),    # still return real categories
+                'languages':  [],
+                'ready':      _plant_questionnaire(qr.plant) is not None,
+                'google_translate_enabled': False,
+                'setup_error': (
+                    'No Language rows exist in the database. '
+                    'Add at least one language (e.g. code "en", name "English", '
+                    'is_active=True) in Admin → Induction → Languages, '
+                    'then reload this page. Categories are shown with '
+                    'their default names meanwhile.'
+                ),
+            })
+            _log.error('PortalView: Language table is empty for token=%s',
+                       self.kwargs['token'])
+            return ctx
+
         ctx.update({
             'plant': qr.plant,
             'token': self.kwargs['token'],
@@ -1375,13 +1471,38 @@ class PortalView(PortalTokenMixin, TemplateView):
 
 
 class PortalContentView(PortalTokenMixin, View):
-    """Everything for the selected language: category names, video, questions."""
+    """
+    Everything for the selected language: category names, video, questions.
+    Always returns categories as long as UserCategory has active rows,
+    independent of Language configuration.
+    """
     http_method_names = ['get']
 
     def get(self, request, token):
         plant = self.get_qr().plant
-        language = _get_language(request.GET.get('lang'))
         questionnaire = _plant_questionnaire(plant)
+
+        language = _get_language(request.GET.get('lang'))
+        if language is None:
+            # Language table empty → still return categories so the portal
+            # remains usable; the client shows a warning only about language.
+            return JsonResponse({
+                'ok':         False,
+                'error':      'no_language',
+                'detail':     ('No Language rows exist in the database. '
+                               'Categories and questions are shown using the '
+                               'default names.'),
+                'plant':      plant.name,
+                'language':   None,
+                'categories': _categories(None),
+                'languages':  [],
+                'departments': _departments(plant),
+                'video':      None,
+                'video_languages': [],
+                'questions':  [],
+                'passing_percentage': (str(questionnaire.passing_percentage)
+                                       if questionnaire else None),
+            }, status=200)
 
         # Video language = the one picked in the video dropdown (?video_lang=hi),
         # otherwise the page language. _pick_video() already falls back to English.
@@ -1413,20 +1534,12 @@ class PortalContentView(PortalTokenMixin, View):
                     'options': options,
                 })
 
-        categories = []
-        for c in UserCategory.objects.filter(is_active=True):
-            categories.append({
-                'id': c.id,
-                'slug': c.slug,
-                'name': c.name,
-                'fields': [{'name': n, 'label': label, 'required': required}
-                           for n, label, required in PARTICIPANT_FIELDS.get(c.slug, [])],
-            })
-
         return JsonResponse({
-            'plant': plant.name,
-            'language': language.code,
-            'categories': categories,
+            'ok':         True,
+            'plant':      plant.name,
+            'language':   language.code,
+            'categories': _categories(language),   # single source of truth
+            'languages':  _portal_language_choices(),
             'departments': _departments(plant),
             'video': {
                 'title': video.title, 'url': video.file.url,

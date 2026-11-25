@@ -24,9 +24,10 @@ class UserCategory(models.Model):
     """
     class Slug(models.TextChoices):
         EMPLOYEE   = 'employee',   'On-roll Employee'
-        CONTRACTOR = 'contractor', 'Contractor'
+        CONTRACTOR = 'contractor', 'Contractor / Off-roll'
         VISITOR    = 'visitor',    'Visitor'
 
+    name = models.CharField(max_length=50, blank=True)  # <--- ADDED THIS
     slug = models.CharField(
         max_length=20,
         choices=Slug.choices,
@@ -40,18 +41,16 @@ class UserCategory(models.Model):
         verbose_name_plural = "User Categories"
         ordering = ['id']
 
-    @property
-    def name(self):
-        """Display name, derived from the slug — never free text."""
-        return self.get_slug_display()
-
     def save(self, *args, **kwargs):
         if self.slug:
             self.slug = self.slug.lower()
+        # Auto-fill name if it is empty
+        if not self.name and self.slug:
+            self.name = self.get_slug_display()
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name
+        return self.name or self.get_slug_display()
 
 
 class UserCategoryTranslation(models.Model):
