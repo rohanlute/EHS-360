@@ -1128,45 +1128,88 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
     template_name = "data_collection/data_display.html"
 
     def get_user_plants(self, request):
-        """Get all plants assigned to the user"""
+        """Get all plants assigned to the user."""
         user = request.user
-        
+
         if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
-            return Plant.objects.filter(is_active=True)
-        
+            return Plant.objects.filter(is_active=True).order_by("name")
+
         assigned = user.assigned_plants.filter(is_active=True)
-        
         if not assigned.exists() and getattr(user, 'plant', None):
             return Plant.objects.filter(id=user.plant.id, is_active=True)
-        
-        return assigned
+
+        return assigned.order_by("name")
 
     def get(self, request):
-        plant_id = request.GET.get('plant_id')
         user_plants = self.get_user_plants(request)
-        
-        plant = user_plants.filter(id=plant_id).first() if plant_id else user_plants.first()
-        
-        if not plant:
+
+        if not user_plants.exists():
             return render(request, "no_plant_assigned.html")
 
-        report_data = build_environmental_report([plant], include_attachments=True)
+        # --- Read filters ---
+        selected_plant_ids = request.GET.getlist("plant_ids")
+
+        # --- Resolve selected plants (empty => all assigned plants) ---
+        if selected_plant_ids:
+            selected_plants = list(user_plants.filter(id__in=selected_plant_ids))
+            if not selected_plants:
+                selected_plants = list(user_plants)
+        else:
+            selected_plants = list(user_plants)
+
+        # --- Aggregate when more than 1 plant ---
+        aggregate_view = len(selected_plants) != 1
+
+        report_data = build_environmental_report(
+            plants=selected_plants,
+            aggregate=aggregate_view,
+            include_attachments=not aggregate_view,
+        )
+
+        # --- Build rows for template ---
+        if aggregate_view:
+            rows_source = report_data["questions_data"]
+        else:
+            rows_source = report_data["plants_data"][0]["questions_data"]
+
         questions_data = []
-        for row in report_data["plants_data"][0]["questions_data"]:
+        for row in rows_source:
             questions_data.append({
                 "question": row["question"],
                 "unit": row["unit"],
-                "month_values": [row["month_data"][month["label"]] for month in report_data["months"]],
+                "month_values": [
+                    row["month_data"][month["label"]]
+                    for month in report_data["months"]
+                ],
                 "annual": row["annual"],
             })
 
-        return render(request, self.template_name, {
-            "plant": plant,
-            "user_plants": user_plants,
-            "questions_data": questions_data,
-            "months": [(month["code"], month["label"]) for month in report_data["months"]],
-        })
+        # --- Display title ---
+        if len(selected_plants) == 1:
+            display_title = selected_plants[0].name
+        else:
+            display_title = f"Combined Total ({len(selected_plants)} Plants)"
 
+        context = {
+            "plant": selected_plants[0],              # back-compat
+            "user_plants": user_plants,
+            "all_plants": user_plants,
+            "selected_plant_ids": (
+                [str(pid) for pid in selected_plant_ids]
+                if selected_plant_ids else []
+            ),
+            "selected_plants": selected_plants,
+            "selected_plants_count": len(selected_plants),
+            "display_title": display_title,
+            "aggregate_view": aggregate_view,
+            "questions_data": questions_data,
+            "months": [
+                (month["code"], month["label"])
+                for month in report_data["months"]
+            ],
+        }
+
+        return render(request, self.template_name, context)
 # =========================================================
 # ADMIN VIEW - ALL PLANTS DATA
 # =========================================================
@@ -1181,10 +1224,12 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
     template_name = "data_collection/admin_all_plants.html"
 
     def get(self, request):
+        # --- Permission check ---
         if not (request.user.is_superuser or request.user.is_staff or getattr(request.user, 'is_admin_user', False)):
             messages.error(request, "You don't have permission to access this page")
             return redirect("environmental:plant-entry")
 
+        # --- All active plants for the dropdown ---
         all_plants = Plant.objects.filter(is_active=True).order_by("name")
 
         if not all_plants.exists():
@@ -1194,16 +1239,28 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
         if not questions:
             return render(request, self.template_name, {"no_questions": True})
 
-        selected_plant_ids = request.GET.getlist("plant_ids")
+        # --- Read filters from GET ---
+        selected_plant_ids = request.GET.getlist("plant_ids")   # multi-select
         selected_month = request.GET.get("month", "all")
-        selected_fy = request.GET.get("financial_year") or get_financial_year_label(get_financial_year_start_year())
+        selected_fy = (
+            request.GET.get("financial_year")
+            or get_financial_year_label(get_financial_year_start_year())
+        )
+
+        # --- Month options for the filter dropdown ---
         all_months = get_financial_year_months(selected_fy)
 
-        selected_plants = list(all_plants.filter(id__in=selected_plant_ids)) if selected_plant_ids else list(all_plants)
-        if not selected_plants:
+        # --- Resolve selected plants (empty => all plants) ---
+        if selected_plant_ids:
+            selected_plants = list(all_plants.filter(id__in=selected_plant_ids))
+            if not selected_plants:
+                selected_plants = list(all_plants)
+        else:
             selected_plants = list(all_plants)
 
+        # --- Aggregate when more than 1 plant ---
         aggregate_view = len(selected_plants) != 1
+
         report_data = build_environmental_report(
             plants=selected_plants,
             fy_start_year=selected_fy,
@@ -1212,21 +1269,34 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
             include_attachments=not aggregate_view,
         )
 
-        return render(request, self.template_name, {
+        context = {
+            # filter widgets
             "all_plants": all_plants,
-            "selected_plant_ids": [str(plant.id) for plant in selected_plants],
+            "selected_plant_ids": [str(pid) for pid in selected_plant_ids] if selected_plant_ids else [],
             "selected_month": selected_month,
             "selected_financial_year": selected_fy,
             "financial_year_options": get_financial_year_options(),
             "all_months": all_months,
+
+            # report data
             "months": report_data["months"],
-            "questions_data": report_data["questions_data"] if aggregate_view else report_data["plants_data"][0]["questions_data"],
-            "display_title": "Combined Total" if aggregate_view else selected_plants[0].name,
+            "questions_data": (
+                report_data["questions_data"]
+                if aggregate_view
+                else report_data["plants_data"][0]["questions_data"]
+            ),
+            "display_title": (
+                "Combined Total" if aggregate_view else selected_plants[0].name
+            ),
+
+            # summary stats
             "selected_plants": selected_plants,
             "total_plants": all_plants.count(),
             "selected_plants_count": len(selected_plants),
             "total_questions": len(questions),
-        })
+        }
+
+        return render(request, self.template_name, context)
 
     
 class GetCategoryBaseUnitAPIView(LoginRequiredMixin, View):

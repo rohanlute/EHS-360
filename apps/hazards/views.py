@@ -116,33 +116,97 @@ class HazardDashboardView(LoginRequiredMixin, TemplateView):
 
 class HazardListView(LoginRequiredMixin, ListView):
     """
-    List all hazards with filtering.
-    This view now includes specific logic to restrict data visibility based on user roles.
-    - ADMIN/Superuser can see all hazards.
-    - EMPLOYEE can only see hazards they have personally reported.
-    - Other roles (like PLANT HEAD) see hazards related to their assigned plant.
+    List hazards with filters while preserving role-based data visibility.
+    ADMIN/Superuser: all hazards.
+    EMPLOYEE: only hazards personally reported.
+    Other roles: hazards from their assigned plants, or their own reports
+    when they do not have assigned plants.
     """
     model = Hazard
     template_name = 'hazards/hazard_list.html'
     context_object_name = 'hazards'
     paginate_by = 20
 
+    def get_available_plants(self):
+        """Return only active plants the current user is allowed to view."""
+        user = self.request.user
+        role = getattr(user, 'role', None)
+
+        if user.is_superuser or (role and role.name == 'ADMIN'):
+            return Plant.objects.filter(is_active=True).order_by('name')
+
+        # Employees can only see their own hazard reports, so show only the
+        # plants used by those reports in the filter dropdown.
+        if role and role.name == 'EMPLOYEE':
+            visible_plant_ids = Hazard.objects.filter(
+                reported_by=user,
+                plant__isnull=False
+            ).values_list('plant_id', flat=True).distinct()
+        else:
+            user_plants = user.get_all_plants()
+            if user_plants:
+                # Support either a QuerySet or a list returned by get_all_plants().
+                if hasattr(user_plants, 'values_list'):
+                    visible_plant_ids = user_plants.values_list('pk', flat=True)
+                else:
+                    visible_plant_ids = [
+                        getattr(plant, 'pk', plant) for plant in user_plants
+                    ]
+            else:
+                # Match the queryset fallback for users without assigned plants.
+                visible_plant_ids = Hazard.objects.filter(
+                    reported_by=user,
+                    plant__isnull=False
+                ).values_list('plant_id', flat=True).distinct()
+
+        return Plant.objects.filter(
+            is_active=True,
+            pk__in=visible_plant_ids
+        ).distinct().order_by('name')
+
+    def get_selected_plant_ids(self, available_plants=None):
+        """Validate selected plant IDs against the user's accessible plants."""
+        if available_plants is None:
+            available_plants = self.get_available_plants()
+
+        allowed_ids = set(available_plants.values_list('pk', flat=True))
+        selected_ids = []
+
+        for raw_id in self.request.GET.getlist('plants'):
+            try:
+                plant_id = int(raw_id)
+            except (TypeError, ValueError):
+                continue
+
+            if plant_id in allowed_ids and plant_id not in selected_ids:
+                selected_ids.append(plant_id)
+
+        return selected_ids
+
     def get_queryset(self):
         user = self.request.user
-        
-        queryset = Hazard.objects.select_related('plant', 'location', 'reported_by').order_by('-incident_datetime')
+        role = getattr(user, 'role', None)
 
-        # Role-based filtering
-        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
+        queryset = Hazard.objects.select_related(
+            'plant', 'location', 'reported_by'
+        ).order_by('-incident_datetime')
+
+        # Role-based filtering (existing access rules retained).
+        if user.is_superuser or (role and role.name == 'ADMIN'):
             pass
-        elif hasattr(user, 'role') and user.role and user.role.name == 'EMPLOYEE':
+        elif role and role.name == 'EMPLOYEE':
             queryset = queryset.filter(reported_by=user)
         elif user.get_all_plants():
             queryset = queryset.filter(plant__in=user.get_all_plants()).distinct()
         else:
             queryset = queryset.filter(reported_by=user)
 
-        # Get filter parameters
+        # Multi-plant filter. Multiple selected IDs are treated as OR conditions.
+        selected_plant_ids = self.get_selected_plant_ids()
+        if selected_plant_ids:
+            queryset = queryset.filter(plant_id__in=selected_plant_ids)
+
+        # Get the remaining filter parameters.
         search = self.request.GET.get('search', '')
         hazard_type = self.request.GET.get('hazard_type', '')
         risk_level = self.request.GET.get('risk_level', '')
@@ -152,7 +216,7 @@ class HazardListView(LoginRequiredMixin, ListView):
         assigned_by = self.request.GET.get('assigned_by', '')
         assigned_to = self.request.GET.get('assigned_to', '')
 
-        # Apply filters
+        # Apply the remaining filters.
         if search:
             queryset = queryset.filter(
                 Q(report_number__icontains=search) |
@@ -162,27 +226,34 @@ class HazardListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(hazard_type=hazard_type)
         if risk_level:
             queryset = queryset.filter(severity=risk_level)
+
         queryset = filter_hazards_by_status(queryset, status)
+
         if assigned_by:
             queryset = queryset.filter(reported_by_id=assigned_by)
 
         if assigned_to:
             selected_user = User.objects.filter(id=assigned_to).first()
             if selected_user:
-                queryset = queryset.filter(action_items__responsible_emails__icontains=selected_user.email).distinct()
-        
+                queryset = queryset.filter(
+                    action_items__responsible_emails__icontains=selected_user.email
+                ).distinct()
+
         if date_from:
             queryset = queryset.filter(incident_datetime__date__gte=date_from)
         if date_to:
             queryset = queryset.filter(incident_datetime__date__lte=date_to)
-        
+
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        reported_users = User.objects.filter(hazards_reported__isnull=False)
 
-        assigned_users = User.objects.filter(hazards_assigned__isnull=False)
+        # Plant filter options and selected values.
+        context['filter_plants'] = self.get_available_plants()
+        context['selected_plant_ids'] = self.get_selected_plant_ids(
+            context['filter_plants']
+        )
 
         context['assigned_by_users'] = User.objects.filter(
             hazards_reported__isnull=False,
@@ -191,11 +262,12 @@ class HazardListView(LoginRequiredMixin, ListView):
             is_active_employee=True
         ).distinct().order_by('first_name', 'last_name')
 
-
         from apps.hazards.models import HazardActionItem
         selected_assigned_by = self.request.GET.get('assigned_by', '')
         selected_assigned_to = self.request.GET.get('assigned_to', '')
-        action_items_queryset = HazardActionItem.objects.exclude(responsible_emails='')
+        action_items_queryset = HazardActionItem.objects.exclude(
+            responsible_emails=''
+        )
 
         if selected_assigned_by:
             action_items_queryset = action_items_queryset.filter(
@@ -203,7 +275,6 @@ class HazardListView(LoginRequiredMixin, ListView):
             )
 
         assigned_emails = []
-
         for action in action_items_queryset:
             emails = [
                 email.strip()
@@ -212,51 +283,39 @@ class HazardListView(LoginRequiredMixin, ListView):
             ]
             assigned_emails.extend(emails)
 
-        context['assigned_to_users'] = User.objects.filter(
+        assigned_to_users = User.objects.filter(
             email__in=assigned_emails,
             is_active=True,
             is_superuser=False,
             is_active_employee=True
         ).distinct().order_by('first_name', 'last_name')
 
-        if selected_assigned_to:
-            valid_user_exists = context['assigned_to_users'].filter(
-                id=selected_assigned_to
-            ).exists()
+        if selected_assigned_to and not assigned_to_users.filter(
+            id=selected_assigned_to
+        ).exists():
+            selected_assigned_to = ''
 
-            if not valid_user_exists:
-                selected_assigned_to = ''
-
-        context['assigned_to_users'] = User.objects.filter(
-            email__in=assigned_emails,
-            is_active=True,
-            is_superuser=False,
-            is_active_employee=True
-        ).distinct().order_by('first_name', 'last_name')
-        
-        print("context['assigned_by_users']",context['assigned_by_users'])
-        print("context['assigned_to_users']",context['assigned_to_users'])
-        # Add choices for dropdown filters
+        context['assigned_to_users'] = assigned_to_users
         context['hazard_types'] = Hazard.HAZARD_TYPE_CHOICES
         context['risk_levels'] = Hazard.SEVERITY_CHOICES
         context['status_choices'] = HAZARD_STATUS_FILTER_CHOICES
 
-        # Retain filter values in the form after submission
+        # Retain filter values after submitting the form.
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_hazard_type'] = self.request.GET.get('hazard_type', '')
         context['selected_risk_level'] = self.request.GET.get('risk_level', '')
         context['selected_status'] = self.request.GET.get('status', '')
-        context['selected_assigned_by'] = self.request.GET.get('assigned_by', '')
+        context['selected_assigned_by'] = selected_assigned_by
         context['selected_assigned_to'] = selected_assigned_to
 
+        # QueryDict.copy() retains repeated plants=... parameters for pagination.
         query_params = self.request.GET.copy()
-
-        if "page" in query_params:
-            query_params.pop("page")
-
-        context["query_params"] = query_params
+        if 'page' in query_params:
+            query_params.pop('page')
+        context['query_params'] = query_params
 
         return context
+
 class HazardCreateView(LoginRequiredMixin, CreateView):
     model = Hazard
     form_class = HazardForm
@@ -2155,100 +2214,125 @@ def get_sublocations_by_location(request, location_id):
 class MyActionItemsView(LoginRequiredMixin, ListView):
     """
     Display action items assigned to the logged-in user, reflecting their
-    personal completion status.
+    personal completion status and allowing filtering by multiple plants.
     """
     model = HazardActionItem
     template_name = 'hazards/my_action_items.html'
     context_object_name = 'action_items'
     paginate_by = 20
 
+    def get_available_plants(self):
+        """Return active plants that have action items assigned to this user."""
+        user_email = self.request.user.email
+        if not user_email:
+            return Plant.objects.none()
+
+        assigned_plant_ids = HazardActionItem.objects.filter(
+            responsible_emails__icontains=user_email,
+            hazard__plant__isnull=False
+        ).values_list('hazard__plant_id', flat=True).distinct()
+
+        return Plant.objects.filter(
+            is_active=True,
+            pk__in=assigned_plant_ids
+        ).distinct().order_by('name')
+
+    def get_selected_plant_ids(self, available_plants=None):
+        """Validate requested plant IDs against plants available to this user."""
+        if available_plants is None:
+            available_plants = self.get_available_plants()
+
+        allowed_ids = set(available_plants.values_list('pk', flat=True))
+        selected_ids = []
+
+        for raw_id in self.request.GET.getlist('plants'):
+            try:
+                plant_id = int(raw_id)
+            except (TypeError, ValueError):
+                continue
+
+            if plant_id in allowed_ids and plant_id not in selected_ids:
+                selected_ids.append(plant_id)
+
+        return selected_ids
+
     def get_queryset(self):
         user = self.request.user
-        
-        # Base queryset for items assigned to the user
+
+        # Base queryset remains restricted to action items assigned to this user.
         queryset = HazardActionItem.objects.filter(
             responsible_emails__icontains=user.email
         ).select_related(
-            'hazard', 
-            'hazard__plant', 
+            'hazard',
+            'hazard__plant',
             'hazard__location',
             'created_by'
         ).prefetch_related(
-            'completed_by_users'  # <-- CRITICAL: Prefetch for efficiency
+            'completed_by_users'
         ).order_by('-created_at')
-        
-        # Apply filters
+
+        # Apply the validated multi-plant filter. Multiple plants use OR logic.
+        selected_plant_ids = self.get_selected_plant_ids()
+        if selected_plant_ids:
+            queryset = queryset.filter(hazard__plant_id__in=selected_plant_ids)
+
         status_filter = self.request.GET.get('status', '')
         severity_filter = self.request.GET.get('severity', '')
-        
+
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        
+
         if severity_filter:
             queryset = queryset.filter(hazard__severity=severity_filter)
-        
+
         return queryset
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
         user = self.request.user
-        
-        # Get the full (unpaginated) queryset for accurate stats
+
+        # Only show plant choices that occur in this user's assigned action items.
+        context['filter_plants'] = self.get_available_plants()
+        context['selected_plant_ids'] = self.get_selected_plant_ids(
+            context['filter_plants']
+        )
+
+        # Statistics use the same status, severity and plant filters as the list.
         all_my_items = self.get_queryset()
-        
-        # --- USER-SPECIFIC STATISTICS ---
-        
-        # Items the logged-in user has personally completed
-        # my_completed_items = all_my_items.filter(completed_by_users=user)
-        
-        # Items assigned to the user that they have NOT yet completed
-        # my_pending_items = all_my_items.exclude(completed_by_users=user)
-
-        my_completed_items = all_my_items.filter(completed_by_users__isnull=False).distinct()
-
-        my_pending_items = all_my_items.filter(completed_by_users__isnull=True)
+        my_completed_items = all_my_items.filter(
+            completed_by_users__isnull=False
+        ).distinct()
+        my_pending_items = all_my_items.filter(
+            completed_by_users__isnull=True
+        )
 
         context['total_assigned'] = all_my_items.count()
         context['completed_count'] = my_completed_items.count()
         context['pending_count'] = my_pending_items.count()
-        
-        # An item is "In Progress" if it's pending for the current user,
-        # but has been completed by at least one other person.
         context['in_progress_count'] = my_pending_items.filter(
             status='IN_PROGRESS'
         ).count()
-        
-        # Overdue items are those pending for the current user that are past their target date.
         context['overdue_count'] = my_pending_items.filter(
             target_date__lt=timezone.now().date()
         ).count()
-        
-        # --- ANNOTATE EACH ITEM WITH USER'S COMPLETION STATUS ---
-        # Get the list of items for the current page
+
+        # Mark each listed action item according to its existing completion logic.
         action_items_on_page = context['action_items']
-        
         for item in action_items_on_page:
-            # Check if the current user is among those who completed this item.
-            # This is efficient because of the prefetch_related in get_queryset.
-            # completed_user_ids = {u.id for u in item.completed_by_users.all()}
-            # if user.id in completed_user_ids:
-            #     item.user_has_completed = True
-            # else:
-            #     item.user_has_completed = False
-            # If ANY user completed it, show as completed
             item.user_has_completed = item.completed_by_users.exists()
-        
-        # Filter values
+
         context['selected_status'] = self.request.GET.get('status', '')
         context['selected_severity'] = self.request.GET.get('severity', '')
-        
-        # Choices for filters
         context['status_choices'] = HazardActionItem.STATUS_CHOICES
         context['severity_choices'] = Hazard.SEVERITY_CHOICES
-        
+
+        # Preserve all filters, including repeated plants= values, in pagination.
+        query_params = self.request.GET.copy()
+        query_params.pop('page', None)
+        context['query_params'] = query_params.urlencode()
+
         return context
-    
+
 
 class ActionItemCompleteView(LoginRequiredMixin, UpdateView):
     """

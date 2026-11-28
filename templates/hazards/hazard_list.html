@@ -79,6 +79,56 @@
           </select>
         </div>
 
+        <!-- Multi-Plant Filter -->
+        <div class="col-md-3 mb-2">
+          <div class="dropdown plant-filter-dropdown">
+            <button class="form-control dropdown-toggle text-left plant-filter-toggle"
+                    type="button"
+                    id="plantFilterDropdown"
+                    data-toggle="dropdown"
+                    data-display="static"
+                    aria-haspopup="true"
+                    aria-expanded="false">
+              <i class="fas fa-industry mr-1 text-muted"></i>
+              <span id="plantFilterLabel">All Plants</span>
+            </button>
+
+            <div class="dropdown-menu plant-filter-menu"
+                 aria-labelledby="plantFilterDropdown">
+              <div class="plant-filter-options">
+                <!-- All Plants is the default selection. -->
+                <label class="plant-filter-option plant-filter-all-option">
+                  <input type="checkbox"
+                         id="allPlantsCheckbox"
+                         {% if not selected_plant_ids %}checked{% endif %}>
+                  <span><strong>All Plants</strong></span>
+                </label>
+
+                <div class="dropdown-divider my-1"></div>
+
+                {% for plant in filter_plants %}
+                <label class="plant-filter-option">
+                  <input type="checkbox"
+                         name="plants"
+                         value="{{ plant.pk }}"
+                         class="plant-filter-checkbox"
+                         {% if plant.pk in selected_plant_ids %}checked{% endif %}>
+                  <span>{{ plant.name }}</span>
+                </label>
+                {% empty %}
+                <div class="small text-muted px-2 py-2">No plants available.</div>
+                {% endfor %}
+              </div>
+
+              <div class="plant-filter-footer">
+                <button type="button" class="btn btn-primary btn-sm btn-block" id="donePlantSelection">
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Assigned By Filter -->
         <div class="col-md-3 mb-2">
             <select name="assigned_by"
@@ -516,6 +566,110 @@
   background-color: #f5f5f5;
 }
 
+/* Multi-plant checkbox dropdown - aligned with the existing Bootstrap form controls */
+.plant-filter-dropdown {
+    width: 100%;
+    position: relative;
+}
+
+.plant-filter-dropdown .plant-filter-toggle {
+    width: 100%;
+    height: calc(2.25rem + 2px);
+    padding: .375rem 2rem .375rem .75rem;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    box-shadow: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plant-filter-dropdown .plant-filter-toggle:hover,
+.plant-filter-dropdown .plant-filter-toggle:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .12);
+}
+
+.plant-filter-dropdown .plant-filter-toggle::after {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-25%);
+}
+
+.plant-filter-dropdown .plant-filter-menu,
+.plant-filter-dropdown .plant-filter-menu.show {
+    /* Keep the menu anchored below its field; do not let Popper flip it above. */
+    position: absolute !important;
+    top: 100% !important;
+    bottom: auto !important;
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
+    width: 100%;
+    min-width: 260px;
+    max-height: min(350px, calc(100vh - 120px));
+    margin-top: 2px !important;
+    padding: 8px;
+    overflow: hidden;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-radius: .25rem;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .10);
+    z-index: 1050;
+}
+
+.plant-filter-options {
+    max-height: min(275px, calc(100vh - 195px));
+    overflow-y: auto;
+}
+
+.plant-filter-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    padding: 7px 9px;
+    margin: 0;
+    color: #495057;
+    border-radius: .25rem;
+    cursor: pointer;
+    font-size: .95rem;
+    font-weight: 400;
+}
+
+.plant-filter-option:hover {
+    color: #212529;
+    background-color: #f8f9fa;
+}
+
+.plant-filter-option input {
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: #007bff;
+}
+
+.plant-filter-option span {
+    line-height: 1.35;
+}
+
+.plant-filter-all-option {
+    font-weight: 600;
+}
+
+.plant-filter-footer {
+    padding: 8px 0 0;
+    margin-top: 6px;
+    border-top: 1px solid #dee2e6;
+}
+
 /* Select2 Styling */
 .select2-container {
     width: 100% !important;
@@ -547,6 +701,89 @@
 
 <script>
 window.addEventListener('load', function () {
+
+    // Keep the checkbox menu open while selecting multiple plants.
+    const plantMenu = document.querySelector('.plant-filter-menu');
+    const plantCheckboxes = Array.from(document.querySelectorAll('.plant-filter-checkbox'));
+    const allPlantsCheckbox = document.getElementById('allPlantsCheckbox');
+    const plantLabel = document.getElementById('plantFilterLabel');
+    const donePlantSelectionButton = document.getElementById('donePlantSelection');
+    const plantDropdownToggle = document.getElementById('plantFilterDropdown');
+
+    if (plantMenu) {
+        plantMenu.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+    }
+
+    function updatePlantFilterLabel() {
+        const selectedCount = plantCheckboxes.filter(function (checkbox) {
+            return checkbox.checked;
+        }).length;
+        const allPlantsSelected = allPlantsCheckbox && allPlantsCheckbox.checked;
+        const everyPlantSelected = plantCheckboxes.length > 0 && selectedCount === plantCheckboxes.length;
+
+        if (!plantLabel) return;
+
+        if (allPlantsSelected || selectedCount === 0 || everyPlantSelected) {
+            plantLabel.textContent = 'All Plants';
+        } else if (selectedCount === 1) {
+            plantLabel.textContent = '1 Plant Selected';
+        } else {
+            plantLabel.textContent = selectedCount + ' Plants Selected';
+        }
+    }
+
+    function setAllPlantsMode() {
+        plantCheckboxes.forEach(function (checkbox) {
+            checkbox.checked = false;
+        });
+        if (allPlantsCheckbox) {
+            allPlantsCheckbox.checked = true;
+        }
+        updatePlantFilterLabel();
+    }
+
+    if (allPlantsCheckbox) {
+        allPlantsCheckbox.addEventListener('change', function () {
+            if (allPlantsCheckbox.checked) {
+                setAllPlantsMode();
+            } else if (plantCheckboxes.every(function (checkbox) { return !checkbox.checked; })) {
+                // Keep an explicit All Plants selection when no individual plant is selected.
+                allPlantsCheckbox.checked = true;
+            }
+            updatePlantFilterLabel();
+        });
+    }
+
+    plantCheckboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            if (checkbox.checked && allPlantsCheckbox) {
+                allPlantsCheckbox.checked = false;
+            }
+            if (plantCheckboxes.every(function (item) { return !item.checked; })) {
+                setAllPlantsMode();
+            } else {
+                updatePlantFilterLabel();
+            }
+        });
+    });
+
+    // Done only closes the dropdown. The main Filter button submits the form.
+    if (donePlantSelectionButton) {
+        donePlantSelectionButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (typeof jQuery !== 'undefined' && jQuery.fn.dropdown) {
+                jQuery(plantDropdownToggle).dropdown('hide');
+            } else if (plantDropdownToggle) {
+                plantDropdownToggle.click();
+            }
+        });
+    }
+
+    updatePlantFilterLabel();
 
     if (typeof jQuery !== 'undefined') {
 

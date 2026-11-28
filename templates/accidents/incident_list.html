@@ -43,6 +43,85 @@
 .btn-actions {
     white-space: nowrap;
 }
+
+/* Multi-plant checkbox dropdown */
+.plant-filter-dropdown { width: 100%; position: relative; }
+
+.plant-filter-dropdown .plant-filter-toggle {
+    width: 100%;
+    height: calc(2.25rem + 2px);
+    padding: .375rem 2rem .375rem .75rem;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    box-shadow: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.plant-filter-dropdown .plant-filter-toggle:hover,
+.plant-filter-dropdown .plant-filter-toggle:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .12);
+}
+.plant-filter-dropdown .plant-filter-toggle::after {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-25%);
+}
+.plant-filter-dropdown .plant-filter-menu,
+.plant-filter-dropdown .plant-filter-menu.show {
+    position: absolute !important;
+    top: 100% !important;
+    bottom: auto !important;
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
+    width: 100%;
+    min-width: 260px;
+    max-height: min(350px, calc(100vh - 120px));
+    margin-top: 2px !important;
+    padding: 8px;
+    overflow: hidden;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-radius: .25rem;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .10);
+    z-index: 1050;
+}
+.plant-filter-options {
+    max-height: min(275px, calc(100vh - 195px));
+    overflow-y: auto;
+}
+.plant-filter-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    padding: 7px 9px;
+    margin: 0;
+    color: #495057;
+    border-radius: .25rem;
+    cursor: pointer;
+    font-size: .95rem;
+    font-weight: 400;
+}
+.plant-filter-option:hover { color: #212529; background-color: #f8f9fa; }
+.plant-filter-option input { flex: 0 0 auto; margin: 0; accent-color: #007bff; }
+.plant-filter-option span { line-height: 1.35; }
+.plant-filter-all-option { font-weight: 600; }
+.plant-filter-footer {
+    padding: 8px 0 0;
+    margin-top: 6px;
+    border-top: 1px solid #dee2e6;
+}
 </style>
 {% endblock %}
 
@@ -107,17 +186,52 @@
             </select>
           </div>
 
-          <!-- Plant Filter -->
+          <!-- Multi-Plant Filter -->
           <div class="col-md-2 mb-3">
             <label class="small font-weight-bold">Plant</label>
-            <select name="plant" class="form-control">
-              <option value="">All Plants</option>
-              {% for plant in plants %}
-              <option value="{{ plant.id }}" {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>
-                {{ plant.name }}
-              </option>
-              {% endfor %}
-            </select>
+            <div class="dropdown plant-filter-dropdown">
+              <button class="form-control dropdown-toggle text-left plant-filter-toggle"
+                      type="button"
+                      id="plantFilterDropdown"
+                      data-toggle="dropdown"
+                      data-display="static"
+                      aria-haspopup="true"
+                      aria-expanded="false">
+                <i class="fas fa-industry mr-1 text-muted"></i>
+                <span id="plantFilterLabel">All Plants</span>
+              </button>
+
+              <div class="dropdown-menu plant-filter-menu" aria-labelledby="plantFilterDropdown">
+                <div class="plant-filter-options">
+                  <label class="plant-filter-option plant-filter-all-option">
+                    <input type="checkbox" id="allPlantsCheckbox"
+                           {% if not selected_plant_ids %}checked{% endif %}>
+                    <span><strong>All Plants</strong></span>
+                  </label>
+
+                  <div class="dropdown-divider my-1"></div>
+
+                  {% for plant in filter_plants %}
+                  <label class="plant-filter-option">
+                    <input type="checkbox"
+                           name="plants"
+                           value="{{ plant.pk }}"
+                           class="plant-filter-checkbox"
+                           {% if plant.pk in selected_plant_ids %}checked{% endif %}>
+                    <span>{{ plant.name }}</span>
+                  </label>
+                  {% empty %}
+                  <div class="small text-muted px-2 py-2">No plants available.</div>
+                  {% endfor %}
+                </div>
+
+                <div class="plant-filter-footer">
+                  <button type="button" class="btn btn-primary btn-sm btn-block" id="donePlantSelection">
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Filter Buttons -->
@@ -311,7 +425,7 @@
             <td colspan="8" class="text-center py-5">
               <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
               <p class="text-muted mb-0">No incidents found matching your criteria.</p>
-              {% if search_query or selected_incident_type or selected_status or selected_plant %}
+              {% if search_query or selected_incident_type or selected_status or selected_plant_ids %}
               <a href="{% url 'accidents:incident_list' %}" class="btn btn-sm btn-secondary mt-3">
                 <i class="fas fa-redo mr-1"></i>Clear Filters
               </a>
@@ -329,12 +443,12 @@
       <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_incident_type %}&incident_type={{ selected_incident_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+          <a class="page-link" href="?{{ query_params.urlencode }}&page=1">
             <i class="fas fa-angle-double-left"></i> First
           </a>
         </li>
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_incident_type %}&incident_type={{ selected_incident_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+          <a class="page-link" href="?{{ query_params.urlencode }}&page={{ page_obj.previous_page_number }}">
             <i class="fas fa-angle-left"></i> Previous
           </a>
         </li>
@@ -348,12 +462,12 @@
 
         {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_incident_type %}&incident_type={{ selected_incident_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+          <a class="page-link" href="?{{ query_params.urlencode }}&page={{ page_obj.next_page_number }}">
             Next <i class="fas fa-angle-right"></i>
           </a>
         </li>
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_incident_type %}&incident_type={{ selected_incident_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+          <a class="page-link" href="?{{ query_params.urlencode }}&page={{ page_obj.paginator.num_pages }}">
             Last <i class="fas fa-angle-double-right"></i>
           </a>
         </li>
@@ -368,19 +482,92 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Highlight active row on hover
-    const tableRows = document.querySelectorAll('tbody tr');
-    tableRows.forEach(row => {
-        row.addEventListener('mouseenter', function() {
-            if (!this.querySelector('td[colspan]')) { // Skip empty state row
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ---- Row hover highlight ----
+    document.querySelectorAll('tbody tr').forEach(function (row) {
+        row.addEventListener('mouseenter', function () {
+            if (!this.querySelector('td[colspan]')) {
                 this.style.backgroundColor = '#f0f8ff';
             }
         });
-        row.addEventListener('mouseleave', function() {
+        row.addEventListener('mouseleave', function () {
             this.style.backgroundColor = '';
         });
     });
+
+    // ---- Multi-plant filter ----
+    const plantMenu = document.querySelector('.plant-filter-menu');
+    const plantCheckboxes = Array.from(document.querySelectorAll('.plant-filter-checkbox'));
+    const allPlantsCheckbox = document.getElementById('allPlantsCheckbox');
+    const plantLabel = document.getElementById('plantFilterLabel');
+    const doneBtn = document.getElementById('donePlantSelection');
+    const plantToggle = document.getElementById('plantFilterDropdown');
+
+    // Keep the menu open while ticking several plants
+    if (plantMenu) {
+        plantMenu.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    function updatePlantLabel() {
+        const count = plantCheckboxes.filter(function (c) { return c.checked; }).length;
+        const all = allPlantsCheckbox && allPlantsCheckbox.checked;
+        const everyPlant = plantCheckboxes.length > 0 && count === plantCheckboxes.length;
+
+        if (!plantLabel) return;
+        if (all || count === 0 || everyPlant) {
+            plantLabel.textContent = 'All Plants';
+        } else if (count === 1) {
+            plantLabel.textContent = '1 Plant Selected';
+        } else {
+            plantLabel.textContent = count + ' Plants Selected';
+        }
+    }
+
+    function setAllPlantsMode() {
+        plantCheckboxes.forEach(function (c) { c.checked = false; });
+        if (allPlantsCheckbox) allPlantsCheckbox.checked = true;
+        updatePlantLabel();
+    }
+
+    if (allPlantsCheckbox) {
+        allPlantsCheckbox.addEventListener('change', function () {
+            if (allPlantsCheckbox.checked) {
+                setAllPlantsMode();
+            } else if (plantCheckboxes.every(function (c) { return !c.checked; })) {
+                allPlantsCheckbox.checked = true;
+            }
+            updatePlantLabel();
+        });
+    }
+
+    plantCheckboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            if (checkbox.checked && allPlantsCheckbox) {
+                allPlantsCheckbox.checked = false;
+            }
+            if (plantCheckboxes.every(function (c) { return !c.checked; })) {
+                setAllPlantsMode();
+            } else {
+                updatePlantLabel();
+            }
+        });
+    });
+
+    // "Done" only closes the dropdown; the Filter button submits the form
+    if (doneBtn) {
+        doneBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof jQuery !== 'undefined' && jQuery.fn.dropdown) {
+                jQuery(plantToggle).dropdown('hide');
+            } else if (plantToggle) {
+                plantToggle.click();
+            }
+        });
+    }
+
+    updatePlantLabel();
 });
 </script>
 {% endblock %}

@@ -1,6 +1,7 @@
 {% extends 'base/base.html' %}
 {% load static %}
 {% load custom_tags %}
+
 {% block title %}All Plants Monthly Data{% endblock %}
 {% block page_title %}{% endblock %}
 
@@ -43,50 +44,6 @@
 .filter-box select,
 .filter-box button {
     min-width: 180px;
-}
-
-.checkbox-dropdown {
-    position: relative;
-    min-width: 260px;
-}
-
-.checkbox-toggle {
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: 6px;
-    border: none;
-    font-weight: 600;
-    text-align: left;
-    color: #1e293b;
-    background: #fff;
-}
-
-.checkbox-menu {
-    display: none;
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    right: 0;
-    max-height: 280px;
-    overflow-y: auto;
-    background: #fff;
-    color: #1e293b;
-    border-radius: 8px;
-    padding: 10px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
-    z-index: 20;
-}
-
-.checkbox-menu.show {
-    display: block;
-}
-
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 0;
-    font-weight: 500;
 }
 
 .plant-section {
@@ -174,6 +131,116 @@
     color: #64748b;
     text-decoration: none;
 }
+
+.attachment-link:hover {
+    color: #2563eb;
+}
+
+/* =========================================================
+   Multi-plant checkbox dropdown — Bootstrap 4 / hazard page style
+   ========================================================= */
+.plant-filter-dropdown {
+    width: 100%;
+    position: relative;
+}
+
+.plant-filter-dropdown .plant-filter-toggle {
+    width: 100%;
+    height: calc(2.25rem + 2px);
+    padding: .375rem 2rem .375rem .75rem;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    box-shadow: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.plant-filter-dropdown .plant-filter-toggle:hover,
+.plant-filter-dropdown .plant-filter-toggle:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .12);
+}
+
+.plant-filter-dropdown .plant-filter-toggle::after {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-25%);
+}
+
+.plant-filter-dropdown .plant-filter-menu,
+.plant-filter-dropdown .plant-filter-menu.show {
+    position: absolute !important;
+    top: 100% !important;
+    bottom: auto !important;
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
+    width: 100%;
+    min-width: 260px;
+    max-height: min(350px, calc(100vh - 120px));
+    margin-top: 2px !important;
+    padding: 8px;
+    overflow: hidden;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-radius: .25rem;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .10);
+    z-index: 1050;
+}
+
+.plant-filter-options {
+    max-height: min(275px, calc(100vh - 195px));
+    overflow-y: auto;
+}
+
+.plant-filter-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    padding: 7px 9px;
+    margin: 0;
+    color: #495057;
+    border-radius: .25rem;
+    cursor: pointer;
+    font-size: .95rem;
+    font-weight: 400;
+}
+
+.plant-filter-option:hover {
+    color: #212529;
+    background-color: #f8f9fa;
+}
+
+.plant-filter-option input {
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: #007bff;
+}
+
+.plant-filter-option span {
+    line-height: 1.35;
+}
+
+.plant-filter-all-option {
+    font-weight: 600;
+}
+
+.plant-filter-footer {
+    padding: 8px 0 0;
+    margin-top: 6px;
+    border-top: 1px solid #dee2e6;
+}
 </style>
 {% endblock %}
 
@@ -189,21 +256,57 @@
 
         <form method="get" id="filtersForm">
             <div class="filter-row">
+                <!-- Multi-Plant Filter -->
                 <div class="filter-box">
                     <label>Select Plant</label>
-                    <div class="checkbox-dropdown">
-                        <button type="button" class="checkbox-toggle" id="plantToggle">All plants</button>
-                        <div class="checkbox-menu" id="plantMenu">
-                            {% for plant in all_plants %}
-                            <label class="checkbox-item">
-                                <input type="checkbox" name="plant_ids" value="{{ plant.id }}" {% if plant.id|stringformat:"s" in selected_plant_ids %}checked{% endif %}>
-                                <span>{{ plant.name }}</span>
-                            </label>
-                            {% endfor %}
+                    <div class="dropdown plant-filter-dropdown">
+                        <button class="form-control dropdown-toggle text-left plant-filter-toggle"
+                                type="button"
+                                id="plantFilterDropdown"
+                                data-toggle="dropdown"
+                                data-display="static"
+                                aria-haspopup="true"
+                                aria-expanded="false">
+                            <i class="fas fa-industry mr-1 text-muted"></i>
+                            <span id="plantFilterLabel">All Plants</span>
+                        </button>
+
+                        <div class="dropdown-menu plant-filter-menu"
+                             aria-labelledby="plantFilterDropdown">
+                            <div class="plant-filter-options">
+                                <label class="plant-filter-option plant-filter-all-option">
+                                    <input type="checkbox"
+                                           id="allPlantsCheckbox"
+                                           {% if not selected_plant_ids %}checked{% endif %}>
+                                    <span><strong>All Plants</strong></span>
+                                </label>
+
+                                <div class="dropdown-divider my-1"></div>
+
+                                {% for plant in all_plants %}
+                                <label class="plant-filter-option">
+                                    <input type="checkbox"
+                                           name="plant_ids"
+                                           value="{{ plant.pk }}"
+                                           class="plant-filter-checkbox"
+                                           {% if plant.pk|stringformat:"s" in selected_plant_ids %}checked{% endif %}>
+                                    <span>{{ plant.name }}</span>
+                                </label>
+                                {% empty %}
+                                <div class="small text-muted px-2 py-2">No plants available.</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="plant-filter-footer">
+                                <button type="button" class="btn btn-primary btn-sm btn-block" id="donePlantSelection">
+                                    Done
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Month -->
                 <div class="filter-box">
                     <label>Month</label>
                     <select name="month" class="form-control">
@@ -214,6 +317,7 @@
                     </select>
                 </div>
 
+                <!-- Financial Year -->
                 <div class="filter-box">
                     <label>Financial Year</label>
                     <select name="financial_year" class="form-control">
@@ -223,7 +327,8 @@
                     </select>
                 </div>
 
-                <div class="filter-box">
+                <!-- Buttons -->
+               <div class="filter-box">
                     <label>&nbsp;</label>
                     <button type="submit" class="btn btn-light">Apply Filter</button>
                 </div>
@@ -231,10 +336,11 @@
                     <label>&nbsp;</label>
                     <a href="{% url 'environmental:admin-all-plants' %}" class="btn btn-light">Reset</a>
                 </div>
-
                 <div class="filter-box">
                     <label>&nbsp;</label>
-                    <button type="button" class="btn btn-export" id="exportBtn"><i class="fas fa-file-excel"></i> Export to Excel</button>
+                    <button type="button" class="btn btn-export" id="exportBtn">
+                        <i class="fas fa-file-excel"></i> Export to Excel
+                    </button>
                 </div>
             </div>
         </form>
@@ -285,45 +391,107 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const plantToggle = document.getElementById('plantToggle');
-    const plantMenu = document.getElementById('plantMenu');
-    const checkboxes = Array.from(document.querySelectorAll('input[name="plant_ids"]'));
+window.addEventListener('load', function () {
+
+    const plantMenu = document.querySelector('.plant-filter-menu');
+    const plantCheckboxes = Array.from(document.querySelectorAll('.plant-filter-checkbox'));
+    const allPlantsCheckbox = document.getElementById('allPlantsCheckbox');
+    const plantLabel = document.getElementById('plantFilterLabel');
+    const donePlantSelectionButton = document.getElementById('donePlantSelection');
+    const plantDropdownToggle = document.getElementById('plantFilterDropdown');
     const exportBtn = document.getElementById('exportBtn');
 
-    function updatePlantLabel() {
-        const selected = checkboxes.filter(cb => cb.checked);
-        if (selected.length === 0 || selected.length === checkboxes.length) {
-            plantToggle.textContent = 'All plants';
-        } else if (selected.length === 1) {
-            plantToggle.textContent = selected[0].parentElement.querySelector('span').textContent;
+    if (!plantDropdownToggle) return;
+
+    if (plantMenu) {
+        plantMenu.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+    }
+
+    function updatePlantFilterLabel() {
+        const selectedCount = plantCheckboxes.filter(function (cb) {
+            return cb.checked;
+        }).length;
+        const allSelected = allPlantsCheckbox && allPlantsCheckbox.checked;
+        const everySelected = plantCheckboxes.length > 0 && selectedCount === plantCheckboxes.length;
+
+        if (!plantLabel) return;
+
+        if (allSelected || selectedCount === 0 || everySelected) {
+            plantLabel.textContent = 'All Plants';
+        } else if (selectedCount === 1) {
+            const only = plantCheckboxes.find(function (cb) { return cb.checked; });
+            const span = only && only.parentElement.querySelector('span');
+            plantLabel.textContent = span ? span.textContent.trim() : '1 Plant Selected';
         } else {
-            plantToggle.textContent = selected.length + ' plants selected';
+            plantLabel.textContent = selectedCount + ' Plants Selected';
         }
     }
 
-    plantToggle.addEventListener('click', function () {
-        plantMenu.classList.toggle('show');
+    function setAllPlantsMode() {
+        plantCheckboxes.forEach(function (cb) { cb.checked = false; });
+        if (allPlantsCheckbox) allPlantsCheckbox.checked = true;
+        updatePlantFilterLabel();
+    }
+
+    if (allPlantsCheckbox) {
+        allPlantsCheckbox.addEventListener('change', function () {
+            if (allPlantsCheckbox.checked) {
+                setAllPlantsMode();
+            } else if (plantCheckboxes.every(function (cb) { return !cb.checked; })) {
+                allPlantsCheckbox.checked = true;
+            }
+            updatePlantFilterLabel();
+        });
+    }
+
+    plantCheckboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            if (checkbox.checked && allPlantsCheckbox) {
+                allPlantsCheckbox.checked = false;
+            }
+            if (plantCheckboxes.every(function (item) { return !item.checked; })) {
+                setAllPlantsMode();
+            } else {
+                updatePlantFilterLabel();
+            }
+        });
     });
 
-    document.addEventListener('click', function (event) {
-        if (!plantMenu.contains(event.target) && !plantToggle.contains(event.target)) {
-            plantMenu.classList.remove('show');
-        }
-    });
+    // Done → close menu (does not submit)
+    if (donePlantSelectionButton) {
+        donePlantSelectionButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
 
-    checkboxes.forEach(function (checkbox) {
-        checkbox.addEventListener('change', updatePlantLabel);
-    });
+            if (typeof jQuery !== 'undefined' && jQuery.fn.dropdown) {
+                jQuery(plantDropdownToggle).dropdown('hide');
+            } else if (plantDropdownToggle) {
+                plantDropdownToggle.click();
+            }
+        });
+    }
 
-    exportBtn.addEventListener('click', function () {
-        const params = new URLSearchParams(new FormData(document.getElementById('filtersForm')));
-        window.location.href = "{% url 'environmental:export_excel' %}?" + params.toString();
-    });
+    // Export — sends current filters; if "All Plants" is checked, don't send plant_ids
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function () {
+            var form = document.getElementById('filtersForm');
+            var params = new URLSearchParams(new FormData(form));
 
-    updatePlantLabel();
+            if (allPlantsCheckbox && allPlantsCheckbox.checked) {
+                params.delete('plant_ids');
+            }
+
+            window.location.href = "{% url 'environmental:export_excel' %}?" + params.toString();
+        });
+    }
+
+    updatePlantFilterLabel();
 });
 </script>
 {% endblock %}

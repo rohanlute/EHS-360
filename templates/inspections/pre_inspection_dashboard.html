@@ -6,9 +6,7 @@
 {% block title %}Inspection Dashboard{% endblock %}
 
 {% block extra_css %}
-{# Chart.js ko header me rakhein taki page load hote hi available ho #}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
-{# Naye card design aur overall look ke liye CSS #}
 <style>
   .filter-section {
     background: #fff;
@@ -31,10 +29,90 @@
     margin-left: 0.5rem;
     cursor: pointer;
   }
-  .checkbox-dropdown {
-    position: relative;
+
+  /* ============================================================
+     MULTI-PLANT FILTER — matches Injury Reports style
+     ============================================================ */
+  .plant-filter-dropdown { width: 100%; position: relative; }
+
+  .plant-filter-dropdown .plant-filter-toggle {
     width: 100%;
+    height: calc(2.25rem + 2px);
+    padding: .375rem 2rem .375rem .75rem;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    box-shadow: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
+  .plant-filter-dropdown .plant-filter-toggle:hover,
+  .plant-filter-dropdown .plant-filter-toggle:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .12);
+  }
+  .plant-filter-dropdown .plant-filter-toggle::after {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-25%);
+  }
+  .plant-filter-dropdown .plant-filter-menu,
+  .plant-filter-dropdown .plant-filter-menu.show {
+    position: absolute !important;
+    top: 100% !important;
+    bottom: auto !important;
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
+    width: 100%;
+    min-width: 260px;
+    max-height: min(350px, calc(100vh - 120px));
+    margin-top: 2px !important;
+    padding: 8px;
+    overflow: hidden;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-radius: .25rem;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .10);
+    z-index: 1050;
+  }
+  .plant-filter-options {
+    max-height: min(275px, calc(100vh - 195px));
+    overflow-y: auto;
+  }
+  .plant-filter-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    padding: 7px 9px;
+    margin: 0;
+    color: #495057;
+    border-radius: .25rem;
+    cursor: pointer;
+    font-size: .95rem;
+    font-weight: 400;
+  }
+  .plant-filter-option:hover { color: #212529; background-color: #f8f9fa; }
+  .plant-filter-option input { flex: 0 0 auto; margin: 0; accent-color: #007bff; }
+  .plant-filter-option span { line-height: 1.35; }
+  .plant-filter-all-option { font-weight: 600; }
+  .plant-filter-footer {
+    padding: 8px 0 0;
+    margin-top: 6px;
+    border-top: 1px solid #dee2e6;
+  }
+
+  /* Template checkbox dropdown — unchanged */
+  .checkbox-dropdown { position: relative; width: 100%; }
   .checkbox-toggle {
     width: 100%;
     min-height: calc(1.5em + 0.75rem + 2px);
@@ -50,8 +128,7 @@
     display: none;
     position: absolute;
     top: calc(100% + 6px);
-    left: 0;
-    right: 0;
+    left: 0; right: 0;
     max-height: 280px;
     overflow-y: auto;
     padding: 0.75rem;
@@ -61,199 +138,55 @@
     box-shadow: 0 10px 24px rgba(0,0,0,0.12);
     z-index: 25;
   }
-  .checkbox-menu.show {
-    display: block;
-  }
+  .checkbox-menu.show { display: block; }
   .checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0;
-    margin-bottom: 0;
-    font-size: 0.95rem;
-    cursor: pointer;
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.35rem 0; margin-bottom: 0;
+    font-size: 0.95rem; cursor: pointer;
   }
-  .checkbox-item input {
-    margin: 0;
-  }
+  .checkbox-item input { margin: 0; }
+
+  /* Stat cards / cards / charts — unchanged */
   .stat-card-v2 {
-    display: flex;
-    align-items: center;
-    background-color: #fff;
-    border-radius: 0.75rem;
+    display: flex; align-items: center;
+    background-color: #fff; border-radius: 0.75rem;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    padding: 1.5rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    padding: 1.5rem; transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  .stat-card-v2:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.07);
-  }
+  .stat-card-v2:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.07); }
   .stat-card-v2 .icon-circle {
     width: 60px; height: 60px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .stat-card-v2 .icon-circle i { color: #fff; font-size: 1.75rem; }
   .stat-card-v2 .info { margin-left: 1.25rem; }
-.stat-card-v2 .info .title {
-  display: block;
-  font-size: 0.9rem;
-  color: #6c757d;
-  margin-bottom: 2px;
-  line-height: 1.2;
-}
-
-.stat-card-v2 .info .value {
-  display: block;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #343a40;
-  line-height: 1.2;
-}
-  .stat-card-v2 .info .subtitle { font-size: 0.8rem; color: #adb5bd; }
+  .stat-card-v2 .info .title { display: block; font-size: 0.9rem; color: #6c757d; margin-bottom: 2px; line-height: 1.2; }
+  .stat-card-v2 .info .value { display: block; font-size: 2rem; font-weight: 700; color: #343a40; line-height: 1.2; }
   .icon-circle.bg-blue { background: linear-gradient(135deg, #4e73df, #224abe); }
   .icon-circle.bg-orange { background: linear-gradient(135deg, #f6c23e, #dda20a); }
   .icon-circle.bg-green { background: linear-gradient(135deg, #1cc88a, #13855c); }
   .icon-circle.bg-purple { background: linear-gradient(135deg, #6f42c1, #5a32a3); }
 
-  .ehs-card {
-      background-color: #fff; border: 1px solid #e3e6f0;
-      border-radius: 0.35rem;
-      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-  }
-  .border-left-danger {
-    border-left: 5px solid #e74a3b;
-  }
-  .chart-panel {
-    background: #fff;
-    border: 1px solid #e3e6f0;
-    border-radius: 0.75rem;
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.12);
-    color: #343a40;
-    overflow: hidden;
-  }
-  .metric-pill {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: .8rem;
-    font-weight: 700;
-  }
-  .metric-closed { background: #e8f5e9; color: #1e7e34; }
-  .metric-pending { background: #fff3cd; color: #b8860b; }
-  .metric-progress { background: #d1ecf1; color: #117a8b; }
-  .metric-cancelled { background: #e2e3e5; color: #495057; }
-  .metric-overdue { background: #f8d7da; color: #bd2130; }
-  .metric-late-close { background: #e9d8fd; color: #6f42c1; }
-  .tracker-panel {
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    overflow: hidden;
-  }
-  .tracker-panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 18px;
-    border-bottom: 1px solid #e5e7eb;
-    background: rgba(255,255,255,.92);
-  }
-  .tracker-panel-header .eyebrow {
-    display: block;
-    font-size: .78rem;
-    font-weight: 700;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-  }
-  .tracker-panel-header .tracker-filter-note {
-    display: block;
-    margin-top: 4px;
-    font-size: .9rem;
-    color: #4b5563;
-  }
-  .tracker-panel-header h5 {
-    margin: 6px 0 0;
-    color: #1f2937;
-    font-size: 1.25rem;
-    font-weight: 700;
-  }
-  .chart-mode-toggle {
-    display: inline-flex;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-  .chart-mode-toggle .mode-btn {
-    min-width: 120px;
-    padding: 9px 18px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: #fff;
-    color: #374151;
-    font-size: .95rem;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .chart-mode-toggle .mode-btn.active {
-    background: #4e73df;
-    border-color: #4e73df;
-    color: #fff;
-    box-shadow: 0 8px 16px rgba(78, 115, 223, 0.18);
-  }
-  .tracker-scroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 18px 18px 8px;
-  }
-  .tracker-scroll::-webkit-scrollbar {
-    height: 10px;
-  }
-  .tracker-scroll::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 999px;
-  }
-  .chart-wrap {
-    min-width: 100%;
-    height: 560px;
-  }
-  .chart-wrap canvas {
-    height: 100% !important;
-  }
-  .tracker-status-table {
-    width: 100%;
-    margin: 18px;
-    width: calc(100% - 36px);
-    border-collapse: separate;
-    border-spacing: 0;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    background: #fff;
-    color: #343a40;
-  }
-  .tracker-status-table th,
-  .tracker-status-table td {
-    padding: 14px 18px;
-    border-bottom: 1px solid #edf2f7;
-    text-align: center;
-    font-size: 1rem;
-  }
-  .tracker-status-table th {
-    background: #f8fafc;
-    color: #495057;
-    font-weight: 800;
-  }
-  .tracker-status-table td:first-child,
-  .tracker-status-table th:first-child {
-    text-align: left;
-    font-weight: 800;
-  }
-  .tracker-status-table tbody tr:last-child td {
-    border-bottom: 0;
-  }
+  .ehs-card { background-color: #fff; border: 1px solid #e3e6f0; border-radius: 0.35rem; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); }
+  .border-left-danger { border-left: 5px solid #e74a3b; }
+  .chart-panel { background: #fff; border: 1px solid #e3e6f0; border-radius: 0.75rem; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.12); color: #343a40; overflow: hidden; }
+  .tracker-panel { border: 1px solid #e5e7eb; border-radius: 14px; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); overflow: hidden; }
+  .tracker-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #e5e7eb; background: rgba(255,255,255,.92); }
+  .tracker-panel-header .tracker-filter-note { display: block; margin-top: 4px; font-size: .9rem; color: #4b5563; }
+  .tracker-panel-header h5 { margin: 6px 0 0; color: #1f2937; font-size: 1.25rem; font-weight: 700; }
+  .chart-mode-toggle { display: inline-flex; gap: 10px; flex-shrink: 0; }
+  .chart-mode-toggle .mode-btn { min-width: 120px; padding: 9px 18px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #374151; font-size: .95rem; font-weight: 700; cursor: pointer; }
+  .chart-mode-toggle .mode-btn.active { background: #4e73df; border-color: #4e73df; color: #fff; box-shadow: 0 8px 16px rgba(78, 115, 223, 0.18); }
+  .tracker-scroll { overflow-x: auto; overflow-y: hidden; padding: 18px 18px 8px; }
+  .tracker-scroll::-webkit-scrollbar { height: 10px; }
+  .tracker-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  .chart-wrap { min-width: 100%; height: 560px; }
+  .chart-wrap canvas { height: 100% !important; }
+  .tracker-status-table { width: calc(100% - 36px); margin: 18px; border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; color: #343a40; }
+  .tracker-status-table th, .tracker-status-table td { padding: 14px 18px; border-bottom: 1px solid #edf2f7; text-align: center; font-size: 1rem; }
+  .tracker-status-table th { background: #f8fafc; color: #495057; font-weight: 800; }
+  .tracker-status-table td:first-child, .tracker-status-table th:first-child { text-align: left; font-weight: 800; }
+  .tracker-status-table tbody tr:last-child td { border-bottom: 0; }
   .status-closed { color: #13855c; }
   .status-pending { color: #dda20a; }
   .status-progress { color: #117a8b; }
@@ -262,62 +195,11 @@
   .status-late { color: #6f42c1; }
   .status-total { color: #343a40; font-weight: 800; }
   .status-percent { color: #13855c; }
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .summary-card {
-    border: 1px solid #e9ecef;
-    border-radius: 12px;
-    padding: 14px 16px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  }
-  .summary-card .label {
-    display: block;
-    color: #6c757d;
-    font-size: .8rem;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    margin-bottom: 6px;
-  }
-  .summary-card .value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1f2937;
-    line-height: 1.1;
-  }
-  .summary-card .meta {
-    display: block;
-    margin-top: 6px;
-    color: #6c757d;
-    font-size: .85rem;
-  }
-  .list-group-item:hover {
-        background-color: #f8f9fc;
-  }
   @media (max-width: 991.98px) {
-    .summary-grid {
-      grid-template-columns: 1fr;
-    }
-    .tracker-panel-header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    .chart-mode-toggle {
-      width: 100%;
-    }
-    .chart-mode-toggle .mode-btn {
-      flex: 1;
-      min-width: 0;
-    }
-    .tracker-status-table th,
-    .tracker-status-table td {
-      padding: 10px 12px;
-      font-size: .9rem;
-    }
+    .tracker-panel-header { flex-direction: column; align-items: flex-start; }
+    .chart-mode-toggle { width: 100%; }
+    .chart-mode-toggle .mode-btn { flex: 1; min-width: 0; }
+    .tracker-status-table th, .tracker-status-table td { padding: 10px 12px; font-size: .9rem; }
   }
 </style>
 {% endblock %}
@@ -331,15 +213,58 @@
 <div class="filter-section">
     <form method="GET" action="{% url 'inspections:inspection_dashboard' %}" id="filterForm">
         <div class="row align-items-end">
+
+            <!-- ============================================================
+                 PLANT — multi-select checkbox dropdown (Injury Reports style)
+                 ============================================================ -->
             <div class="col-md-3 mb-3">
-                <label for="plant_filter" class="small font-weight-bold"><i class="fas fa-industry mr-1"></i> Plant</label>
-                <select name="plant" id="plant_filter" class="form-control">
-                    <option value="">All Plants</option>
-                    {% for plant in plants %}
-                    <option value="{{ plant.id }}" {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>{{ plant.name }}</option>
-                    {% endfor %}
-                </select>
+                <label class="small font-weight-bold"><i class="fas fa-industry mr-1"></i> Plant</label>
+                <div class="dropdown plant-filter-dropdown">
+                    <button class="form-control dropdown-toggle text-left plant-filter-toggle"
+                            type="button"
+                            id="plantFilterDropdown"
+                            data-toggle="dropdown"
+                            data-display="static"
+                            aria-haspopup="true"
+                            aria-expanded="false">
+                        <i class="fas fa-industry mr-1 text-muted"></i>
+                        <span id="plantFilterLabel">All Plants</span>
+                    </button>
+
+                    <div class="dropdown-menu plant-filter-menu" aria-labelledby="plantFilterDropdown">
+                        <div class="plant-filter-options">
+                            <label class="plant-filter-option plant-filter-all-option">
+                                <input type="checkbox" id="allPlantsCheckbox"
+                                       {% if not selected_plant_ids %}checked{% endif %}>
+                                <span><strong>All Plants</strong></span>
+                            </label>
+
+                            <div class="dropdown-divider my-1"></div>
+
+                            {% for plant in plants %}
+                            <label class="plant-filter-option">
+                                <input type="checkbox"
+                                       name="plants"
+                                       value="{{ plant.pk }}"
+                                       class="plant-filter-checkbox"
+                                       {% if plant.pk in selected_plant_ids %}checked{% endif %}>
+                                <span>{{ plant.name }}</span>
+                            </label>
+                            {% empty %}
+                            <div class="small text-muted px-2 py-2">No plants available.</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="plant-filter-footer">
+                            <button type="button" class="btn btn-primary btn-sm btn-block" id="donePlantSelection">
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Zone -->
             <div class="col-md-3 mb-3">
                 <label for="zone_filter" class="small font-weight-bold"><i class="fas fa-map-marker-alt mr-1"></i> Zone</label>
                 <select name="zone" id="zone_filter" class="form-control">
@@ -349,6 +274,8 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <!-- Location -->
             <div class="col-md-3 mb-3">
                 <label for="location_filter" class="small font-weight-bold"><i class="fas fa-location-arrow mr-1"></i> Location</label>
                 <select name="location" id="location_filter" class="form-control">
@@ -358,6 +285,8 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <!-- Sub-Location -->
             <div class="col-md-3 mb-3">
                 <label for="sublocation_filter" class="small font-weight-bold"><i class="fas fa-map-pin mr-1"></i> Sub-Location</label>
                 <select name="sublocation" id="sublocation_filter" class="form-control">
@@ -367,6 +296,8 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <!-- Department -->
             <div class="col-md-3 mb-3">
                 <label for="department_filter" class="small font-weight-bold"><i class="fas fa-building mr-1"></i> Department</label>
                 <select name="department" id="department_filter" class="form-control">
@@ -376,6 +307,8 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <!-- Template -->
             <div class="col-md-3 mb-3">
                 <label class="small font-weight-bold d-block"><i class="fas fa-clipboard-list mr-1"></i> Template</label>
                 <div class="checkbox-dropdown">
@@ -390,6 +323,8 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Month -->
             <div class="col-md-3 mb-3">
                 <label for="month_filter" class="small font-weight-bold"><i class="fas fa-calendar mr-1"></i> Month</label>
                 <select name="month" id="month_filter" class="form-control">
@@ -399,6 +334,8 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <!-- Apply -->
             <div class="col-md-3 mb-3">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="fas fa-filter mr-1"></i> Apply Filters
@@ -410,7 +347,7 @@
         <div class="row mt-2">
             <div class="col-12">
                 <strong>Active Filters:</strong>
-                {% if selected_plant_name %}<span class="active-filter-badge">Plant: {{ selected_plant_name }}<i class="fas fa-times" onclick="removeFilter(event, 'plant')"></i></span>{% endif %}
+                {% if selected_plant_name %}<span class="active-filter-badge">Plant: {{ selected_plant_name }}<i class="fas fa-times" onclick="removeFilter(event, 'plants')"></i></span>{% endif %}
                 {% if selected_zone_name %}<span class="active-filter-badge">Zone: {{ selected_zone_name }}<i class="fas fa-times" onclick="removeFilter(event, 'zone')"></i></span>{% endif %}
                 {% if selected_location_name %}<span class="active-filter-badge">Location: {{ selected_location_name }}<i class="fas fa-times" onclick="removeFilter(event, 'location')"></i></span>{% endif %}
                 {% if selected_sublocation_name %}<span class="active-filter-badge">Sub-Location: {{ selected_sublocation_name }}<i class="fas fa-times" onclick="removeFilter(event, 'sublocation')"></i></span>{% endif %}
@@ -531,7 +468,7 @@
     </div>
 </div>
 
-<!-- Overdue Inspections & Top Non-Compliances -->
+<!-- Overdue Inspections -->
 <div class="row mb-4">
     {% if overdue_inspections %}
     <div class="col-12">
@@ -544,7 +481,7 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    {% for schedule in overdue_inspections %}    
+                    {% for schedule in overdue_inspections %}
                     <div class="col-md-4 mb-3">
                         <div class="card border-danger shadow-sm h-100">
                             <div class="card-body">
@@ -559,7 +496,7 @@
                                 </span>
                                 {% if user|has_perm:'VIEW_INSPECTION' %}
                                 <div class="mt-2">
-                                    <a href="{% url 'inspections:schedule_detail' schedule.pk %}" 
+                                    <a href="{% url 'inspections:schedule_detail' schedule.pk %}"
                                     class="btn btn-sm btn-outline-primary">
                                     View Details
                                     </a>
@@ -568,30 +505,15 @@
                             </div>
                         </div>
                     </div>
-                {% endfor %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
-
-    <!-- <div class="{% if overdue_inspections %}col-lg-7{% else %}col-12{% endif %}">
-        <div class="ehs-card">
-            <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-bar mr-2"></i>Top 5 Non-Compliant Questions</h3></div>
-            <div class="card-body">
-                <canvas id="nonComplianceChart" style="min-height: 250px;"></canvas>
-            </div>
-        </div>
-    </div> -->
 </div>
 
-<!-- Action Cards -->
-<div class="row mb-4">
-    
-    </div>
-</div>
-
-<!-- Completed Inspections Table with Pagination -->
+<!-- Completed Inspections Table -->
 <div class="row">
     <div class="col-12">
         <div class="ehs-card">
@@ -634,18 +556,12 @@
                     </table>
                 </div>
 
-                {# PAGINATION CONTROLS #}
-                {# PAGINATION CONTROLS (SAFER VERSION) #}
                 {% if page_obj.has_other_pages %}
                 <nav aria-label="Page navigation" class="mt-4">
                     <ul class="pagination justify-content-end">
-
-                        {# Previous Button #}
                         <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
                             <a class="page-link" href="{% if page_obj.has_previous %}?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}{% else %}#{% endif %}">&laquo;</a>
                         </li>
-
-                        {# Page Numbers #}
                         {% for i in page_obj.paginator.page_range %}
                             {% if page_obj.number == i %}
                                 <li class="page-item active" aria-current="page">
@@ -657,12 +573,9 @@
                                 </li>
                             {% endif %}
                         {% endfor %}
-
-                        {# Next Button #}
                         <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
                             <a class="page-link" href="{% if page_obj.has_next %}?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}{% else %}#{% endif %}">&raquo;</a>
                         </li>
-
                     </ul>
                 </nav>
                 {% endif %}
@@ -681,19 +594,92 @@ function removeFilter(evt, filterName) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+
+    /* ============================================================
+       MULTI-PLANT FILTER (Injury Reports style — Bootstrap dropdown)
+       Only Done button closes the menu; the Filter button submits.
+       ============================================================ */
+    var plantMenu = document.querySelector('.plant-filter-menu');
+    var plantCheckboxes = Array.from(document.querySelectorAll('.plant-filter-checkbox'));
+    var allPlantsCheckbox = document.getElementById('allPlantsCheckbox');
+    var plantLabel = document.getElementById('plantFilterLabel');
+    var plantDoneBtn = document.getElementById('donePlantSelection');
+    var plantToggle = document.getElementById('plantFilterDropdown');
+
+    if (plantMenu) {
+        plantMenu.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    function updatePlantLabel() {
+        if (!plantLabel) return;
+        var count = plantCheckboxes.filter(function (c) { return c.checked; }).length;
+        var all = allPlantsCheckbox && allPlantsCheckbox.checked;
+        var everyPlant = plantCheckboxes.length > 0 && count === plantCheckboxes.length;
+
+        if (all || count === 0 || everyPlant) {
+            plantLabel.textContent = 'All Plants';
+        } else if (count === 1) {
+            plantLabel.textContent = '1 Plant Selected';
+        } else {
+            plantLabel.textContent = count + ' Plants Selected';
+        }
+    }
+
+    function setAllPlantsMode() {
+        plantCheckboxes.forEach(function (c) { c.checked = false; });
+        if (allPlantsCheckbox) allPlantsCheckbox.checked = true;
+        updatePlantLabel();
+    }
+
+    if (allPlantsCheckbox) {
+        allPlantsCheckbox.addEventListener('change', function () {
+            if (allPlantsCheckbox.checked) {
+                setAllPlantsMode();
+            } else if (plantCheckboxes.every(function (c) { return !c.checked; })) {
+                allPlantsCheckbox.checked = true;
+            }
+            updatePlantLabel();
+        });
+    }
+
+    plantCheckboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            if (checkbox.checked && allPlantsCheckbox) {
+                allPlantsCheckbox.checked = false;
+            }
+            if (plantCheckboxes.every(function (c) { return !c.checked; })) {
+                setAllPlantsMode();
+            } else {
+                updatePlantLabel();
+            }
+        });
+    });
+
+    // Done button ONLY closes the dropdown — never submits.
+    if (plantDoneBtn) {
+        plantDoneBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof jQuery !== 'undefined' && jQuery.fn.dropdown) {
+                jQuery(plantToggle).dropdown('hide');
+            } else if (plantToggle) {
+                plantToggle.click();
+            }
+        });
+    }
+
+    updatePlantLabel();
+
+    /* ============================================================
+       TEMPLATE CHECKBOX DROPDOWN (unchanged)
+       ============================================================ */
     var templateToggle = document.getElementById('templateToggle');
     var templateMenu = document.getElementById('templateMenu');
     var templateCheckboxes = templateMenu ? Array.from(templateMenu.querySelectorAll('input[name="template"]')) : [];
 
     function updateTemplateLabel() {
-        if (!templateToggle || !templateCheckboxes.length) {
-            return;
-        }
-
-        var selected = templateCheckboxes.filter(function(checkbox) {
-            return checkbox.checked;
-        });
-
+        if (!templateToggle || !templateCheckboxes.length) return;
+        var selected = templateCheckboxes.filter(function (c) { return c.checked; });
         if (selected.length === 0 || selected.length === templateCheckboxes.length) {
             templateToggle.textContent = 'All Templates';
         } else if (selected.length === 1) {
@@ -704,25 +690,25 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     if (templateToggle && templateMenu) {
-        templateToggle.addEventListener('click', function() {
+        templateToggle.addEventListener('click', function () {
             templateMenu.classList.toggle('show');
         });
-
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             if (!templateMenu.contains(event.target) && !templateToggle.contains(event.target)) {
                 templateMenu.classList.remove('show');
             }
         });
-
-        templateCheckboxes.forEach(function(checkbox) {
-            checkbox.addEventListener('change', updateTemplateLabel);
+        templateCheckboxes.forEach(function (c) {
+            c.addEventListener('change', updateTemplateLabel);
         });
-
         updateTemplateLabel();
     }
 
+    /* ============================================================
+       PLANT CHART (unchanged)
+       ============================================================ */
     var statusCanvas = document.getElementById('inspectionStatusChart');
-    if (statusCanvas) {
+    if (statusCanvas && typeof Chart !== 'undefined') {
         var plantLabels = {{ plant_chart_labels|safe }};
         var plantChartStage = document.getElementById('plantChartStage');
         var chartModeButtons = Array.from(document.querySelectorAll('[data-chart-mode]'));
@@ -737,9 +723,7 @@ document.addEventListener("DOMContentLoaded", function() {
         var statusChart;
 
         function resizePlantChart(mode) {
-            if (!plantChartStage) {
-                return;
-            }
+            if (!plantChartStage) return;
             var rowHeight = mode === 'grouped' ? 86 : 58;
             plantChartStage.style.width = '100%';
             plantChartStage.style.height = Math.max(460, plantLabels.length * rowHeight + 120) + 'px';
@@ -749,11 +733,11 @@ document.addEventListener("DOMContentLoaded", function() {
             var isStacked = mode === 'stacked';
             statusChart.options.scales.xAxes[0].stacked = isStacked;
             statusChart.options.scales.yAxes[0].stacked = isStacked;
-            statusChart.data.datasets.forEach(function(dataset) {
+            statusChart.data.datasets.forEach(function (dataset) {
                 dataset.barPercentage = isStacked ? 0.72 : 0.95;
                 dataset.categoryPercentage = isStacked ? 0.58 : 0.82;
             });
-            chartModeButtons.forEach(function(button) {
+            chartModeButtons.forEach(function (button) {
                 button.classList.toggle('active', button.dataset.chartMode === mode);
             });
             resizePlantChart(mode);
@@ -766,169 +750,45 @@ document.addEventListener("DOMContentLoaded", function() {
             data: {
                 labels: plantLabels,
                 datasets: [
-                    {
-                        label: 'Closed',
-                        data: {{ plant_closed_data|safe }},
-                        backgroundColor: chartColors.closed,
-                        borderColor: chartColors.closed,
-                        borderWidth: 0,
-                        barPercentage: 0.72,
-                        categoryPercentage: 0.58
-                    },
-                    {
-                        label: 'Pending',
-                        data: {{ plant_pending_data|safe }},
-                        backgroundColor: chartColors.pending,
-                        borderColor: chartColors.pending,
-                        borderWidth: 0,
-                        barPercentage: 0.72,
-                        categoryPercentage: 0.58
-                    },
-                    {
-                        label: 'In progress',
-                        data: {{ plant_in_progress_data|safe }},
-                        backgroundColor: chartColors.progress,
-                        borderColor: chartColors.progress,
-                        borderWidth: 0,
-                        barPercentage: 0.72,
-                        categoryPercentage: 0.58
-                    },
-                    {
-                        label: 'Cancelled',
-                        data: {{ plant_cancelled_data|safe }},
-                        backgroundColor: chartColors.cancelled,
-                        borderColor: chartColors.cancelled,
-                        borderWidth: 0,
-                        barPercentage: 0.72,
-                        categoryPercentage: 0.58
-                    },
-                    {
-                        label: 'Overdue',
-                        data: {{ plant_overdue_data|safe }},
-                        backgroundColor: chartColors.overdue,
-                        borderColor: chartColors.overdue,
-                        borderWidth: 0,
-                        barPercentage: 0.72,
-                        categoryPercentage: 0.58
-                    },
-                    {
-                        label: 'Close late',
-                        data: {{ plant_late_close_data|safe }},
-                        backgroundColor: chartColors.late,
-                        borderColor: chartColors.late,
-                        borderWidth: 0,
-                        barPercentage: 0.72,
-                        categoryPercentage: 0.58
-                    }
+                    { label: 'Closed',      data: {{ plant_closed_data|safe }},        backgroundColor: chartColors.closed,    borderColor: chartColors.closed,    borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.58 },
+                    { label: 'Pending',     data: {{ plant_pending_data|safe }},       backgroundColor: chartColors.pending,   borderColor: chartColors.pending,   borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.58 },
+                    { label: 'In progress', data: {{ plant_in_progress_data|safe }},   backgroundColor: chartColors.progress,  borderColor: chartColors.progress,  borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.58 },
+                    { label: 'Cancelled',   data: {{ plant_cancelled_data|safe }},     backgroundColor: chartColors.cancelled, borderColor: chartColors.cancelled, borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.58 },
+                    { label: 'Overdue',     data: {{ plant_overdue_data|safe }},       backgroundColor: chartColors.overdue,   borderColor: chartColors.overdue,   borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.58 },
+                    { label: 'Close late',  data: {{ plant_late_close_data|safe }},    backgroundColor: chartColors.late,      borderColor: chartColors.late,      borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.58 }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 legend: {
-                    display: true,
-                    position: 'top',
-                    align: 'start',
-                    labels: {
-                        fontColor: '#4b5563',
-                        fontSize: 14,
-                        boxWidth: 14,
-                        padding: 22
-                    }
+                    display: true, position: 'top', align: 'start',
+                    labels: { fontColor: '#4b5563', fontSize: 14, boxWidth: 14, padding: 22 }
                 },
                 tooltips: {
-                    mode: 'nearest',
-                    intersect: true,
-                    backgroundColor: '#1f2937',
-                    titleFontColor: '#fff',
-                    bodyFontColor: '#f5f5f5',
-                    borderColor: '#e5e7eb',
-                    borderWidth: 1
+                    mode: 'nearest', intersect: true,
+                    backgroundColor: '#1f2937', titleFontColor: '#fff',
+                    bodyFontColor: '#f5f5f5', borderColor: '#e5e7eb', borderWidth: 1
                 },
                 scales: {
                     xAxes: [{
                         stacked: true,
-                        gridLines: {
-                            color: 'rgba(148, 163, 184, 0.22)',
-                            zeroLineColor: 'rgba(75, 85, 99, 0.28)'
-                        },
-                        ticks: {
-                            beginAtZero: true,
-                            precision: 0,
-                            fontColor: '#6b7280',
-                            fontStyle: 'bold'
-                        }
+                        gridLines: { color: 'rgba(148, 163, 184, 0.22)', zeroLineColor: 'rgba(75, 85, 99, 0.28)' },
+                        ticks: { beginAtZero: true, precision: 0, fontColor: '#6b7280', fontStyle: 'bold' }
                     }],
                     yAxes: [{
                         stacked: true,
-                        gridLines: {
-                            display: false
-                        },
-                        ticks: {
-                            fontColor: '#4b5563',
-                            fontStyle: 'bold',
-                            fontSize: 13
-                        }
+                        gridLines: { display: false },
+                        ticks: { fontColor: '#4b5563', fontStyle: 'bold', fontSize: 13 }
                     }]
                 }
             }
         });
 
-        chartModeButtons.forEach(function(button) {
-            button.addEventListener('click', function() {
-                setChartMode(button.dataset.chartMode);
-            });
+        chartModeButtons.forEach(function (button) {
+            button.addEventListener('click', function () { setChartMode(button.dataset.chartMode); });
         });
     }
-
-    var nonComplianceCanvas = document.getElementById('nonComplianceChart');
-    if (!nonComplianceCanvas) {
-        return;
-    }
-
-    new Chart(nonComplianceCanvas.getContext('2d'), {
-        type: 'horizontalBar',
-        data: {
-            labels: {{ non_compliant_labels|safe }},
-            datasets: [{
-                label: 'No. of Non-Compliances',
-                data: {{ non_compliant_data|safe }},
-                backgroundColor: 'rgba(231, 74, 59, 0.7)',
-                borderColor: 'rgba(231, 74, 59, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            legend: { display: false },
-            scales: {
-                xAxes: [{
-                    ticks: { beginAtZero: true, stepSize: 1 }
-                }],
-                yAxes: [{
-                    ticks: {
-                        // Callback to truncate long labels
-                        callback: function(value) {
-                            if (value.length > 40) {
-                                return value.substring(0, 40) + '...';
-                            }
-                            return value;
-                        }
-                    }
-                }]
-            },
-            tooltips: {
-                // Custom tooltip to show full label
-                callbacks: {
-                    title: function(tooltipItem, data) {
-                        return data.labels[tooltipItem[0].index];
-                    }
-                }
-            }
-        }
-    });
 });
 </script>
-
 {% endblock %}

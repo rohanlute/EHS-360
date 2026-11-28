@@ -1,11 +1,14 @@
 {% extends 'base/base.html' %}
 {% load static %}
+
 {% block page_title %}{% endblock %}
+
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
 <li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
 <li class="breadcrumb-item active">No Answers List</li>
 {% endblock %}
+
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
@@ -285,6 +288,7 @@
 .ehs-clear-btn:hover {
     background: #eef2f6;
 }
+
 .select2-container--default .select2-selection--single {
     height: 42px !important;
     border: 1px solid #dbe2ea !important;
@@ -320,8 +324,115 @@
 .select2-results__option--highlighted {
     background: #2563eb !important;
 }
+
+/* =========================================================
+   Multi-plant checkbox dropdown — same pattern as hazard page
+   ========================================================= */
+.plant-filter-dropdown {
+    width: 100%;
+    position: relative;
+}
+
+.plant-filter-dropdown .plant-filter-toggle {
+    width: 100%;
+    height: calc(2.25rem + 2px);
+    padding: .375rem 2rem .375rem .75rem;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #dbe2ea;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.plant-filter-dropdown .plant-filter-toggle:hover,
+.plant-filter-dropdown .plant-filter-toggle:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #3b82f6;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+
+.plant-filter-dropdown .plant-filter-toggle::after {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-25%);
+}
+
+.plant-filter-dropdown .plant-filter-menu,
+.plant-filter-dropdown .plant-filter-menu.show {
+    position: absolute !important;
+    top: 100% !important;
+    bottom: auto !important;
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
+    width: 100%;
+    min-width: 260px;
+    max-height: min(350px, calc(100vh - 120px));
+    margin-top: 2px !important;
+    padding: 8px;
+    overflow: hidden;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-radius: 12px;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .10);
+    z-index: 1050;
+}
+
+.plant-filter-options {
+    max-height: min(275px, calc(100vh - 195px));
+    overflow-y: auto;
+}
+
+.plant-filter-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    padding: 7px 9px;
+    margin: 0;
+    color: #495057;
+    border-radius: .25rem;
+    cursor: pointer;
+    font-size: .95rem;
+    font-weight: 400;
+}
+
+.plant-filter-option:hover {
+    color: #212529;
+    background-color: #f8fafc;
+}
+
+.plant-filter-option input {
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: #3b82f6;
+}
+
+.plant-filter-option span {
+    line-height: 1.35;
+}
+
+.plant-filter-all-option {
+    font-weight: 600;
+}
+
+.plant-filter-footer {
+    padding: 8px 0 0;
+    margin-top: 6px;
+    border-top: 1px solid #dee2e6;
+}
 </style>
 {% endblock %}
+
 {% block content %}
 <div class="container-fluid">
 
@@ -339,139 +450,143 @@
             </div>
         </div>
 
-        <a href="{% url 'inspections:inspection_dashboard' %}" 
+        <a href="{% url 'inspections:inspection_dashboard' %}"
             class="btn btn-light ehs-back-btn">
             <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
         </a>
     </div>
 
-    {% comment %} <!-- Stats -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm text-center p-3">
-                <div class="text-danger mb-1"><i class="fas fa-times-circle fa-2x"></i></div>
-                <h3 class="fw-bold mb-0">{{ total_no_answers }}</h3>
-                <small class="text-muted">Total Non-Compliant</small>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm text-center p-3">
-                <div class="text-warning mb-1"><i class="fas fa-star fa-2x"></i></div>
-                <h3 class="fw-bold mb-0">{{ critical_no_answers }}</h3>
-                <small class="text-muted">Critical Items</small>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm text-center p-3">
-                <div class="text-success mb-1"><i class="fas fa-shield-alt fa-2x"></i></div>
-                <h3 class="fw-bold mb-0">{{ converted_hazards_count }}</h3>
-                <small class="text-muted">Converted to Hazards</small>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm text-center p-3">
-                <div class="text-info mb-1"><i class="fas fa-clock fa-2x"></i></div>
-                <h3 class="fw-bold mb-0">{{ pending_count }}</h3>
-                <small class="text-muted">Pending Assignment</small>
-            </div>
-        </div>
-    </div> {% endcomment %}
-
     <!-- Filters -->
     <div class="ehs-filter-wrapper mb-4">
-    <div class="ehs-filter-card">
-        <div class="ehs-filter-header">
-            <div>
-                <h6 class="mb-0 fw-bold">
-                    <i class="fas fa-filter text-primary me-2"></i>
-                    Filters
-                </h6>
-                <small class="text-muted">Refine non-compliant results</small>
+        <div class="ehs-filter-card">
+            <div class="ehs-filter-header">
+                <div>
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-filter text-primary me-2"></i>
+                        Filters
+                    </h6>
+                    <small class="text-muted">Refine non-compliant results</small>
+                </div>
+
+                <a href="{% url 'inspections:no_answers_list' %}"
+                   class="btn btn-light btn-sm ehs-clear-btn">
+                    <i class="fas fa-rotate-left me-1"></i> Reset
+                </a>
             </div>
 
-            <a href="{% url 'inspections:no_answers_list' %}" 
-               class="btn btn-light btn-sm ehs-clear-btn">
-                <i class="fas fa-rotate-left me-1"></i> Reset
-            </a>
-        </div>
+            <div class="ehs-filter-body">
+                <form method="get" class="row g-3" id="filtersForm">
 
-        <div class="ehs-filter-body">
-            <form method="get" class="row g-3">
-                <!-- KEEP your existing filter fields exactly same here -->
+                    <!-- MULTI-PLANT FILTER -->
+                    <div class="col-md-2">
+                        <label>Plant</label>
+                        <div class="dropdown plant-filter-dropdown">
+                            <button class="form-control dropdown-toggle text-left plant-filter-toggle"
+                                    type="button"
+                                    id="plantFilterDropdown"
+                                    data-toggle="dropdown"
+                                    data-display="static"
+                                    aria-haspopup="true"
+                                    aria-expanded="false">
+                                <i class="fas fa-industry mr-1 text-muted"></i>
+                                <span id="plantFilterLabel">All Plants</span>
+                            </button>
 
-                <div class="col-md-2">
-                    <label>Plant</label>
-                    <select name="plant" class="form-control">
-                        <option value="">All Plants</option>
-                        {% for plant in plants %}
-                        <option value="{{ plant.id }}" {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>
-                            {{ plant.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                            <div class="dropdown-menu plant-filter-menu"
+                                 aria-labelledby="plantFilterDropdown">
+                                <div class="plant-filter-options">
+                                    <label class="plant-filter-option plant-filter-all-option">
+                                        <input type="checkbox"
+                                               id="allPlantsCheckbox"
+                                               {% if not selected_plant_ids %}checked{% endif %}>
+                                        <span><strong>All Plants</strong></span>
+                                    </label>
 
-                <div class="col-md-2">
-                    <label>Category</label>
-                    <select name="category" class="form-control">
-                        <option value="">All Categories</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
-                            {{ cat.category_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                                    <div class="dropdown-divider my-1"></div>
 
-                <div class="col-md-2">
-                    <label>Priority</label>
-                    <select name="priority" class="form-control">
-                        <option value="">All Items</option>
-                        <option value="critical" {% if selected_priority == 'critical' %}selected{% endif %}>
-                            Critical Only
-                        </option>
-                    </select>
-                </div>
+                                    {% for plant in plants %}
+                                    <label class="plant-filter-option">
+                                        <input type="checkbox"
+                                               name="plants"
+                                               value="{{ plant.pk }}"
+                                               class="plant-filter-checkbox"
+                                               {% if plant.pk in selected_plant_ids %}checked{% endif %}>
+                                        <span>{{ plant.name }}</span>
+                                    </label>
+                                    {% empty %}
+                                    <div class="small text-muted px-2 py-2">No plants available.</div>
+                                    {% endfor %}
+                                </div>
 
-                <div class="col-md-2">
-                    <label>From Date</label>
-                    <input type="date" name="date_from" class="form-control"
-                           value="{{ date_from|default:'' }}">
-                </div>
+                                <div class="plant-filter-footer">
+                                    <button type="button" class="btn btn-primary btn-sm btn-block" id="donePlantSelection">
+                                        Done
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="col-md-2">
-                    <label>To Date</label>
-                    <input type="date" name="date_to" class="form-control"
-                           value="{{ date_to|default:'' }}">
-                </div>
+                    <div class="col-md-2">
+                        <label>Category</label>
+                        <select name="category" class="form-control">
+                            <option value="">All Categories</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
+                                {{ cat.category_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                <div class="col-md-2">
-                    <label>Search</label>
-                    <input type="text" name="search" class="form-control"
-                           placeholder="Question / Code..."
-                           value="{{ search|default:'' }}">
-                </div>
+                    <div class="col-md-2">
+                        <label>Priority</label>
+                        <select name="priority" class="form-control">
+                            <option value="">All Items</option>
+                            <option value="critical" {% if selected_priority == 'critical' %}selected{% endif %}>
+                                Critical Only
+                            </option>
+                        </select>
+                    </div>
 
-                <div class="col-12 mt-2">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-search mr-1"></i> Filter
-                    </button>
+                    <div class="col-md-2">
+                        <label>From Date</label>
+                        <input type="date" name="date_from" class="form-control"
+                               value="{{ date_from|default:'' }}">
+                    </div>
 
-                    <a href="{% url 'inspections:no_answers_list' %}"
-                       class="btn btn-outline-secondary btn-sm ml-2">
-                        <i class="fas fa-times mr-1"></i> Clear
-                    </a>
-                </div>
+                    <div class="col-md-2">
+                        <label>To Date</label>
+                        <input type="date" name="date_to" class="form-control"
+                               value="{{ date_to|default:'' }}">
+                    </div>
 
-            </form>
+                    <div class="col-md-2">
+                        <label>Search</label>
+                        <input type="text" name="search" class="form-control"
+                               placeholder="Question / Code..."
+                               value="{{ search|default:'' }}">
+                    </div>
+
+                    <div class="col-12 mt-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-search mr-1"></i> Filter
+                        </button>
+
+                        <a href="{% url 'inspections:no_answers_list' %}"
+                           class="btn btn-outline-secondary btn-sm ml-2">
+                            <i class="fas fa-times mr-1"></i> Clear
+                        </a>
+                    </div>
+
+                </form>
+            </div>
         </div>
     </div>
-    </div>
 
-    <!-- Main Table --> 
+    <!-- Main Table -->
     <div class="card shadow-sm">
         {% if is_admin %}
-        <!-- Bulk assign bar — only visible when checkboxes selected -->
         <div id="bulkActionsBar" style="display:none;" class="px-3 pt-3">
             <span class="text-muted me-3" id="selectedCount">0 selected</span>
             <button type="button" class="btn btn-primary btn-sm" id="openAssignModalBtn">
@@ -501,9 +616,7 @@
                                 <tr>
                                     {% if is_admin %}
                                     <th class="text-center" style="width:50px;">
-                                        <input type="checkbox"
-                                            id="selectAll"
-                                            class="form-check-input">
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
                                     </th>
                                     {% endif %}
                                     <th style="width:60px;">#</th>
@@ -713,19 +826,19 @@
         <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                <a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">
                     <i class="fas fa-chevron-left"></i>
                 </a>
             </li>
             {% endif %}
             {% for num in page_obj.paginator.page_range %}
             <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}">{{ num }}</a>
+                <a class="page-link" href="?{{ querystring }}&page={{ num }}">{{ num }}</a>
             </li>
             {% endfor %}
             {% if page_obj.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                <a class="page-link" href="?{{ querystring }}&page={{ page_obj.next_page_number }}">
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </li>
@@ -850,11 +963,11 @@
                 <div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">
-                            Specific Location 
+                            Specific Location
                         </label>
                         <textarea type="text" name="specific_location" id="specificLocationInput" class="form-control" placeholder="Enter exact location (e.g. Line 3, PAnel Area)"></textarea>
                     </div>
-                </div>    
+                </div>
             </form>
             </div>
             <!-- Error message -->
@@ -873,155 +986,6 @@
 {% endif %}
 
 
-<!-- ============================================================
-     MODAL 2: Convert to Hazard
-     Visible to ALL users — shown when Convert button is clicked
-============================================================ -->
-{% comment %} <div class="modal fade" id="convertHazardModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle"></i> Convert to Hazard Report
-                </h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            </div>
-            <div class="modal-body">
-
-                <!-- Source info summary -->
-                <div class="alert alert-light border mb-4">
-                    <div class="row align-items-start">
-                        <div class="col-md-10">
-                            <p class="mb-1">
-                                <strong>Question:</strong>
-                                <span id="modalQuestionCode" class="badge bg-primary ms-1"></span>
-                                <span id="modalCriticalBadge" class="badge bg-danger ms-1 d-none">
-                                    <i class="fas fa-star"></i> CRITICAL
-                                </span>
-                            </p>
-                            <p class="mb-1 small text-dark" id="modalQuestionText"></p>
-                            <p class="mb-1 small">
-                                <strong>Category:</strong>
-                                <span id="modalCategory" class="badge bg-secondary ms-1"></span>
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                <strong>Inspection:</strong>
-                                <span id="modalSchedule"></span> |
-                                <strong>Plant:</strong>
-                                <span id="modalPlant"></span>
-                            </p>
-                        </div>
-                    </div>
-                    <div id="modalRemarksBlock" class="mt-2 small text-muted d-none">
-                        <i class="fas fa-comment text-info"></i>
-                        <em id="modalRemarksText"></em>
-                    </div>
-                    <div id="modalAssignRemarksBlock" class="mt-1 small text-primary d-none">
-                        <i class="fas fa-sticky-note"></i>
-                        <em id="modalAssignRemarksText"></em>
-                    </div>
-                </div>
-
-                <form id="convertHazardForm">
-                    {% csrf_token %}
-                    <input type="hidden" id="convertResponseId" value="">
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">
-                                Hazard Type <span class="text-danger">*</span>
-                            </label>
-                            <select name="hazard_type" id="hazardTypeSelect" class="form-select" required>
-                                <option value="">-- Select Type --</option>
-                                <option value="UC" selected>Unsafe Condition</option>
-                                <option value="UA">Unsafe Act</option>
-                                <option value="NM">Near Miss</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">
-                                Hazard Category <span class="text-danger">*</span>
-                            </label>
-                            <select name="hazard_category" id="hazardCategorySelect" class="form-select" required>
-                                <option value="">-- Select Category --</option>
-                                <option value="electrical">Electrical</option>
-                                <option value="machine_guarding">Machine Guarding</option>
-                                <option value="height_work">Height work</option>
-                                <option value="fire">Fire</option>
-                                <option value="vehicle_including_forklift">Vehicle including forklift</option>
-                                <option value="ppe_violation">PPE Violation</option>
-                                <option value="asbestos_spillage_bag_torn">Asbestos Spillage/Bag Torn</option>
-                                <option value="hot_work">Hot work</option>
-                                <option value="loto">LOTO</option>
-                                <option value="sop_violations">SOP Violations</option>
-                                <option value="unsafe_storage">Unsafe Storage</option>
-                                <option value="slip_trip">Slip Trip</option>
-                                <option value="noise">Noise</option>
-                                <option value="illumination">Illumination</option>
-                                <option value="dust_collection_ventillation">Dust collection / Ventillation</option>
-                                <option value="legal_compliance">Legal Compliance</option>
-                                <option value="others" selected>Others</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">
-                                Severity <span class="text-danger">*</span>
-                            </label>
-                            <select name="severity" id="severitySelect" class="form-select" required>
-                                <option value="">-- Select Severity --</option>
-                                <option value="low">Low — 30 days deadline</option>
-                                <option value="medium">Medium — 15 days deadline</option>
-                                <option value="high">High — 7 days deadline</option>
-                                <option value="critical">Critical — 1 day deadline</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Action Deadline</label>
-                            <div class="alert alert-secondary mb-0 py-2" id="deadlinePreview">
-                                <small>
-                                    <i class="fas fa-calendar-alt"></i>
-                                    Select severity to see deadline
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Immediate Action Taken / Recommended</label>
-                        <textarea name="immediate_action" id="immediateActionText"
-                                  class="form-control" rows="3"
-                                  placeholder="Describe any immediate steps taken or recommended..."></textarea>
-                    </div>
-                    <div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                Specific Location 
-                            </label>
-                            <textarea type="text" name="specific_location" id="specificLocationInput" class="form-control" placeholder="Enter exact location (e.g. Line 3, PAnel Area)"></textarea>
-                        </div>
-                    </div>    
-                </form>
-
-                <!-- Error message -->
-                <div class="alert alert-danger d-none mt-2" id="convertError"></div>
-
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-                <button type="button" class="btn btn-warning fw-bold" id="submitConvertBtn">
-                    <i class="fas fa-exclamation-triangle"></i> Create Hazard Report
-                </button>
-            </div>
-        </div>
-    </div>
-</div> {% endcomment %}
-
-
 <!-- Success Toast -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
     <div id="successToast" class="toast align-items-center text-white bg-success border-0">
@@ -1037,6 +1001,94 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
+    // ============================================================
+    // MULTI-PLANT DROPDOWN
+    // ============================================================
+    const plantMenu = document.querySelector('.plant-filter-menu');
+    const plantCheckboxes = Array.from(document.querySelectorAll('.plant-filter-checkbox'));
+    const allPlantsCheckbox = document.getElementById('allPlantsCheckbox');
+    const plantLabel = document.getElementById('plantFilterLabel');
+    const donePlantSelectionButton = document.getElementById('donePlantSelection');
+    const plantDropdownToggle = document.getElementById('plantFilterDropdown');
+
+    if (plantDropdownToggle) {
+
+        if (plantMenu) {
+            plantMenu.addEventListener('click', function (event) {
+                event.stopPropagation();
+            });
+        }
+
+        function updatePlantFilterLabel() {
+            const selectedCount = plantCheckboxes.filter(function (cb) {
+                return cb.checked;
+            }).length;
+            const allSelected = allPlantsCheckbox && allPlantsCheckbox.checked;
+            const everySelected = plantCheckboxes.length > 0 && selectedCount === plantCheckboxes.length;
+
+            if (!plantLabel) return;
+
+            if (allSelected || selectedCount === 0 || everySelected) {
+                plantLabel.textContent = 'All Plants';
+            } else if (selectedCount === 1) {
+                const only = plantCheckboxes.find(function (cb) { return cb.checked; });
+                const span = only && only.parentElement.querySelector('span');
+                plantLabel.textContent = span ? span.textContent.trim() : '1 Plant Selected';
+            } else {
+                plantLabel.textContent = selectedCount + ' Plants Selected';
+            }
+        }
+
+        function setAllPlantsMode() {
+            plantCheckboxes.forEach(function (cb) { cb.checked = false; });
+            if (allPlantsCheckbox) allPlantsCheckbox.checked = true;
+            updatePlantFilterLabel();
+        }
+
+        if (allPlantsCheckbox) {
+            allPlantsCheckbox.addEventListener('change', function () {
+                if (allPlantsCheckbox.checked) {
+                    setAllPlantsMode();
+                } else if (plantCheckboxes.every(function (cb) { return !cb.checked; })) {
+                    allPlantsCheckbox.checked = true;
+                }
+                updatePlantFilterLabel();
+            });
+        }
+
+        plantCheckboxes.forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                if (checkbox.checked && allPlantsCheckbox) {
+                    allPlantsCheckbox.checked = false;
+                }
+                if (plantCheckboxes.every(function (item) { return !item.checked; })) {
+                    setAllPlantsMode();
+                } else {
+                    updatePlantFilterLabel();
+                }
+            });
+        });
+
+        // Done button → close menu without submitting
+        if (donePlantSelectionButton) {
+            donePlantSelectionButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (typeof jQuery !== 'undefined' && jQuery.fn.dropdown) {
+                    jQuery(plantDropdownToggle).dropdown('hide');
+                } else if (plantDropdownToggle) {
+                    plantDropdownToggle.click();
+                }
+            });
+        }
+
+        updatePlantFilterLabel();
+    }
+
+    // ============================================================
+    // SELECT2 INIT INSIDE ASSIGN MODAL
+    // ============================================================
     $('#assignModal').on('shown.bs.modal', function () {
 
         if ($('#assignToSelect').hasClass("select2-hidden-accessible")) {
@@ -1142,7 +1194,6 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('assignmentRemarksHidden').value =
                 document.getElementById('assignRemarksInput').value;
 
-            // Hazard Details
             document.getElementById('hazardTypeHidden').value =
                 $('#hazardTypeSelect').val();
 
@@ -1158,16 +1209,13 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('specificLocationHidden').value =
                 $('#specificLocationInput').val();
 
-            // Submit form
             document.getElementById('assignForm').submit();
         });
     }
 
-
     // ============================================================
     // CONVERT TO HAZARD MODAL
     // ============================================================
-
     const severitySelect = document.getElementById('severitySelect');
     const deadlinePreview = document.getElementById('deadlinePreview');
     const convertError = document.getElementById('convertError');
@@ -1181,10 +1229,6 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     let isConvertSubmitting = false;
-
-    // ---------------------------
-    // OPEN CONVERT MODAL
-    // ---------------------------
 
     document.querySelectorAll('.convert-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -1212,7 +1256,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const critBadge = document.getElementById('modalCriticalBadge');
             critBadge.classList.toggle('d-none', !isCritical);
 
-            // Remarks
             const remarksBlock = document.getElementById('modalRemarksBlock');
             if (this.dataset.remarks) {
                 remarksBlock.classList.remove('d-none');
@@ -1222,7 +1265,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 remarksBlock.classList.add('d-none');
             }
 
-            // Assignment remarks
             const assignBlock = document.getElementById('modalAssignRemarksBlock');
             if (this.dataset.assignmentRemarks) {
                 assignBlock.classList.remove('d-none');
@@ -1232,12 +1274,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 assignBlock.classList.add('d-none');
             }
 
-            // Reset form
             document.getElementById('hazardTypeSelect').value = 'UC';
             document.getElementById('hazardCategorySelect').value = '';
             severitySelect.value = isCritical ? 'high' : 'medium';
 
-            // Reset
             document.getElementById('immediateActionText').value = '';
             convertError.classList.add('d-none');
             submitConvertBtn.disabled = false;
@@ -1247,8 +1287,6 @@ document.addEventListener('DOMContentLoaded', function () {
             $('#convertHazardModal').modal('show');
         });
     });
-
-    // Update deadline when severity changes
 
     function updateDeadline() {
         const severity = severitySelect.value;
@@ -1291,10 +1329,6 @@ document.addEventListener('DOMContentLoaded', function () {
         severitySelect.addEventListener('change', updateDeadline);
     }
 
-    // ---------------------------
-    // SAFE CONVERT SUBMIT
-    // ---------------------------
-
     if (submitConvertBtn) {
 
         submitConvertBtn.addEventListener('click', function () {
@@ -1314,8 +1348,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const immediateAction =
                 document.getElementById('immediateActionText').value;
-        
-            const specificLocation = 
+
+            const specificLocation =
                 document.getElementById('specificLocationInput').value;
 
             const csrfToken =

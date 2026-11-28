@@ -270,9 +270,14 @@ class IncidentListView(LoginRequiredMixin, ListView):
         if status:
             queryset = queryset.filter(status=status)
         
-        plant = self.request.GET.get('plant')
-        if plant:
-            queryset = queryset.filter(plant_id=plant)
+        # Multi-plant filter (?plants=1&plants=2...), still supports the old ?plant=1 links
+        plant_ids = [p for p in self.request.GET.getlist('plants') if p.isdigit()]
+        legacy_plant = self.request.GET.get('plant')
+        if legacy_plant and legacy_plant.isdigit() and legacy_plant not in plant_ids:
+            plant_ids.append(legacy_plant)
+
+        if plant_ids:
+            queryset = queryset.filter(plant_id__in=plant_ids)
         
         date_from = self.request.GET.get('date_from')
         if date_from:
@@ -286,14 +291,39 @@ class IncidentListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user = self.request.user
         from apps.organizations.models import Plant
-        context['plants'] = Plant.objects.filter(is_active=True)
+
+        # Plants shown in the dropdown (only the ones the user can access)
+        filter_plants = Plant.objects.filter(is_active=True)
+        is_admin = user.is_superuser or (
+            hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'
+        )
+        if not is_admin:
+            user_plants = user.get_all_plants()
+            if user_plants:
+                filter_plants = filter_plants.filter(
+                    pk__in=[p.pk for p in user_plants]
+                )
+        context['filter_plants'] = filter_plants.order_by('name')
+
+        # Selected plant ids (as ints so the template can compare them)
+        selected_ids = [int(p) for p in self.request.GET.getlist('plants') if p.isdigit()]
+        legacy_plant = self.request.GET.get('plant')
+        if legacy_plant and legacy_plant.isdigit() and int(legacy_plant) not in selected_ids:
+            selected_ids.append(int(legacy_plant))
+        context['selected_plant_ids'] = selected_ids
+
+        # Query string without `page`, used by pagination links
+        query_params = self.request.GET.copy()
+        query_params.pop('page', None)
+        context['query_params'] = query_params
+
         context['incident_types'] = IncidentType.objects.filter(is_active=True).order_by('name')
         context['status_choices'] = Incident.STATUS_CHOICES
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_incident_type'] = self.request.GET.get('incident_type', '')
         context['selected_status'] = self.request.GET.get('status', '')
-        context['selected_plant'] = self.request.GET.get('plant', '')
         return context
 
 
